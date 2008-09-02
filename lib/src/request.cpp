@@ -20,10 +20,10 @@
 
 #include <fastcgi++/request.hpp>
 
-template int Fastcgi::Fcgistream<char, std::char_traits<char> >::Fcgibuf::emptyBuffer();
-template int Fastcgi::Fcgistream<wchar_t, std::char_traits<wchar_t> >::Fcgibuf::emptyBuffer();
+template int Fastcgipp::Fcgistream<char, std::char_traits<char> >::Fcgibuf::emptyBuffer();
+template int Fastcgipp::Fcgistream<wchar_t, std::char_traits<wchar_t> >::Fcgibuf::emptyBuffer();
 template <class charT, class traits>
-int Fastcgi::Fcgistream<charT, traits>::Fcgibuf::emptyBuffer()
+int Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::emptyBuffer()
 {
 	using namespace std;
 	using namespace Protocol;
@@ -86,9 +86,9 @@ int Fastcgi::Fcgistream<charT, traits>::Fcgibuf::emptyBuffer()
 	return 0;
 }
 
-template void Fastcgi::Request<char>::complete();
-template void Fastcgi::Request<wchar_t>::complete();
-template<class charT> void Fastcgi::Request<charT>::complete()
+template void Fastcgipp::Request<char>::complete();
+template void Fastcgipp::Request<wchar_t>::complete();
+template<class charT> void Fastcgipp::Request<charT>::complete()
 {
 	using namespace Protocol;
 	out.flush();
@@ -110,9 +110,9 @@ template<class charT> void Fastcgi::Request<charT>::complete()
 	transceiver->secureWrite(sizeof(Header)+sizeof(EndRequest), id, killCon);
 }
 
-template void Fastcgi::Fcgistream<char, std::char_traits<char> >::dump(std::basic_istream<char>& stream);
-template void Fastcgi::Fcgistream<wchar_t, std::char_traits<wchar_t> >::dump(std::basic_istream<char>& stream);
-template<class charT, class traits > void Fastcgi::Fcgistream<charT, traits>::dump(std::basic_istream<char>& stream)
+template void Fastcgipp::Fcgistream<char, std::char_traits<char> >::dump(std::basic_istream<char>& stream);
+template void Fastcgipp::Fcgistream<wchar_t, std::char_traits<wchar_t> >::dump(std::basic_istream<char>& stream);
+template<class charT, class traits > void Fastcgipp::Fcgistream<charT, traits>::dump(std::basic_istream<char>& stream)
 {
 	const size_t bufferSize=32768;
 	char buffer[bufferSize];
@@ -124,9 +124,9 @@ template<class charT, class traits > void Fastcgi::Fcgistream<charT, traits>::du
 	}
 }
 
-template bool Fastcgi::Request<char>::handler();
-template bool Fastcgi::Request<wchar_t>::handler();
-template<class charT> bool Fastcgi::Request<charT>::handler()
+template bool Fastcgipp::Request<char>::handler();
+template bool Fastcgipp::Request<wchar_t>::handler();
+template<class charT> bool Fastcgipp::Request<charT>::handler()
 {
 	using namespace Protocol;
 	using namespace std;

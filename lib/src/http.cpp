@@ -22,7 +22,7 @@
 
 #include <fastcgi++/http.hpp>
 
-void Fastcgi::Http::Address::assign(const char* start, const char* end)
+void Fastcgipp::Http::Address::assign(const char* start, const char* end)
 {
 	data=0;
 	for(int i=24; i>=0; i-=8)
@@ -34,9 +34,9 @@ void Fastcgi::Http::Address::assign(const char* start, const char* end)
 	}
 }
 
-template std::basic_ostream<char, std::char_traits<char> >& Fastcgi::Http::operator<<(std::basic_ostream<char, std::char_traits<char> >& os, const Address& address);
-template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgi::Http::operator<<(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const Address& address);
-template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgi::Http::operator<<(std::basic_ostream<charT, Traits>& os, const Address& address)
+template std::basic_ostream<char, std::char_traits<char> >& Fastcgipp::Http::operator<<(std::basic_ostream<char, std::char_traits<char> >& os, const Address& address);
+template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator<<(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const Address& address);
+template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgipp::Http::operator<<(std::basic_ostream<charT, Traits>& os, const Address& address)
 {
 	using namespace std;
 	if(!os.good()) return os;
@@ -95,9 +95,9 @@ template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgi::
 	return os;
 }
 
-template std::basic_istream<char, std::char_traits<char> >& Fastcgi::Http::operator>>(std::basic_istream<char, std::char_traits<char> >& is, Address& address);
-template std::basic_istream<wchar_t, std::char_traits<wchar_t> >& Fastcgi::Http::operator>>(std::basic_istream<wchar_t, std::char_traits<wchar_t> >& is, Address& address);
-template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgi::Http::operator>>(std::basic_istream<charT, Traits>& is, Address& address)
+template std::basic_istream<char, std::char_traits<char> >& Fastcgipp::Http::operator>>(std::basic_istream<char, std::char_traits<char> >& is, Address& address);
+template std::basic_istream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator>>(std::basic_istream<wchar_t, std::char_traits<wchar_t> >& is, Address& address);
+template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp::Http::operator>>(std::basic_istream<charT, Traits>& is, Address& address)
 {
 	using namespace std;
 	if(!is.good()) return is;
@@ -141,9 +141,9 @@ template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgi::
 	return is;
 }
 
-template bool Fastcgi::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<char>& string);
-template bool Fastcgi::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<wchar_t>& string);
-template<class charT> bool Fastcgi::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string)
+template bool Fastcgipp::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<char>& string);
+template bool Fastcgipp::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<wchar_t>& string);
+template<class charT> bool Fastcgipp::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string)
 {
 	using namespace std;
 
@@ -175,7 +175,7 @@ template<class charT> bool Fastcgi::Http::parseXmlValue(const char* const name, 
 	return true;
 }
 
-void Fastcgi::Http::charToString(const char* data, size_t size, std::wstring& string)
+void Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& string)
 {
 	const size_t bufferSize=512;
 	wchar_t buffer[bufferSize];
@@ -194,11 +194,11 @@ void Fastcgi::Http::charToString(const char* data, size_t size, std::wstring& st
 			size-=tmpData-data;
 			data=tmpData;
 		}}
-		if(cr==codecvt_base::error) throw Fastcgi::Exceptions::FastcgiException("Error in code conversion of parameters");
+		if(cr==codecvt_base::error) throw Fastcgipp::Exceptions::FastcgiException("Error in code conversion of parameters");
 	}
 }
 
-int Fastcgi::Http::atoi(const char* start, const char* end)
+int Fastcgipp::Http::atoi(const char* start, const char* end)
 {
 	bool neg=false;
 	if(*start=='-')
@@ -213,7 +213,7 @@ int Fastcgi::Http::atoi(const char* start, const char* end)
 	return neg?-result:result;
 }
 
-int Fastcgi::Http::percentEscapedToRealBytes(const char* source, char* destination, size_t size)
+int Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destination, size_t size)
 {
 	int i=0;
 	char* start=destination;
@@ -244,9 +244,9 @@ int Fastcgi::Http::percentEscapedToRealBytes(const char* source, char* destinati
 	return destination-start;
 }
 
-template void Fastcgi::Http::Session<char>::fill(const char* data, size_t size);
-template void Fastcgi::Http::Session<wchar_t>::fill(const char* data, size_t size);
-template<class charT> void Fastcgi::Http::Session<charT>::fill(const char* data, size_t size)
+template void Fastcgipp::Http::Session<char>::fill(const char* data, size_t size);
+template void Fastcgipp::Http::Session<wchar_t>::fill(const char* data, size_t size);
+template<class charT> void Fastcgipp::Http::Session<charT>::fill(const char* data, size_t size)
 {
 	using namespace std;
 	using namespace boost;
@@ -257,7 +257,7 @@ template<class charT> void Fastcgi::Http::Session<charT>::fill(const char* data,
 	const char* value;
 	Protocol::processParamHeader(data, name, nameSize, value, valueSize);
 
-	if(name+nameSize+valueSize!=data+size) throw Fastcgi::Exceptions::FastcgiException("Error decoding parameter packet.");
+	if(name+nameSize+valueSize!=data+size) throw Fastcgipp::Exceptions::FastcgiException("Error decoding parameter packet.");
 
 	if(nameSize==9 && !memcmp(name, "HTTP_HOST", 9))
 		charToString(value, valueSize, host);
@@ -331,9 +331,9 @@ template<class charT> void Fastcgi::Http::Session<charT>::fill(const char* data,
 	*/
 }
 
-template void Fastcgi::Http::Session<char>::fillPosts(const char* data, size_t size);
-template void Fastcgi::Http::Session<wchar_t>::fillPosts(const char* data, size_t size);
-template<class charT> void Fastcgi::Http::Session<charT>::fillPosts(const char* data, size_t size)
+template void Fastcgipp::Http::Session<char>::fillPosts(const char* data, size_t size);
+template void Fastcgipp::Http::Session<wchar_t>::fillPosts(const char* data, size_t size);
+template<class charT> void Fastcgipp::Http::Session<charT>::fillPosts(const char* data, size_t size)
 {
 	using namespace std;
 	while(1)

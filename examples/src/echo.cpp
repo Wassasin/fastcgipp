@@ -41,8 +41,8 @@ void error_log(const char* msg)
 }
 
 // Let's make our request handling class. It must do the following:
-// 1) Be derived from Fastcgi::Request
-// 2) Define the virtual response() member function from Fastcgi::Request()
+// 1) Be derived from Fastcgipp::Request
+// 2) Define the virtual response() member function from Fastcgipp::Request()
 
 // First things first let's decide on what kind of character set we will use.
 // Since we want to be able to echo all languages we will use unicode. The way this
@@ -53,11 +53,11 @@ void error_log(const char* msg)
 // Anyway, moving right along, the streams will code convert all the UTF-32 data to UTF-8
 // before it is sent out to the client. This way we get the best of both worlds.
 //
-// So, whenever we are going to use UTF-8, our template parameter for Fastcgi::Request<charT>
+// So, whenever we are going to use UTF-8, our template parameter for Fastcgipp::Request<charT>
 // should be wchar_t. Keep in mind that this suddendly makes
 // everything wide character and utf compatible. Including HTTP header data (cookies, urls, yada-yada).
 
-class Echo: public Fastcgi::Request<wchar_t>
+class Echo: public Fastcgipp::Request<wchar_t>
 {
 	bool response()
 	{
@@ -100,13 +100,13 @@ class Echo: public Fastcgi::Request<wchar_t>
 		out << "<b>Client Port:</b> " << session.remotePort << "<br />";
 		out << "<b>If Modified Since:</b> " << session.ifModifiedSince << "</p>";
 
-		//Fastcgi::Http::Post is defined in fastcgi++/http.hpp
+		//Fastcgipp::Http::Post is defined in fastcgi++/http.hpp
 		out << "<h1>Post Data</h1>";
 		if(session.posts.size())
-			for(Fastcgi::Http::Session<wchar_t>::Posts::iterator it=session.posts.begin(); it!=session.posts.end(); ++it)
+			for(Fastcgipp::Http::Session<wchar_t>::Posts::iterator it=session.posts.begin(); it!=session.posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
-				if(it->second.type==Fastcgi::Http::Post<wchar_t>::form)
+				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)
 				{
 					out << "<p><b>Type:</b> form data<br />";
 					out << "<b>Value:</b> " << it->second.value << "</p>";
@@ -144,9 +144,9 @@ int main()
 {
 	try
 	{
-		// First we make a Fastcgi::Manager object, with our request handling class
+		// First we make a Fastcgipp::Manager object, with our request handling class
 		// as a template parameter.
-		Fastcgi::Manager<Echo> fcgi;
+		Fastcgipp::Manager<Echo> fcgi;
 		// Now just call the object handler function. It will sleep quietly when there
 		// are no requests and efficiently manage them when there are many.
 		fcgi.handler();

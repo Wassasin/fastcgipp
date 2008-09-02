@@ -43,7 +43,7 @@
 #include <fastcgi++/exceptions.hpp>
 
 //! Topmost namespace for the fastcgi++ library
-namespace Fastcgi
+namespace Fastcgipp
 {
 	//! A raw block of memory
 	/*!

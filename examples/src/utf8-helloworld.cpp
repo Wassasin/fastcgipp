@@ -40,8 +40,8 @@ void error_log(const char* msg)
 }
 
 // Let's make our request handling class. It must do the following:
-// 1) Be derived from Fastcgi::Request
-// 2) Define the virtual response() member function from Fastcgi::Request()
+// 1) Be derived from Fastcgipp::Request
+// 2) Define the virtual response() member function from Fastcgipp::Request()
 
 // First things first let's decide on what kind of character set we will use.
 // Obviously with all these different languages we can't use something like
@@ -53,11 +53,11 @@ void error_log(const char* msg)
 // Anyway, moving right along, the streams will code convert all the UTF-32 data to UTF-8
 // before it is sent out to the client. This way we get the best of both worlds.
 //
-// So, whenever we are going to use UTF-8, our template parameter for Fastcgi::Request<charT>
+// So, whenever we are going to use UTF-8, our template parameter for Fastcgipp::Request<charT>
 // should be wchar_t. Keep in mind that this suddendly makes
 // everything wide character and utf compatible. Including HTTP header data (cookies, urls, yada-yada).
 
-class HelloWorld: public Fastcgi::Request<wchar_t>
+class HelloWorld: public Fastcgipp::Request<wchar_t>
 {
 	bool response()
 	{
@@ -110,9 +110,9 @@ int main()
 {
 	try
 	{
-		// First we make a Fastcgi::Manager object, with our request handling class
+		// First we make a Fastcgipp::Manager object, with our request handling class
 		// as a template parameter.
-		Fastcgi::Manager<HelloWorld> fcgi;
+		Fastcgipp::Manager<HelloWorld> fcgi;
 		// Now just call the object handler function. It will sleep quietly when there
 		// are no requests and efficiently manage them when there are many.
 		fcgi.handler();
