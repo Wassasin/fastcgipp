@@ -35,7 +35,7 @@
 #include <fastcgi++/protocol.hpp>
 
 //! Topmost namespace for the fastcgi++ library
-namespace Fastcgi
+namespace Fastcgipp
 {
 	//! Defines classes and function relating to the http protocol
 	namespace Http

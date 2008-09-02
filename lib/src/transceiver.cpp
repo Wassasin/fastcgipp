@@ -20,7 +20,7 @@
 
 #include <fastcgi++/transceiver.hpp>
 
-int Fastcgi::Transceiver::transmit()
+int Fastcgipp::Transceiver::transmit()
 {
 	while(1)
 	{{
@@ -49,7 +49,7 @@ int Fastcgi::Transceiver::transmit()
 	return buffer.empty();
 }
 
-void Fastcgi::Transceiver::Buffer::secureWrite(size_t size, Protocol::FullId id, bool kill)
+void Fastcgipp::Transceiver::Buffer::secureWrite(size_t size, Protocol::FullId id, bool kill)
 {
 	writeIt->end+=size;
 	if(minBlockSize>(writeIt->data.get()+Chunk::size-writeIt->end) && ++writeIt==chunks.end())
@@ -60,7 +60,7 @@ void Fastcgi::Transceiver::Buffer::secureWrite(size_t size, Protocol::FullId id,
 	frames.push(Frame(size, kill, id));
 }
 
-bool Fastcgi::Transceiver::handler()
+bool Fastcgipp::Transceiver::handler()
 {
 	using namespace std;
 	using namespace Protocol;
@@ -134,7 +134,7 @@ bool Fastcgi::Transceiver::handler()
 	else return false;
 }
 
-void Fastcgi::Transceiver::Buffer::freeRead(size_t size)
+void Fastcgipp::Transceiver::Buffer::freeRead(size_t size)
 {
 	pRead+=size;
 	if(pRead>=chunks.begin()->end)
@@ -169,7 +169,7 @@ void Fastcgi::Transceiver::Buffer::freeRead(size_t size)
 
 }
 
-void Fastcgi::Transceiver::sleep()
+void Fastcgipp::Transceiver::sleep()
 {
 	sigset_t sigSet;
 	sigemptyset(&sigSet);
@@ -179,7 +179,7 @@ void Fastcgi::Transceiver::sleep()
 	epoll_pwait(epollFd, &event, 1, -1, &sigSet);
 }
 
-Fastcgi::Transceiver::Transceiver(int fd_, boost::function<void(Protocol::FullId, Message)> sendMessage_): socket(fd_), sendMessage(sendMessage_), epollFd(epoll_create(16)), buffer(epollFd, fdBuffers)
+Fastcgipp::Transceiver::Transceiver(int fd_, boost::function<void(Protocol::FullId, Message)> sendMessage_): socket(fd_), sendMessage(sendMessage_), epollFd(epoll_create(16)), buffer(epollFd, fdBuffers)
 {
 	fcntl(socket, F_SETFL, (fcntl(socket, F_GETFL)|O_NONBLOCK)^O_NONBLOCK);
 	epoll_event event;

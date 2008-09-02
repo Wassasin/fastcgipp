@@ -45,15 +45,15 @@ void error_log(const char* msg)
 }
 
 // Let's make our request handling class. It must do the following:
-// 1) Be derived from Fastcgi::Request
-// 2) Define the virtual response() member function from Fastcgi::Request()
+// 1) Be derived from Fastcgipp::Request
+// 2) Define the virtual response() member function from Fastcgipp::Request()
 
 // First things first let's decide on what kind of character set we will use.
 // Since we are just displaying an image, we won't need unicode so we don't
 // need to use wide characters. We'll keep everything as narrow characters
-// and pass the 'char' type along to the Fastcgi::Request template.
+// and pass the 'char' type along to the Fastcgipp::Request template.
 
-class ShowGnu: public Fastcgi::Request<char>
+class ShowGnu: public Fastcgipp::Request<char>
 {
 	// Now we define the actual function that sends a response to the client.
 	bool response()
@@ -134,9 +134,9 @@ int main()
 {
 	try
 	{
-		// First we make a Fastcgi::Manager object, with our request handling class
+		// First we make a Fastcgipp::Manager object, with our request handling class
 		// as a template parameter.
-		Fastcgi::Manager<ShowGnu> fcgi;
+		Fastcgipp::Manager<ShowGnu> fcgi;
 		// Now just call the object handler function. It will sleep quietly when there
 		// are no requests and efficiently manage them when there are many.
 		fcgi.handler();

@@ -40,7 +40,7 @@
 #include <fastcgi++/transceiver.hpp>
 
 //! Topmost namespace for the fastcgi++ library
-namespace Fastcgi
+namespace Fastcgipp
 {
 	//! General task and protocol management class
 	/*!
@@ -208,24 +208,24 @@ namespace Fastcgi
 }
 
 template<class T>
-Fastcgi::Manager<T>* Fastcgi::Manager<T>::instance=0;
+Fastcgipp::Manager<T>* Fastcgipp::Manager<T>::instance=0;
 
 template<class T>
-void Fastcgi::Manager<T>::terminate()
+void Fastcgipp::Manager<T>::terminate()
 {
 	boost::lock_guard<boost::mutex> lock(terminateMutex);
 	terminateBool=true;
 }
 
 template<class T>
-void Fastcgi::Manager<T>::stop()
+void Fastcgipp::Manager<T>::stop()
 {
 	boost::lock_guard<boost::mutex> lock(stopMutex);
 	stopBool=true;
 }
 
 template<class T>
-void Fastcgi::Manager<T>::signalHandler(int signum)
+void Fastcgipp::Manager<T>::signalHandler(int signum)
 {
 	switch(signum)
 	{
@@ -243,10 +243,10 @@ void Fastcgi::Manager<T>::signalHandler(int signum)
 }
 
 template<class T>
-void Fastcgi::Manager<T>::setupSignals()
+void Fastcgipp::Manager<T>::setupSignals()
 {
 	struct sigaction sigAction;
-	sigAction.sa_handler=Fastcgi::Manager<T>::signalHandler;
+	sigAction.sa_handler=Fastcgipp::Manager<T>::signalHandler;
 
 	sigaction(SIGPIPE, &sigAction, NULL);
 	sigaction(SIGUSR2, &sigAction, NULL);
@@ -255,7 +255,7 @@ void Fastcgi::Manager<T>::setupSignals()
 }
 
 template<class T>
-void Fastcgi::Manager<T>::push(Protocol::FullId id, Message message)
+void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message message)
 {
 	using namespace std;
 	using namespace Protocol;
@@ -299,7 +299,7 @@ void Fastcgi::Manager<T>::push(Protocol::FullId id, Message message)
 }
 
 template<class T>
-void Fastcgi::Manager<T>::handler()
+void Fastcgipp::Manager<T>::handler()
 {
 	using namespace std;
 	using namespace boost;
@@ -380,7 +380,7 @@ void Fastcgi::Manager<T>::handler()
 }
 
 template<class T>
-void Fastcgi::Manager<T>::localHandler(Protocol::FullId id)
+void Fastcgipp::Manager<T>::localHandler(Protocol::FullId id)
 {
 	using namespace std;
 	using namespace Protocol;
@@ -442,7 +442,7 @@ void Fastcgi::Manager<T>::localHandler(Protocol::FullId id)
 		}
 	}
 	else
-		throw Exceptions::FastcgiException("Invalid message type received in Fastcgi::Manager<T>::localHandler");
+		throw Exceptions::FastcgiException("Invalid message type received in Fastcgipp::Manager<T>::localHandler");
 }
 
 #endif

@@ -28,7 +28,7 @@
 #include <fastcgi++/protocol.hpp>
 
 //! Topmost namespace for the fastcgi++ library
-namespace Fastcgi
+namespace Fastcgipp
 {
 	//! Stream class for output of client data through FastCGI
 	/*!

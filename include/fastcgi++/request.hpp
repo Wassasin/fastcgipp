@@ -37,7 +37,7 @@
 #include <fastcgi++/http.hpp>
 
 //! Topmost namespace for the fastcgi++ library
-namespace Fastcgi
+namespace Fastcgipp
 {
 	//! %Request handling class
 	/*!

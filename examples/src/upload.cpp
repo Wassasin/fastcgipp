@@ -41,13 +41,13 @@ void error_log(const char* msg)
 }
 
 // Let's make our request handling class. It must do the following:
-// 1) Be derived from Fastcgi::Request
-// 2) Define the virtual response() member function from Fastcgi::Request()
+// 1) Be derived from Fastcgipp::Request
+// 2) Define the virtual response() member function from Fastcgipp::Request()
 
 // First things first let's decide on what kind of character set we will use. Let's just
 // use good old ISO-8859-1 this time. No wide characters
 
-class Upload: public Fastcgi::Request<char>
+class Upload: public Fastcgipp::Request<char>
 {
 public:
 	Upload(): doneHeader(false), totalBytesReceived(0) {}
@@ -110,9 +110,9 @@ int main()
 {
 	try
 	{
-		// First we make a Fastcgi::Manager object, with our request handling class
+		// First we make a Fastcgipp::Manager object, with our request handling class
 		// as a template parameter.
-		Fastcgi::Manager<Upload> fcgi;
+		Fastcgipp::Manager<Upload> fcgi;
 		// Now just call the object handler function. It will sleep quietly when there
 		// are no requests and efficiently manage them when there are many.
 		fcgi.handler();

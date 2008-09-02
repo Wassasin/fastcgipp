@@ -52,13 +52,13 @@ void error_log(const char* msg)
 }
 
 // Let's make our request handling class. It must do the following:
-// 1) Be derived from Fastcgi::Request
-// 2) Define the virtual response() member function from Fastcgi::Request()
+// 1) Be derived from Fastcgipp::Request
+// 2) Define the virtual response() member function from Fastcgipp::Request()
 
 // First things first let's decide on what kind of character set we will use. Let's just
 // use good old ISO-8859-1 this time. No wide characters
 
-class Timer: public Fastcgi::Request<char>
+class Timer: public Fastcgipp::Request<char>
 {
 public:
 	Timer(): state(START) {}
@@ -97,14 +97,14 @@ private:
 				// Make a five second timer
 				t.reset(new boost::asio::deadline_timer(io, boost::posix_time::seconds(5)));
 
-				// Now we work with our callback. Defined in the Fastcgi::Request is a boost::function
-				// that takes a Fastcgi::Message (defined in fastcgi++/protocol.hpp) as a single argument.
+				// Now we work with our callback. Defined in the Fastcgipp::Request is a boost::function
+				// that takes a Fastcgipp::Message (defined in fastcgi++/protocol.hpp) as a single argument.
 				// This callback function will pass the message on to this request therebye calling the response()
 				// function again. The callback function is thread safe. That means you can pass messages back to
 				// requests from other threads.
 
 				// Let's build the message we want sent back to here.
-				Fastcgi::Message msg;
+				Fastcgipp::Message msg;
 				// The first part of the message we have to define is the type. A type of 0 means a fastcgi message
 				// and is used internally. All other values we can use ourselves to define different message types (sql queries,
 				// file grabs, etc...). We will use type=1 for timer stuff.
@@ -154,9 +154,9 @@ int main()
 		boost::asio::io_service::work w(io);
 		boost::thread t(boost::bind(&boost::asio::io_service::run, &io));
 
-		// Now we make a Fastcgi::Manager object, with our request handling class
+		// Now we make a Fastcgipp::Manager object, with our request handling class
 		// as a template parameter.
-		Fastcgi::Manager<Timer> fcgi;
+		Fastcgipp::Manager<Timer> fcgi;
 		// Now just call the object handler function. It will sleep quietly when there
 		// are no requests and efficiently manage them when there are many.
 		fcgi.handler();

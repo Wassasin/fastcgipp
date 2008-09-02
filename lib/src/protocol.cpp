@@ -20,7 +20,7 @@
 
 #include <fastcgi++/protocol.hpp>
 
-void Fastcgi::Protocol::processParamHeader(const char* data, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
+void Fastcgipp::Protocol::processParamHeader(const char* data, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
 {
 	if(*data>>7)
 	{
@@ -39,6 +39,6 @@ void Fastcgi::Protocol::processParamHeader(const char* data, const char*& name, 
 	value=name+nameSize;
 }
 
-Fastcgi::Protocol::ManagementReply<14, 2, 8> Fastcgi::Protocol::maxConnsReply("FCGI_MAX_CONNS", "10");
-Fastcgi::Protocol::ManagementReply<13, 2, 1> Fastcgi::Protocol::maxReqsReply("FCGI_MAX_REQS", "50");
-Fastcgi::Protocol::ManagementReply<15, 1, 8> Fastcgi::Protocol::mpxsConnsReply("FCGI_MPXS_CONNS", "1");
+Fastcgipp::Protocol::ManagementReply<14, 2, 8> Fastcgipp::Protocol::maxConnsReply("FCGI_MAX_CONNS", "10");
+Fastcgipp::Protocol::ManagementReply<13, 2, 1> Fastcgipp::Protocol::maxReqsReply("FCGI_MAX_REQS", "50");
+Fastcgipp::Protocol::ManagementReply<15, 1, 8> Fastcgipp::Protocol::mpxsConnsReply("FCGI_MPXS_CONNS", "1");

@@ -23,7 +23,7 @@
 
 #include <exception>
 
-namespace Fastcgi
+namespace Fastcgipp
 {
 	namespace Exceptions
 	{

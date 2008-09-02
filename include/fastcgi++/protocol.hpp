@@ -28,7 +28,7 @@
 #include <boost/shared_array.hpp>
 
 //! Topmost namespace for the fastcgi++ library
-namespace Fastcgi
+namespace Fastcgipp
 {
 	//! Defines aspects of the FastCGI %Protocol
 	/*!
