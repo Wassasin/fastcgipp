@@ -42,7 +42,7 @@ uninstall:
 
 
 
-doc: include doxygen lib/src/*.cpp
+doc: include doxygen lib/src/*.cpp doc.hpp
 	doxygen doxygen
 
 docclean:
