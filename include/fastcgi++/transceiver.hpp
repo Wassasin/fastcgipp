@@ -54,8 +54,8 @@ namespace Fastcgipp
 	{
 		//! Construct from a pointer and size
 		/*!
-		 * @param data_[in] Pointer to start of memory location
-		 * @param size_[in] Size in bytes of memory location
+		 * @param[in] data_ Pointer to start of memory location
+		 * @param[in] size_ Size in bytes of memory location
 		 */
 		Block(char* data_, size_t size_): data(data_), size(size_) { }
 		//! Copies pointer and size, not data
@@ -178,7 +178,7 @@ namespace Fastcgipp
 			//! Constructor
 			/*!
 			 * @param[out] epollFd_ A reference to Transceiver::epollFd is needed for removing file descriptors from epollFd when they are closed
-			 * @param[out] A reference to Transceiver::fdBuffer is needed for deleting buffers upon closing of the file descriptor
+			 * @param[out] fdBuffers_ A reference to Transceiver::fdBuffer is needed for deleting buffers upon closing of the file descriptor
 			 */
 			Buffer(int& epollFd_, std::map<int, fdBuffer>& fdBuffers_): epollFd(epollFd_), fdBuffers(fdBuffers_), chunks(1), pRead(chunks.begin()->data.get()), writeIt(chunks.begin()) { }
 
