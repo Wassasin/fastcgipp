@@ -1,5 +1,5 @@
-export VERSION=0.3.4
-export DATE=Sept 4, 2008
+export VERSION=r`svn info | grep Revision | cut -d ' '-f 2`
+export DATE=`svn info | grep 'Last Changed Date' | cut -d ' ' -f 4`
 
 ifndef PREFIX
 	PREFIX = /usr/local
@@ -46,7 +46,7 @@ uninstall:
 	rmdir ${WWWROOT}/fastcgipp
 
 doc: include doxygen lib/src/*.cpp doc.hpp
-	doxygen doxygen
+	VERSION=trunk.r`svn info | grep Revision | cut -d ' ' -f 2` DATE=`svn info | grep 'Last Changed Date' | cut -d ' ' -f 4` doxygen doxygen
 
 doc-install:
 	mkdir p ${PREFIX}/share/doc/fastcgi++
