@@ -1,8 +1,15 @@
 /*!
 
-\version 0.10
+\version $(VERSION)
 \author Eddie
+\date $(DATE)
 \mainpage
+
+\ref intro \n
+\ref features \n
+\ref overview \n
+\ref installation \n
+\ref tutorials
 
 \section intro Introduction
 
@@ -27,6 +34,28 @@ Fastcgipp::Manager basically runs an endless loop (which can be terminated throu
 
 Fastcgipp::Transceiver's transmit half implements a cyclic buffer that can grow indefinitely to insure that operation does not halt. The send half receives full frames and passes them through Fastcgipp::Manager onto the requests. It manages all the open connections and polls them for incoming data.
 
+\section installation Installation
+
+The installation of fastcgi++ is pretty standard save a few quirks. The most basic installation of the library is the traditional:
+
+<tt>tar -xvjf fastcgi++-$(VERSION).tar.bz2\n
+cd fastcgi++-$(VERSION)\n
+make\n
+make install</tt>
+
+The default prefix for installation is /usr/local. If you wanted to change it to /usr simply change <tt>"make install"</tt> to <tt>"PREFIX=/usr make install"</tt>. If you want the binary files to be run through \c strip change \c "make" to <tt>"STRIP=true make"</tt>.
+
+To also install the documentation into $(PREFIX)/share/doc/fastcgi++ with PREFIX preceded as above run this:
+
+<tt>make install-doc</tt>
+
+If you want to build and install the examples, simply run.
+
+<tt>make examples\n
+make examples-install</tt>
+
+The examples will by default install to $(WWWROOT)/fastcgipp with WWWROOT = /var/www/localhost/htdocs. To change WWWROOT, simply precede <tt>"make examples-install"</tt> with a definition of WWWROOT as in the prefix example above.
+
 \section tutorials Tutorials
 
 This is a collection of tutorials that should cover most aspects of the fastcgi++ library
@@ -37,7 +66,7 @@ This is a collection of tutorials that should cover most aspects of the fastcgi+
 
 \subpage showGnu : A tutorial explaining how to display an images and non-html data
 
-\subpage timer : A tutorial covering the use of the task manager and threads to have requests efficiently communicate with non-fastcgipp data.
+\subpage timer : A tutorial covering the use of the task manager and threads to have requests efficiently communicate with non-fastcgi++ data.
 
 */
 

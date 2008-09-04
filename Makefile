@@ -1,5 +1,8 @@
+export VERSION=0.3.4
+export DATE=Sept 4, 2008
+
 ifndef PREFIX
-	PREFIX = /usr
+	PREFIX = /usr/local
 endif
 
 ifndef WWWROOT
@@ -17,7 +20,7 @@ else
 endif
 DOSTRIP=strip --strip-unneeded --strip-debug
 
-all: lib include examples
+all: lib include
 
 install: lib include
 	mkdir -p ${PREFIX}/include/fastcgi++
@@ -25,7 +28,7 @@ install: lib include
 	install -o 0 -g 0 -m 644 lib/libfastcgipp.a ${PREFIX}/lib/libfastcgipp.a
 	install -o 0 -g 0 -m 755 lib/libfastcgipp.so ${PREFIX}/lib/libfastcgipp.so
 
-install-examples: examples
+examples-install: examples
 	mkdir -p ${WWWROOT}/fastcgipp
 	install -o 0 -g 0 -m 755 examples/*.fcgi ${WWWROOT}/fastcgipp
 	install -o 0 -g 0 -m 644 examples/*.html ${WWWROOT}/fastcgipp
@@ -37,13 +40,17 @@ uninstall:
 	rm -f ${PREFIX}/lib/libfastcgipp.a ${PREFIX}/lib/libfastcgipp.so
 	rm -f ${PREFIX}/include/fastcgi++/*.hpp
 	rmdir ${PREFIX}/include/fastcgi++
+	rm -f ${PREFIX}/share/doc/fastcgi++/*
+	rmdir ${PREFIX}/share/doc/fastcgi++
 	rm -f ${WWWROOT}/fastcgipp/*
 	rmdir ${WWWROOT}/fastcgipp
 
-
-
 doc: include doxygen lib/src/*.cpp doc.hpp
 	doxygen doxygen
+
+doc-install:
+	mkdir p ${PREFIX}/share/doc/fastcgi++
+	install -o 0 -g 0 -m 644 doc/* ${PREFIX}/share/doc/fastcgi++
 
 docclean:
 	rm -rf doc
