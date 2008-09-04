@@ -3,3 +3,4 @@ THINGS TO DO
 	+ Add file descriptions for documentation
 	+ Fix exceptions
 	+ Change installation to a ./configure style
+	+ Make the upload example work
