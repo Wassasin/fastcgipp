@@ -32,7 +32,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 boost::asio::io_service io;
 
 // I like to have an independent error log file to keep track of exceptions while debugging.
@@ -66,7 +66,7 @@ private:
 	// We need to define a state variable so we know where we are when response() is called a second time.
 	enum State { START, FINISH } state;
 
-	boost::shared_ptr<boost::asio::deadline_timer> t;
+	boost::scoped_ptr<boost::asio::deadline_timer> t;
 
 	bool response()
 	{
@@ -111,13 +111,15 @@ private:
 				msg.type=1;
 
 				// Now let's put a character string into the message as well. Just for fun.
-				char cString[] = "I was passed between two threads!!";
-				msg.size=sizeof(cString);
-				msg.data.reset(new char[sizeof(cString)]);
-				std::strncpy(msg.data.get(), cString, sizeof(cString));
+				{
+					char cString[] = "I was passed between two threads!!";
+					msg.size=sizeof(cString);
+					msg.data.reset(new char[sizeof(cString)]);
+					std::strncpy(msg.data.get(), cString, sizeof(cString));
+				}
 
 				// Now we will give our callback data to boost::asio
-				t->async_wait(boost::bind(Timer::callback, msg));
+				t->async_wait(boost::bind(callback, msg));
 
 				// We need to set our state to FINISH so that when this response is called a second time, we don't repeat this.
 				state=FINISH;
