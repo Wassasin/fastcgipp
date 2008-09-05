@@ -1,3 +1,4 @@
+//! \file doc.hpp Documentation file for main page and tutorials
 /*!
 
 \version $(VERSION)

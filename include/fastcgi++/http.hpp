@@ -1,3 +1,4 @@
+//! \file http.hpp Defines elements of the HTTP protocol
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *

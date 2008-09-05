@@ -1,3 +1,4 @@
+//! \file request.cpp Defines member functions for Fastcgipp::Fcgistream and Fastcgipp::Request
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *

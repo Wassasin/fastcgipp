@@ -1,3 +1,4 @@
+//! \file transceiver.cpp Defines member functions for Fastcgipp::Transceiver
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *
