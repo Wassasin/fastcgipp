@@ -39,17 +39,17 @@ clean: libclean examplesclean
 uninstall:
 	rm -f ${PREFIX}/lib/libfastcgipp.a ${PREFIX}/lib/libfastcgipp.so
 	rm -f ${PREFIX}/include/fastcgi++/*.hpp
-	rmdir ${PREFIX}/include/fastcgi++
 	rm -f ${PREFIX}/share/doc/fastcgi++/*
-	rmdir ${PREFIX}/share/doc/fastcgi++
 	rm -f ${WWWROOT}/fastcgipp/*
-	rmdir ${WWWROOT}/fastcgipp
+	rmdir ${WWWROOT}/fastcgipp; true
+	rmdir ${PREFIX}/include/fastcgi++; true
+	rmdir ${PREFIX}/share/doc/fastcgi++; true
 
 doc: include doxygen lib/src/*.cpp doc.hpp
 	VERSION=trunk.r`svn info | grep Revision | cut -d ' ' -f 2` DATE=`svn info | grep 'Last Changed Date' | cut -d ' ' -f 4` doxygen doxygen
 
 doc-install:
-	mkdir p ${PREFIX}/share/doc/fastcgi++
+	mkdir ${PREFIX}/share/doc/fastcgi++
 	install -o 0 -g 0 -m 644 doc/* ${PREFIX}/share/doc/fastcgi++
 
 docclean:
