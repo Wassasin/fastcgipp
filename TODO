@@ -1,5 +1,4 @@
 THINGS TO DO
-	+ Change licence to the lesser general public licence
-	+ Fix exceptions
+	+ Expand exceptions
 	+ Change installation to a ./configure style
 	+ Make the upload example work
