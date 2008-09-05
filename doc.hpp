@@ -48,7 +48,7 @@ The default prefix for installation is /usr/local. If you wanted to change it to
 
 To also install the documentation into $(PREFIX)/share/doc/fastcgi++ with PREFIX preceded as above run this:
 
-<tt>make install-doc</tt>
+<tt>make doc-install</tt>
 
 If you want to build and install the examples, simply run.
 
