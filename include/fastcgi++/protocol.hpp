@@ -1,3 +1,4 @@
+//! \file protocol.hpp Defines FastCGI protocol
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *

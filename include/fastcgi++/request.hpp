@@ -1,3 +1,4 @@
+//! \file request.hpp Defines the Fastcgipp::Request class
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *

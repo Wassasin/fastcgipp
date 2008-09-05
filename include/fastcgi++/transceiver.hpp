@@ -1,3 +1,4 @@
+//! \file transceiver.hpp Defines the Fastcgipp::Transceiver class
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *

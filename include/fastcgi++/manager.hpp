@@ -1,3 +1,4 @@
+//! \file manager.hpp Defines the Fastcgipp::Manager class
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *

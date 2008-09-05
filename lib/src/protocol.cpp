@@ -1,3 +1,4 @@
+//! \file protocol.cpp Defines FastCGI protocol
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *

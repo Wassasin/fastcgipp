@@ -1,3 +1,4 @@
+//! \file exceptions.hpp Defines fastcgi++ exceptions
 /***********************************************************************
 * Copyright (C) 2007 Eddie                                             *
 *                                                                      *
@@ -23,10 +24,13 @@
 
 #include <exception>
 
+//! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
+	//! Namespace that defines fastcgi++ related exceptions
 	namespace Exceptions
 	{
+		//! General fastcgi++ exception
 		class FastcgiException: public std::exception
 		{
 		public:
