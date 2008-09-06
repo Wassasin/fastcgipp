@@ -2,3 +2,4 @@ THINGS TO DO
 	+ Expand exceptions
 	+ Change installation to a ./configure style
 	+ Make the upload example work
+	+ Make a class to assist in the creation of HTTP headers
