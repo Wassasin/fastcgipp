@@ -77,7 +77,7 @@ This is a collection of tutorials that should cover most aspects of the fastcgi+
 
 \section timerTutorial Tutorial
 
-Our goal here will be to make a FastCGI application that responds to clients with a "Hello World" in five different languages. Your going to need the boost C++ libraries for this. At least version 1.35.0. In this example we are going to use boost::asio to handle our timers and callback. Unfortunately because mod_fastcgi buffers the output before sending it to the client by default, we will only get to see the true effects of the timer if you put the following directive in your apache configuration: FastCgiConfig -flush
+Our goal here will be to make a FastCGI application that responds to clients with some text, waits five seconds and then sends more. We're going to use threading and boost::asio to handle our timer. Your going to need the boost C++ libraries for this. At least version 1.35.0.
 
 All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread -lboost_system
 
@@ -887,7 +887,7 @@ int main()
 
 \section helloWorldTutorial Tutorial
 
-Our goal here will be to make a FastCGI application that responds to clients with some text, waits five seconds and then sends more. We're going to use threading and boost::asio to handle our timer. Your going to need the boost C++ libraries for this. At least version 1.35.0.
+Our goal here will be to make a FastCGI application that responds to clients with a "Hello World" in five different languages. Your going to need the boost C++ libraries for this. At least version 1.35.0. In this example we are going to use boost::asio to handle our timers and callback. Unfortunately because mod_fastcgi buffers the output before sending it to the client by default, we will only get to see the true effects of the timer if you put the following directive in your apache configuration: FastCgiConfig -flush
 
 All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
 
