@@ -887,7 +887,7 @@ int main()
 
 \section helloWorldTutorial Tutorial
 
-Our goal here will be to make a FastCGI application that responds to clients with a "Hello World" in five different languages. Since we'll need so many different alphabets, our best solution is to use UTF-32 wide characters internally and have the library code convert it to UTF-8 before sending it to the client. Your going to need the boost C++ libraries for this. At least version 1.35.0.
+Our goal here will be to make a FastCGI application that responds to clients with some text, waits five seconds and then sends more. We're going to use threading and boost::asio to handle our timer. Your going to need the boost C++ libraries for this. At least version 1.35.0.
 
 All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
 
