@@ -9,6 +9,7 @@
 \ref intro \n
 \ref features \n
 \ref overview \n
+\ref dep \n
 \ref installation \n
 \ref tutorials
 
@@ -35,6 +36,11 @@ Fastcgipp::Manager basically runs an endless loop (which can be terminated throu
 
 Fastcgipp::Transceiver's transmit half implements a cyclic buffer that can grow indefinitely to insure that operation does not halt. The send half receives full frames and passes them through Fastcgipp::Manager onto the requests. It manages all the open connections and polls them for incoming data.
 
+\section dep Dependencies
+
+	\li Linux kernel >2.4
+	\li Boost C++ Libraries >1.35.0
+
 \section installation Installation
 
 The installation of fastcgi++ is pretty standard save a few quirks. The most basic installation of the library is the traditional:
@@ -55,7 +61,7 @@ If you want to build and install the examples, simply run.
 <tt>make examples\n
 make examples-install</tt>
 
-The examples will by default install to $(WWWROOT)/fastcgipp with WWWROOT = /var/www/localhost/htdocs. To change WWWROOT, simply precede <tt>"make examples-install"</tt> with a definition of WWWROOT as in the prefix example above.
+The examples will by default install to $WWWROOT/fastcgipp with WWWROOT = /var/www/localhost/htdocs. To change WWWROOT, simply precede <tt>"make examples-install"</tt> with a definition of WWWROOT as in the prefix example above.
 
 \section tutorials Tutorials
 
