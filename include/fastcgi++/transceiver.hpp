@@ -27,6 +27,8 @@
 #include <queue>
 #include <algorithm>
 #include <map>
+#include <vector>
+#include <functional>
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -35,7 +37,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/epoll.h>
+#include <poll.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <signal.h>
@@ -100,8 +102,14 @@ namespace Fastcgipp
 		 * @param[in] sendMessage_ Function to call to pass messages to requests
 		 */
 		Transceiver(int fd_, boost::function<void(Protocol::FullId, Message)> sendMessage_);
-		//! Blocks until there is data to receive or a SIGUSR2 is caught
-		void sleep();
+		//! Blocks until there is data to receive or a call to wake() is made
+		void sleep()
+		{
+			poll(&pollFds.front(), pollFds.size(), -1);
+		}
+		
+		//! Forces a wakeup from a call to sleep()
+		void wake();
 
 	private:
 		//! %Buffer type for receiving FastCGI records
@@ -171,17 +179,17 @@ namespace Fastcgipp
 			//! Current read spot in the buffer
 			char* pRead;
 
-			//! A reference to Transceiver::epollFd for removing file descriptors from epollFd when they are closed
-			int& epollFd;
+			//! A reference to Transceiver::pollFds for removing file descriptors when they are closed
+			std::vector<pollfd>& pollFds;
 			//! A reference to Transceiver::fdBuffer for deleting buffers upon closing of the file descriptor
 			std::map<int, fdBuffer>& fdBuffers;
 		public:
 			//! Constructor
 			/*!
-			 * @param[out] epollFd_ A reference to Transceiver::epollFd is needed for removing file descriptors from epollFd when they are closed
+			 * @param[out] pollFds_ A reference to Transceiver::pollFds is needed for removing file descriptors when they are closed
 			 * @param[out] fdBuffers_ A reference to Transceiver::fdBuffer is needed for deleting buffers upon closing of the file descriptor
 			 */
-			Buffer(int& epollFd_, std::map<int, fdBuffer>& fdBuffers_): epollFd(epollFd_), fdBuffers(fdBuffers_), chunks(1), pRead(chunks.begin()->data.get()), writeIt(chunks.begin()) { }
+			Buffer(std::vector<pollfd>& pollFds, std::map<int, fdBuffer>& fdBuffers_): pollFds(pollFds), fdBuffers(fdBuffers_), chunks(1), pRead(chunks.begin()->data.get()), writeIt(chunks.begin()) { }
 
 			//! Request a write block in the buffer
 			/*!
@@ -248,15 +256,36 @@ namespace Fastcgipp
 		Buffer buffer;
 		//! Function to call to pass messages to requests
 		boost::function<void(Protocol::FullId, Message)> sendMessage;
+		
+		//! poll() file descriptors container
+		std::vector<pollfd> pollFds;
 		//! Socket to listen for connections on
 		int socket;
-		//! File descriptor to epoll
-		int epollFd;
+		//! Input file descriptor to the wakeup socket pair
+		int wakeUpFdIn;
+		//! Output file descriptor to the wakeup socket pair
+		int wakeUpFdOut;
+		
 		//! Container associating file descriptors with their receive buffers
 		std::map<int, fdBuffer> fdBuffers;
+		
 		//! Transmit all buffered data possible
 		int transmit();
 	};
+	
+	//! Predicate for comparing the file descriptor of a pollfd
+	struct equalsFd : public std::unary_function<pollfd, bool>
+	{
+		int fd;
+		explicit equalsFd(int fd_): fd(fd_) {}
+		bool operator()(const pollfd& x) const { return x.fd==fd; };
+	};
+	
+	//! Predicate for testing if the revents in a pollfd is non-zero
+	inline bool reventsZero(const pollfd& x)
+	{
+		return x.revents;
+	}
 }
 
 #endif

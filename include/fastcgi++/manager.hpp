@@ -115,8 +115,8 @@ namespace Fastcgipp
 		
 		//! Configure the handlers for POSIX signals
 		/*!
-		 * By calling this function appropriate handlers will be set up for SIGPIPE, SIGUSR1,
-		 * SIGTERM, and SIGUSR2. It is called by default upon construction of a Manager object. Should
+		 * By calling this function appropriate handlers will be set up for SIGPIPE, SIGUSR1 and
+		 * SIGTERM. It is called by default upon construction of a Manager object. Should
 		 * the user want to override these handlers, it should be done post-construction.
 		 *
 		 * @sa signalHandler()
@@ -250,7 +250,6 @@ void Fastcgipp::Manager<T>::setupSignals()
 	sigAction.sa_handler=Fastcgipp::Manager<T>::signalHandler;
 
 	sigaction(SIGPIPE, &sigAction, NULL);
-	sigaction(SIGUSR2, &sigAction, NULL);
 	sigaction(SIGUSR1, &sigAction, NULL);
 	sigaction(SIGTERM, &sigAction, NULL);
 }
@@ -296,7 +295,7 @@ void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message message)
 
 	lock_guard<mutex> sleepLock(sleepMutex);
 	if(asleep)
-		pthread_kill(threadId, SIGUSR2);
+		transceiver.wake();
 }
 
 template<class T>
@@ -334,12 +333,7 @@ void Fastcgipp::Manager<T>::handler()
 		}
 
 		unique_lock<mutex> tasksLock(tasks);
-
-		sigset_t sigSet;
-		sigemptyset(&sigSet);
-		sigaddset(&sigSet, SIGUSR2);
 		unique_lock<mutex> sleepLock(sleepMutex);
-		sigprocmask(SIG_BLOCK, &sigSet, NULL);
 
 		if(tasks.empty())
 		{
@@ -352,13 +346,11 @@ void Fastcgipp::Manager<T>::handler()
 
 			sleepLock.lock();
 			asleep=false;
-			sigprocmask(SIG_UNBLOCK, &sigSet, NULL);
 			sleepLock.unlock();
 
 			continue;
 		}
 
-		sigprocmask(SIG_UNBLOCK, &sigSet, NULL);
 		sleepLock.unlock();
 
 		Protocol::FullId id=tasks.front();

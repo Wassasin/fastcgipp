@@ -25,6 +25,7 @@
 #include <map>
 #include <string>
 #include <endian.h>
+#include <stdint.h>
 
 #include <boost/shared_array.hpp>
 

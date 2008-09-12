@@ -38,7 +38,6 @@ Fastcgipp::Transceiver's transmit half implements a cyclic buffer that can grow 
 
 \section dep Dependencies
 
-	\li Linux kernel >2.4
 	\li Boost C++ Libraries >1.35.0
 
 \section installation Installation
