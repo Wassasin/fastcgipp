@@ -5,3 +5,5 @@ THINGS TO DO
 	+ Make a class to assist in the creation of HTTP headers
 	+ Create SQL fetching class
 	+ Create file fetching class
+	+ Switch code conversion to boost
+	+ Solve concurrent requests issue

@@ -35,8 +35,8 @@ void Fastcgipp::Http::Address::assign(const char* start, const char* end)
 	}
 }
 
-template std::basic_ostream<char, std::char_traits<char> >& Fastcgipp::Http::operator<<(std::basic_ostream<char, std::char_traits<char> >& os, const Address& address);
-template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator<<(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const Address& address);
+template std::basic_ostream<char, std::char_traits<char> >& Fastcgipp::Http::operator<< <char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >& os, const Address& address);
+template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator<< <wchar_t, std::char_traits<wchar_t> >(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const Address& address);
 template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgipp::Http::operator<<(std::basic_ostream<charT, Traits>& os, const Address& address)
 {
 	using namespace std;
@@ -96,8 +96,8 @@ template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgipp
 	return os;
 }
 
-template std::basic_istream<char, std::char_traits<char> >& Fastcgipp::Http::operator>>(std::basic_istream<char, std::char_traits<char> >& is, Address& address);
-template std::basic_istream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator>>(std::basic_istream<wchar_t, std::char_traits<wchar_t> >& is, Address& address);
+template std::basic_istream<char, std::char_traits<char> >& Fastcgipp::Http::operator>> <char, std::char_traits<char> >(std::basic_istream<char, std::char_traits<char> >& is, Address& address);
+template std::basic_istream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator>> <wchar_t, std::char_traits<wchar_t> >(std::basic_istream<wchar_t, std::char_traits<wchar_t> >& is, Address& address);
 template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp::Http::operator>>(std::basic_istream<charT, Traits>& is, Address& address)
 {
 	using namespace std;
@@ -142,8 +142,8 @@ template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp
 	return is;
 }
 
-template bool Fastcgipp::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<char>& string);
-template bool Fastcgipp::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<wchar_t>& string);
+template bool Fastcgipp::Http::parseXmlValue<char>(const char* const name, const char* start, const char* end, std::basic_string<char>& string);
+template bool Fastcgipp::Http::parseXmlValue<wchar_t>(const char* const name, const char* start, const char* end, std::basic_string<wchar_t>& string);
 template<class charT> bool Fastcgipp::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string)
 {
 	using namespace std;

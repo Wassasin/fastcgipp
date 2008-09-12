@@ -33,7 +33,8 @@ int Fastcgipp::Transceiver::transmit()
 			{
 				if(errno==EPIPE)
 				{
-					epoll_ctl(epollFd, EPOLL_CTL_DEL, sendBlock.fd, NULL);
+					pollFds.erase(std::find_if(pollFds.begin(), pollFds.end(), equalsFd(sendBlock.fd)));
+					fdBuffers.erase(sendBlock.fd);
 					sent=sendBlock.size;
 				}
 				else if(errno!=EAGAIN) throw Exceptions::FastcgiException("Error writing to file descriptor");
@@ -68,34 +69,46 @@ bool Fastcgipp::Transceiver::handler()
 
 	bool transmitEmpty=transmit();
 
-	epoll_event event;
-	int retVal=epoll_wait(epollFd, &event, 1, 0);
+	int retVal=poll(&pollFds.front(), pollFds.size(), 0);
 	if(retVal==0)
 	{
 		if(transmitEmpty) return true;
 		else return false;
 	}
-	if(retVal<0) throw Exceptions::FastcgiException("Epoll Error");
+	if(retVal<0) throw Exceptions::FastcgiException("Poll Error");
+	
+	std::vector<pollfd>::iterator pollFd = find_if(pollFds.begin(), pollFds.end(), reventsZero);
 
-	if(event.events&EPOLLHUP)
+	if(pollFd->revents&POLLHUP)
 	{
-		epoll_ctl(epollFd, EPOLL_CTL_DEL, event.data.fd, NULL);
+		fdBuffers.erase(pollFd->fd);
+		pollFds.erase(pollFd);
 		return false;
 	}
 	
-	int& fd=event.data.fd;
+	int fd=pollFd->fd;
 	if(fd==socket)
 	{
 		sockaddr_un addr;
 		socklen_t addrlen=sizeof(sockaddr_un);
 		fd=accept(fd, (sockaddr*)&addr, &addrlen);
 		fcntl(fd, F_SETFL, (fcntl(fd, F_GETFL)|O_NONBLOCK)^O_NONBLOCK);
-		event.events=EPOLLIN;
-		epoll_ctl(epollFd, EPOLL_CTL_ADD, fd, &event);
+		
+		pollFds.push_back(pollfd());
+		pollFds.back().fd = fd;
+		pollFds.back().events = POLLIN|POLLHUP;
+
 		Message& messageBuffer=fdBuffers[fd].messageBuffer;
 		messageBuffer.size=0;
 		messageBuffer.type=0;
 	}
+	else if(fd==wakeUpFdIn)
+	{
+		char x;
+		read(wakeUpFdIn, &x, 1);
+		return false;
+	}
+	
 	Message& messageBuffer=fdBuffers[fd].messageBuffer;
 	Header& headerBuffer=fdBuffers[fd].headerBuffer;
 
@@ -105,7 +118,7 @@ bool Fastcgipp::Transceiver::handler()
 	{
 		// Are we recieving a partial header or new?
 		actual=read(fd, (char*)&headerBuffer+messageBuffer.size, sizeof(Header)-messageBuffer.size);
-		if(actual<0 && errno!=EAGAIN) throw Exceptions::FastcgiException("Error readin from file descriptor");
+		if(actual<0 && errno!=EAGAIN) throw Exceptions::FastcgiException("Error reading header from file descriptor");
 		if(actual>0) messageBuffer.size+=actual;
 		if(messageBuffer.size!=sizeof(Header))
 		{
@@ -120,7 +133,7 @@ bool Fastcgipp::Transceiver::handler()
 	const Header& header=*(const Header*)messageBuffer.data.get();
 	size_t needed=header.getContentLength()+header.getPaddingLength()+sizeof(Header)-messageBuffer.size;
 	actual=read(fd, messageBuffer.data.get()+messageBuffer.size, needed);
-	if(actual<0 && errno!=EAGAIN) throw Exceptions::FastcgiException("Error readin from file descriptor");
+	if(actual<0 && errno!=EAGAIN) throw Exceptions::FastcgiException("Error reading body from file descriptor");
 	if(actual>0) messageBuffer.size+=actual;
 
 	// Did we recieve a full frame?
@@ -161,7 +174,7 @@ void Fastcgipp::Transceiver::Buffer::freeRead(size_t size)
 	{
 		if(frames.front().closeFd)
 		{
-			epoll_ctl(epollFd, EPOLL_CTL_DEL, frames.front().id.fd, NULL);
+			pollFds.erase(std::find_if(pollFds.begin(), pollFds.end(), equalsFd(frames.front().id.fd)));
 			close(frames.front().id.fd);
 			fdBuffers.erase(frames.front().id.fd);
 		}
@@ -170,21 +183,27 @@ void Fastcgipp::Transceiver::Buffer::freeRead(size_t size)
 
 }
 
-void Fastcgipp::Transceiver::sleep()
+void Fastcgipp::Transceiver::wake()
 {
-	sigset_t sigSet;
-	sigemptyset(&sigSet);
-	sigprocmask(SIG_BLOCK, NULL, &sigSet);
-	sigdelset(&sigSet, SIGUSR2);
-	epoll_event event;
-	epoll_pwait(epollFd, &event, 1, -1, &sigSet);
+	char x;
+	write(wakeUpFdOut, &x, 1);
 }
 
-Fastcgipp::Transceiver::Transceiver(int fd_, boost::function<void(Protocol::FullId, Message)> sendMessage_): socket(fd_), sendMessage(sendMessage_), epollFd(epoll_create(16)), buffer(epollFd, fdBuffers)
+Fastcgipp::Transceiver::Transceiver(int fd_, boost::function<void(Protocol::FullId, Message)> sendMessage_)
+:sendMessage(sendMessage_), pollFds(2), socket(fd_), buffer(pollFds, fdBuffers)
 {
+	socket=fd_;
+	
+	// Let's setup a in/out socket for waking up poll()
+	int socPair[2];
+	socketpair(AF_UNIX, SOCK_STREAM, 0, socPair);
+	wakeUpFdIn=socPair[0];
+	fcntl(wakeUpFdIn, F_SETFL, (fcntl(wakeUpFdIn, F_GETFL)|O_NONBLOCK)^O_NONBLOCK);	
+	wakeUpFdOut=socPair[1];	
+	
 	fcntl(socket, F_SETFL, (fcntl(socket, F_GETFL)|O_NONBLOCK)^O_NONBLOCK);
-	epoll_event event;
-	event.events=EPOLLIN;
-	event.data.fd=socket;
-	epoll_ctl(epollFd, EPOLL_CTL_ADD, socket, &event);
+	pollFds[0].events = POLLIN|POLLHUP;
+	pollFds[0].fd = socket;
+	pollFds[1].events = POLLIN|POLLHUP;
+	pollFds[1].fd = wakeUpFdIn;
 }
