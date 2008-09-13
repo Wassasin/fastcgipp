@@ -391,7 +391,7 @@ void Fastcgipp::Manager<T>::localHandler(Protocol::FullId id)
 				size_t valueSize;
 				const char* name;
 				const char* value;
-				processParamHeader(message.data.get()+sizeof(Header), name, nameSize, value, valueSize);
+				processParamHeader(message.data.get()+sizeof(Header), header.getContentLength(), name, nameSize, value, valueSize);
 				if(nameSize==14 && !memcmp(name, "FCGI_MAX_CONNS", 14))
 				{
 					Block buffer(transceiver.requestWrite(sizeof(maxConnsReply)));

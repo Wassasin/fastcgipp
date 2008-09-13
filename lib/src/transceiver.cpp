@@ -138,7 +138,7 @@ bool Fastcgipp::Transceiver::handler()
 
 	// Did we recieve a full frame?
 	if(actual==needed)
-	{
+	{		
 		sendMessage(FullId(headerBuffer.getRequestId(), fd), messageBuffer);
 		messageBuffer.size=0;
 		messageBuffer.data.reset();
