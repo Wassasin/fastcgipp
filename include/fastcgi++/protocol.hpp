@@ -29,6 +29,8 @@
 
 #include <boost/shared_array.hpp>
 
+#include <fastcgi++/exceptions.hpp>
+
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
@@ -329,7 +331,7 @@ namespace Fastcgipp
 		 * @param[out] value Reference to a pointer that will be pointed to the first byte of the parameter value
 		 * @param[out] valueSize Reference to a value to will be given the size in bytes of the parameter value
 		 */
-		void processParamHeader(const char* data, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize);
+		void processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize);
 
 		
 		//!Used for the reply of FastCGI management records of type GET_VALUES

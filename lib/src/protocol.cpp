@@ -21,7 +21,7 @@
 
 #include <fastcgi++/protocol.hpp>
 
-void Fastcgipp::Protocol::processParamHeader(const char* data, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
+void Fastcgipp::Protocol::processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
 {
 	if(*data>>7)
 	{
@@ -38,6 +38,7 @@ void Fastcgipp::Protocol::processParamHeader(const char* data, const char*& name
 	else valueSize=*data++;
 	name=data;
 	value=name+nameSize;
+	if(name+nameSize+valueSize>data+dataSize) throw Fastcgipp::Exceptions::FastcgiException("Error decoding parameter packet.");
 }
 
 Fastcgipp::Protocol::ManagementReply<14, 2, 8> Fastcgipp::Protocol::maxConnsReply("FCGI_MAX_CONNS", "10");
