@@ -434,8 +434,6 @@ void Fastcgipp::Manager<T>::localHandler(Protocol::FullId id)
 			}
 		}
 	}
-	else
-		throw Exceptions::FastcgiException("Invalid message type received in Fastcgipp::Manager<T>::localHandler");
 }
 
 #endif

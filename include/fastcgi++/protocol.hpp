@@ -29,38 +29,14 @@
 
 #include <boost/shared_array.hpp>
 
-#include <fastcgi++/exceptions.hpp>
-
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
-	//! Defines aspects of the FastCGI %Protocol
-	/*!
-	 * The %Protocol namespace defines the data structures and constants
-	 * used by the FastCGI protocol version 1. All data has been modelled
-	 * after the official FastCGI protocol specification located at
-	 * http://www.fastcgi.com/devkit/doc/fcgi-spec.html
-	 */
 	namespace Protocol
 	{
-		//! The version of the FastCGI protocol that this adheres to
-		const int version=1;
-
-		//! All FastCGI records will be a multiple of this many bytes
-		const int chunkSize=8;
-
-		//! Defines the types of records within the FastCGI protocol
-		enum RecordType { BEGIN_REQUEST=1, ABORT_REQUEST=2, END_REQUEST=3, PARAMS=4, IN=5, OUT=6, ERR=7, DATA=8, GET_VALUES=9, GET_VALUES_RESULT=10, UNKNOWN_TYPE=11 };
-
-		//! Defines the possible roles a FastCGI application may play
-		enum Role { RESPONDER=1, AUTHORIZER=2, FILTER=3 };
-
-		//! Possible statuses a request may declare when complete
-		enum ProtocolStatus { REQUEST_COMPLETE=0, CANT_MPX_CONN=1, OVERLOADED=2, UNKNOWN_ROLE=3 };
-
 		//! The request ID of a FastCGI request
 		typedef uint16_t RequestId;
-
+		
 		//! A full ID value for a FastCGI request
 		/*!
 		 * Because each FastCGI request has a RequestID and a file descriptor
@@ -87,6 +63,41 @@ namespace Fastcgipp
 			uint16_t fd;
 		};
 		
+		//! Defines the types of records within the FastCGI protocol
+		enum RecordType { BEGIN_REQUEST=1, ABORT_REQUEST=2, END_REQUEST=3, PARAMS=4, IN=5, OUT=6, ERR=7, DATA=8, GET_VALUES=9, GET_VALUES_RESULT=10, UNKNOWN_TYPE=11 };
+		
+		//! Defines text labels for the RecordType values
+		extern char* recordTypeLabels[];
+	}
+}
+		
+
+#include <fastcgi++/exceptions.hpp>
+
+//! Topmost namespace for the fastcgi++ library
+namespace Fastcgipp
+{
+	//! Defines aspects of the FastCGI %Protocol
+	/*!
+	 * The %Protocol namespace defines the data structures and constants
+	 * used by the FastCGI protocol version 1. All data has been modelled
+	 * after the official FastCGI protocol specification located at
+	 * http://www.fastcgi.com/devkit/doc/fcgi-spec.html
+	 */
+	namespace Protocol
+	{
+		//! The version of the FastCGI protocol that this adheres to
+		const int version=1;
+
+		//! All FastCGI records will be a multiple of this many bytes
+		const int chunkSize=8;
+
+		//! Defines the possible roles a FastCGI application may play
+		enum Role { RESPONDER=1, AUTHORIZER=2, FILTER=3 };
+
+		//! Possible statuses a request may declare when complete
+		enum ProtocolStatus { REQUEST_COMPLETE=0, CANT_MPX_CONN=1, OVERLOADED=2, UNKNOWN_ROLE=3 };
+
 		//!Compare between two FullId variables
 		/*!
 		 * This comparator casts the structures as 32 bit integers and compares them as such.
@@ -331,7 +342,7 @@ namespace Fastcgipp
 		 * @param[out] value Reference to a pointer that will be pointed to the first byte of the parameter value
 		 * @param[out] valueSize Reference to a value to will be given the size in bytes of the parameter value
 		 */
-		void processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize);
+		bool processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize);
 
 		
 		//!Used for the reply of FastCGI management records of type GET_VALUES

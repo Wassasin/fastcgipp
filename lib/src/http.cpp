@@ -176,7 +176,7 @@ template<class charT> bool Fastcgipp::Http::parseXmlValue(const char* const name
 	return true;
 }
 
-void Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& string)
+bool Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& string)
 {
 	const size_t bufferSize=512;
 	wchar_t buffer[bufferSize];
@@ -195,7 +195,8 @@ void Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& 
 			size-=tmpData-data;
 			data=tmpData;
 		}}
-		if(cr==codecvt_base::error) throw Fastcgipp::Exceptions::FastcgiException("Error in code conversion of parameters");
+		if(cr==codecvt_base::error) return false;
+		return true;
 	}
 }
 
@@ -245,12 +246,14 @@ int Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destina
 	return destination-start;
 }
 
-template void Fastcgipp::Http::Session<char>::fill(const char* data, size_t size);
-template void Fastcgipp::Http::Session<wchar_t>::fill(const char* data, size_t size);
-template<class charT> void Fastcgipp::Http::Session<charT>::fill(const char* data, size_t size)
+template bool Fastcgipp::Http::Session<char>::fill(const char* data, size_t size);
+template bool Fastcgipp::Http::Session<wchar_t>::fill(const char* data, size_t size);
+template<class charT> bool Fastcgipp::Http::Session<charT>::fill(const char* data, size_t size)
 {
 	using namespace std;
 	using namespace boost;
+	
+	bool status=true;
 
 	while(size)
 	{{
@@ -258,29 +261,29 @@ template<class charT> void Fastcgipp::Http::Session<charT>::fill(const char* dat
 		size_t valueSize;
 		const char* name;
 		const char* value;
-		Protocol::processParamHeader(data, size, name, nameSize, value, valueSize);
+		if(!Protocol::processParamHeader(data, size, name, nameSize, value, valueSize)) return false;;
 		size-=value-data+valueSize;
 		data=value+valueSize;
 		
 		if(nameSize==9 && !memcmp(name, "HTTP_HOST", 9))
-			charToString(value, valueSize, host);
+			status=charToString(value, valueSize, host);
 		else if(nameSize==15 && !memcmp(name, "HTTP_USER_AGENT", 15))
-			charToString(value, valueSize, userAgent);
+			status=charToString(value, valueSize, userAgent);
 		else if(nameSize==11 && !memcmp(name, "HTTP_ACCEPT", 11))
-			charToString(value, valueSize, acceptContentTypes);
+			status=charToString(value, valueSize, acceptContentTypes);
 		else if(nameSize==20 && !memcmp(name, "HTTP_ACCEPT_LANGUAGE", 20))
-			charToString(value, valueSize, acceptLanguages);
+			status=charToString(value, valueSize, acceptLanguages);
 		else if(nameSize==19 && !memcmp(name, "HTTP_ACCEPT_CHARSET", 19))
-			charToString(value, valueSize, acceptCharsets);
+			status=charToString(value, valueSize, acceptCharsets);
 		else if(nameSize==12 && !memcmp(name, "HTTP_REFERER", 12) && valueSize)
 		{
 			scoped_array<char> buffer(new char[valueSize]);
-			charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), referer);
+			status=charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), referer);
 		}
 		else if(nameSize==12 && !memcmp(name, "CONTENT_TYPE", 12))
 		{
 			const char* end=(char*)memchr(value, ';', valueSize);
-			charToString(value, end?end-value:valueSize, contentType);
+			status=charToString(value, end?end-value:valueSize, contentType);
 			if(end)
 			{
 				const char* start=(char*)memchr(end, '=', valueSize-(end-data));
@@ -293,15 +296,15 @@ template<class charT> void Fastcgipp::Http::Session<charT>::fill(const char* dat
 			}
 		}
 		else if(nameSize==11 && !memcmp(name, "HTTP_COOKIE", 11))
-			charToString(value, valueSize, cookies);
+			status=charToString(value, valueSize, cookies);
 		else if(nameSize==13 && !memcmp(name, "DOCUMENT_ROOT", 13))
-			charToString(value, valueSize, root);
+			status=charToString(value, valueSize, root);
 		else if(nameSize==11 && !memcmp(name, "SCRIPT_NAME", 11))
-			charToString(value, valueSize, scriptName);
+			status=charToString(value, valueSize, scriptName);
 		else if(nameSize==12 && !memcmp(name, "QUERY_STRING", 12) && valueSize)
 		{
 			scoped_array<char> buffer(new char[valueSize]);
-			charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), queryString);
+			status=charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), queryString);
 		}
 		else if(nameSize==15 && !memcmp(name, "HTTP_KEEP_ALIVE", 15))
 			keepAlive=atoi(value, value+valueSize);
@@ -333,6 +336,7 @@ template<class charT> void Fastcgipp::Http::Session<charT>::fill(const char* dat
 		}
 		*/
 	}}
+	return status;
 }
 
 template void Fastcgipp::Http::Session<char>::fillPosts(const char* data, size_t size);

@@ -1,9 +1,7 @@
 THINGS TO DO
-	+ Expand exceptions
 	+ Change installation to a ./configure style
 	+ Make the upload example work
 	+ Make a class to assist in the creation of HTTP headers
 	+ Create SQL fetching class
 	+ Create file fetching class
-	+ Switch code conversion to boost
-	+ Solve concurrent requests issue
+	+ Solve code conversion errors on older GCCs

@@ -81,31 +81,31 @@ examplesclean:
 	rm -f examples/*.fcgi
 
 examples/echo.fcgi: examples/src/echo.cpp include/fastcgi++/request.hpp include/fastcgi++/manager.hpp
-	g++ ${CXXFLAGS} ${STATIC} -o examples/echo.fcgi examples/src/echo.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -lpthread
+	g++ ${CXXFLAGS} ${STATIC} -o examples/echo.fcgi examples/src/echo.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -pthread
 ifeq ($(STRIP),true)
 	strip -s examples/echo.fcgi
 endif
 
 examples/utf8-helloworld.fcgi: examples/src/utf8-helloworld.cpp include/fastcgi++/request.hpp include/fastcgi++/manager.hpp
-	g++ ${CXXFLAGS} ${STATIC} -o examples/utf8-helloworld.fcgi examples/src/utf8-helloworld.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -lpthread
+	g++ ${CXXFLAGS} ${STATIC} -o examples/utf8-helloworld.fcgi examples/src/utf8-helloworld.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -pthread
 ifeq ($(STRIP),true)
 	strip -s examples/utf8-helloworld.fcgi
 endif
 
 examples/showgnu.fcgi: examples/src/showgnu.cpp include/fastcgi++/request.hpp include/fastcgi++/manager.hpp
-	g++ ${CXXFLAGS} ${STATIC} -o examples/showgnu.fcgi examples/src/showgnu.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -lpthread
+	g++ ${CXXFLAGS} ${STATIC} -o examples/showgnu.fcgi examples/src/showgnu.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -pthread
 ifeq ($(STRIP),true)
 	strip -s examples/showgnu.fcgi
 endif
 
 examples/timer.fcgi: examples/src/timer.cpp include/fastcgi++/request.hpp include/fastcgi++/manager.hpp
-	g++ ${CXXFLAGS} ${STATIC} -o examples/timer.fcgi examples/src/timer.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -lboost_system -lpthread
+	g++ ${CXXFLAGS} ${STATIC} -o examples/timer.fcgi examples/src/timer.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -lboost_system -pthread
 ifeq ($(STRIP),true)
 	strip -s examples/timer.fcgi
 endif
 
 examples/upload.fcgi: examples/src/upload.cpp include/fastcgi++/request.hpp include/fastcgi++/manager.hpp
-	g++ ${CXXFLAGS} ${STATIC} -o examples/upload.fcgi examples/src/upload.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -lpthread
+	g++ ${CXXFLAGS} ${STATIC} -o examples/upload.fcgi examples/src/upload.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -pthread
 ifeq ($(STRIP),true)
 	strip -s examples/upload.fcgi
 endif
@@ -116,15 +116,15 @@ lib: lib/libfastcgipp.a lib/libfastcgipp.so
 libclean:
 	rm -f lib/*.so lib/*.a lib/*.o
 
-lib/libfastcgipp.a: lib/http-static.o lib/protocol-static.o lib/request-static.o lib/transceiver-static.o
-	ar rc lib/libfastcgipp.a lib/http-static.o lib/protocol-static.o lib/request-static.o lib/transceiver-static.o
+lib/libfastcgipp.a: lib/http-static.o lib/protocol-static.o lib/request-static.o lib/transceiver-static.o lib/exceptions-static.o
+	ar rc lib/libfastcgipp.a lib/http-static.o lib/protocol-static.o lib/request-static.o lib/transceiver-static.o lib/exceptions-static.o
 	ranlib lib/libfastcgipp.a
 ifeq ($(STRIP),true)
 	 strip --strip-unneeded --strip-debug lib/libfastcgipp.a
 endif
 
-lib/libfastcgipp.so: lib/http-shared.o lib/protocol-shared.o lib/request-shared.o lib/transceiver-shared.o
-	g++ ${CXXFLAGS} -shared -o lib/libfastcgipp.so lib/http-shared.o lib/protocol-shared.o lib/request-shared.o lib/transceiver-shared.o -Iinclude
+lib/libfastcgipp.so: lib/http-shared.o lib/protocol-shared.o lib/request-shared.o lib/transceiver-shared.o lib/exceptions-shared.o
+	g++ ${CXXFLAGS} -shared -o lib/libfastcgipp.so lib/http-shared.o lib/protocol-shared.o lib/request-shared.o lib/transceiver-shared.o lib/exceptions-shared.o -Iinclude
 ifeq ($(STRIP),true)
 	strip -s lib/libfastcgipp.so
 endif
@@ -152,3 +152,9 @@ lib/transceiver-static.o: lib/src/transceiver.cpp include/fastcgi++/transceiver.
 
 lib/transceiver-shared.o: lib/src/transceiver.cpp include/fastcgi++/transceiver.hpp
 	g++ ${CXXFLAGS} -fPIC -o lib/transceiver-shared.o -c lib/src/transceiver.cpp -Iinclude
+
+lib/exceptions-static.o: lib/src/exceptions.cpp include/fastcgi++/exceptions.hpp
+	g++ ${CXXFLAGS} -o lib/exceptions-static.o -c lib/src/exceptions.cpp -Iinclude
+
+lib/exceptions-shared.o: lib/src/exceptions.cpp include/fastcgi++/exceptions.hpp
+	g++ ${CXXFLAGS} -fPIC -o lib/exceptions-shared.o -c lib/src/exceptions.cpp -Iinclude
