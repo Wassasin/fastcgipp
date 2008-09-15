@@ -39,6 +39,7 @@ Fastcgipp::Transceiver's transmit half implements a cyclic buffer that can grow 
 \section dep Dependencies
 
 	\li Boost C++ Libraries >1.35.0
+	\li Posix compliant OS (socket stuff)
 
 \section installation Installation
 

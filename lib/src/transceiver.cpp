@@ -37,7 +37,7 @@ int Fastcgipp::Transceiver::transmit()
 					fdBuffers.erase(sendBlock.fd);
 					sent=sendBlock.size;
 				}
-				else if(errno!=EAGAIN) throw Exceptions::FastcgiException("Error writing to file descriptor");
+				else if(errno!=EAGAIN) throw Exceptions::SocketWrite(sendBlock.fd, errno);
 			}
 
 			buffer.freeRead(sent);
@@ -75,7 +75,7 @@ bool Fastcgipp::Transceiver::handler()
 		if(transmitEmpty) return true;
 		else return false;
 	}
-	if(retVal<0) throw Exceptions::FastcgiException("Poll Error");
+	if(retVal<0) throw Exceptions::Poll(errno);
 	
 	std::vector<pollfd>::iterator pollFd = find_if(pollFds.begin(), pollFds.end(), reventsZero);
 
@@ -118,7 +118,7 @@ bool Fastcgipp::Transceiver::handler()
 	{
 		// Are we recieving a partial header or new?
 		actual=read(fd, (char*)&headerBuffer+messageBuffer.size, sizeof(Header)-messageBuffer.size);
-		if(actual<0 && errno!=EAGAIN) throw Exceptions::FastcgiException("Error reading header from file descriptor");
+		if(actual<0 && errno!=EAGAIN) throw Exceptions::SocketRead(fd, errno);
 		if(actual>0) messageBuffer.size+=actual;
 		if(messageBuffer.size!=sizeof(Header))
 		{
@@ -133,7 +133,7 @@ bool Fastcgipp::Transceiver::handler()
 	const Header& header=*(const Header*)messageBuffer.data.get();
 	size_t needed=header.getContentLength()+header.getPaddingLength()+sizeof(Header)-messageBuffer.size;
 	actual=read(fd, messageBuffer.data.get()+messageBuffer.size, needed);
-	if(actual<0 && errno!=EAGAIN) throw Exceptions::FastcgiException("Error reading body from file descriptor");
+	if(actual<0 && errno!=EAGAIN) throw Exceptions::SocketRead(fd, errno);
 	if(actual>0) messageBuffer.size+=actual;
 
 	// Did we recieve a full frame?

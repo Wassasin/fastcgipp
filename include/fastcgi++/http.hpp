@@ -229,7 +229,7 @@ namespace Fastcgipp
 			 * @param[in] data Pointer to the first byte of parameter data
 			 * @param[in] size Size of data in bytes
 			 */
-			void fill(const char* data, size_t size);
+			bool fill(const char* data, size_t size);
 			//! Parses raw http post data into the posts object
 			/*!
 			 * This function will take arbitrarily divided chunks of raw http post
@@ -262,15 +262,17 @@ namespace Fastcgipp
 		 * @param[in] data First byte in char string
 		 * @param[in] size Size in bytes of the string (no null terminator)
 		 * @param[out] string Reference to the wstring that should be modified
+		 * @return Returns true on success, false on failure
 		 */
-		void charToString(const char* data, size_t size, std::wstring& string);
+		bool charToString(const char* data, size_t size, std::wstring& string);
 		//! Convert a char string to a std::string
 		/*!
 		 * @param[in] data First byte in char string
 		 * @param[in] size Size in bytes of the string (no null terminator)
 		 * @param[out] string Reference to the string that should be modified
+		 * @return Returns true on success, false on failure
 		 */
-		inline void charToString(const char* data, size_t size, std::string& string) { string.assign(data, size); }
+		inline bool charToString(const char* data, size_t size, std::string& string) { string.assign(data, size); return true; }
 		//! Convert a char string to an integer
 		/*!
 		 * This function is very similar to std::atoi() except that it takes start/end values

@@ -21,7 +21,7 @@
 
 #include <fastcgi++/protocol.hpp>
 
-void Fastcgipp::Protocol::processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
+bool Fastcgipp::Protocol::processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
 {
 	if(*data>>7)
 	{
@@ -38,9 +38,12 @@ void Fastcgipp::Protocol::processParamHeader(const char* data, size_t dataSize, 
 	else valueSize=*data++;
 	name=data;
 	value=name+nameSize;
-	if(name+nameSize+valueSize>data+dataSize) throw Fastcgipp::Exceptions::FastcgiException("Error decoding parameter packet.");
+	if(name+nameSize+valueSize > data+dataSize) return false;
+	return true;
 }
 
 Fastcgipp::Protocol::ManagementReply<14, 2, 8> Fastcgipp::Protocol::maxConnsReply("FCGI_MAX_CONNS", "10");
 Fastcgipp::Protocol::ManagementReply<13, 2, 1> Fastcgipp::Protocol::maxReqsReply("FCGI_MAX_REQS", "50");
 Fastcgipp::Protocol::ManagementReply<15, 1, 8> Fastcgipp::Protocol::mpxsConnsReply("FCGI_MPXS_CONNS", "1");
+
+char* Fastcgipp::Protocol::recordTypeLabels[] = { "INVALID", "BEGIN_REQUEST", "ABORT_REQUEST", "END_REQUEST", "PARAMS", "IN", "OUT", "ERR", "DATA", "GET_VALUES", "GET_VALUES_RESULT", "UNKNOWN_TYPE" };

@@ -55,7 +55,7 @@ int Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::emptyBuffer()
 					pbump(-(this->pptr()-this->pbase()));
 					dumpSize=0;
 					dumpPtr=0;
-					throw Exceptions::FastcgiException("Error in streambuf code conversion");
+					throw Exceptions::Stream(id);
 				}
 			}
 			else
@@ -167,23 +167,23 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 			{
 				case PARAMS:
 				{
-					if(status!=PARAMETERS) throw Exceptions::FastcgiException("Parameter data recieved when it should not have been.");
+					if(state!=PARAMS) throw Exceptions::RecordOutOfOrder(id, state, PARAMS);
 					if(header.getContentLength()==0) 
 					{
-						status=POST;
+						state=IN;
 						break;
 					}
-					session.fill(body, header.getContentLength());
+					if(!session.fill(body, header.getContentLength())) throw Exceptions::Param(id);
 					break;
 				}
 
 				case IN:
 				{
-					if(status!=POST) throw Exceptions::FastcgiException("Post data recieved when it should not have been.");
+					if(state!=IN) throw Exceptions::RecordOutOfOrder(id, state, IN);
 					if(header.getContentLength()==0)
 					{
 						session.clearPostBuffer();
-						status=RESPONSE;
+						state=OUT;
 						if(response())
 						{
 							complete();

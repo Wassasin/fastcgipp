@@ -60,7 +60,7 @@ namespace Fastcgipp
 	{
 	public:
 		//! Initializes what it can. set() must be called by Manager before the data is usable.
-		Request(): status(PARAMETERS), loc(std::locale::classic()) { out.imbue(loc); err.imbue(loc); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); session.clearPostBuffer(); }
+		Request(): state(Protocol::PARAMS), loc(std::locale::classic()) { out.imbue(loc); err.imbue(loc); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); session.clearPostBuffer(); }
 
 	protected:
 		//! Structure containing all HTTP session data
@@ -170,7 +170,7 @@ namespace Fastcgipp
 		//! Boolean value indicating whether or not the file descriptor should be closed upon completion.
 		bool killCon;
 		//! What the request is current doing
-		enum Status { PARAMETERS, POST, RESPONSE } status;
+		Protocol::RecordType state;
 		//! Generates an END_REQUEST FastCGI record
 		void complete();
 		//! Set's up the request with the data it needs.

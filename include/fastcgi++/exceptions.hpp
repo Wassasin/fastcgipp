@@ -23,6 +23,9 @@
 #define EXCEPTIONS_HPP
 
 #include <exception>
+#include <string>
+
+#include <fastcgi++/protocol.hpp>
 
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
@@ -31,17 +34,159 @@ namespace Fastcgipp
 	namespace Exceptions
 	{
 		//! General fastcgi++ exception
-		class FastcgiException: public std::exception
+		class Exception: public std::exception
 		{
 		public:
-			FastcgiException(const char* msg_): msg(msg_) { }
-
-			virtual const char* what() const throw()
-			{
-				return msg;
-			}
+			virtual const char* what() const throw() =0;
+			~Exception() throw() {}
+		};
+		
+		//! General fastcgi++ request exception
+		class Request: public Exception
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] id_ ID value for the request that generated the exception
+			 */
+			Request(Protocol::FullId id_): id(id_) { }
+			~Request() throw() {}
+			
+			virtual const char* what() const throw() =0;
+			Protocol::FullId getId() const throw() { return id; }
+		protected:
+			//! ID value for the request that generated the exception
+			Protocol::FullId id;
+		};
+		
+		//! %Exception for parameter decoding errors
+		class Param: public Request
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] id_ ID value for the request that generated the exception
+			 */
+			Param(Protocol::FullId id_);
+			~Param() throw() {}
+			virtual const char* what() const throw() { return msg.c_str(); }
 		private:
-			const char* const msg;
+			//! Error message associated with the exception
+			std::string msg;
+		};
+		
+		//! %Exception for output stream processing
+		class Stream: public Request
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] id_ ID value for the request that generated the exception
+			 */
+			Stream(Protocol::FullId id_);
+			~Stream() throw() {}
+			virtual const char* what() const throw() { return msg.c_str(); }
+		private:
+			//! Error message associated with the exception
+			std::string msg;
+		};
+		
+		//! %Exception for reception of records out of order
+		class RecordOutOfOrder: public Request
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] id_ ID value for the request that generated the exception
+			 * @param[in] expectedRecord_ Type of record that was expected
+			 * @param[in] recievedRecord_ Type of record that was recieved
+			 */
+			RecordOutOfOrder(Protocol::FullId id_, Protocol::RecordType expectedRecord_, Protocol::RecordType recievedRecord_);
+			~RecordOutOfOrder() throw() {}
+			virtual const char* what() const throw() { return msg.c_str(); }
+			Protocol::RecordType getExpectedRecord() const throw() { return expectedRecord; }
+			Protocol::RecordType getRecievedRecord() const throw() { return recievedRecord; }
+		private:
+			//! Type of record that was expected
+			Protocol::RecordType expectedRecord;
+			//! Type of record that was recieved
+			Protocol::RecordType recievedRecord;
+			//! Error message associated with the exception
+			std::string msg;
+		};
+		
+		//! General exception for socket related errors
+		class Socket: public Exception
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] fd_ File descriptor of socket
+			 * @param[in] erno_ Associated errno
+			 */
+			Socket(int fd_, int erno_): fd(fd_), erno(erno_) { }
+			~Socket() throw() {}
+			virtual const char* what() const throw() =0;
+			int getFd() const throw() { return fd; }
+			int getErrno() const throw() { return erno; }
+		protected:
+			//! File descriptor of socket
+			int fd;
+			//! Associated errno
+			int erno;
+		};
+		
+		//! %Exception for write errors to sockets
+		class SocketWrite: public Socket
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] fd_ File descriptor of socket
+			 * @param[in] erno_ Associated errno
+			 */
+			SocketWrite(int fd_, int erno_);
+			~SocketWrite() throw() {}
+			virtual const char* what() const throw() { return msg.c_str(); }
+		private:
+			//! Error message associated with the exception
+			std::string msg;
+		};
+		
+		//! %Exception for read errors to sockets
+		class SocketRead: public Socket
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] fd_ File descriptor of socket
+			 * @param[in] erno_ Associated errno
+			 */
+			SocketRead(int fd_, int erno_);
+			~SocketRead() throw() {}
+			virtual const char* what() const throw() { return msg.c_str(); }
+		private:
+			//! Error message associated with the exception
+			std::string msg;
+		};
+		
+		//! %Exception for poll() errors
+		class Poll: public Exception
+		{
+		public:
+			//! Sole Constructor
+			/*!
+			 * @param[in] erno_ Associated errno
+			 */
+			Poll(int erno_);
+			~Poll() throw() {}
+			virtual const char* what() const throw() { return msg.c_str(); }
+			int getErno() const throw() { return erno; }
+		private:
+			//! Associated errno
+			int erno;
+			//! Error message associated with the exception
+			std::string msg;
 		};
 	}
 }
