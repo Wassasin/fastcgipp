@@ -71,7 +71,7 @@ This is a collection of tutorials that should cover most aspects of the fastcgi+
 
 \subpage echo : An example of a FastCGI application that echoes all user data and sets a cookie
 
-\subpage showGnu : A tutorial explaining how to display an images and non-html data
+\subpage showGnu : A tutorial explaining how to display images and non-html data as well as setting locales
 
 \subpage timer : A tutorial covering the use of the task manager and threads to have requests efficiently communicate with non-fastcgi++ data.
 
@@ -152,12 +152,6 @@ First thing we'll do is output our HTTP header. Note the charset=ISO-8859-1. Rem
 
 \code
 				out << "Content-Type: text/html; charset=ISO-8859-1\r\n\r\n";
-\endcode
-
-Now we set our requests locale. We must have a ISO-8859-1 locale for this to work. Any locale with a .ISO-8859-1 at the end will do. Depending on what language you are using you might want something other than en_US. That way you get proper localization as well in the stream. If you don't have any ISO-8859-1 locales installed on your system, edit /etc/locale.gen, add them and them run locale-gen.
-
-\code
-				setloc(std::locale("en_US.ISO-8859-1"));
 \endcode
 
 Some standard HTML header output
@@ -318,8 +312,6 @@ private:
 			{
 				out << "Content-Type: text/html; charset=ISO-8859-1\r\n\r\n";
 
-				setloc(std::locale("en_US.ISO-8859-1"));
-
 				out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1' />";
 				out << "<title>fastcgi++: Threaded Timer</title></head><body>";
 				
@@ -459,7 +451,7 @@ Fastcgipp::Http::Session implements the etag variable as an integer for better p
 		}
 \endcode
 
-We still need to call Fastcgipp::Request::setloc() to set a facet in our requests locale regarding how to format the date upon insertion. It needs to conform to the HTTP standard.
+We will need to call Fastcgipp::Request::setloc() to set a facet in our requests locale regarding how to format the date upon insertion. It needs to conform to the HTTP standard. When setting locales for the streams, make sure to use the Fastcgipp::Request::setloc() function instead of directly imbueing them. This insures that the UTF-8 code conversion still functions properly if used.
 
 \code
 		setloc(locale(loc, new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
@@ -673,12 +665,6 @@ Next of course we need to output our content type part of the header. Note the c
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
 \endcode
 
-We are already set up to deal with wide characters internally, but in order to make the library (specifically the stream buffer) code convert the wide characters to UTF-8, we need to set up a proper UTF-8 locale. I've picked "en_US.UTF-8" because it is the most common, but for different primary languages and localities you might want to pick something different eg. "ru_RU.UTF-8". You could simply call out.imbue(), but since we have two streams (err and our) and a locale object stored in the class for general reference, the request class implements a member function to change all locales simultaneously. If you don't have any UTF-8 locales installed on your system, edit /etc/locale.gen, add them and then run locale-gen.
-
-\code
-		setloc(std::locale("en_US.UTF-8"));
-\endcode
-
 Next we'll get some initial HTML stuff out of the way
 
 \code
@@ -814,8 +800,6 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "Set-Cookie: lang=" << langString << '\n';
 
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
-
-		setloc(std::locale("en_US.UTF-8"));
 
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
@@ -954,12 +938,6 @@ Any data we want to send to the client just get's inserted into the requests Fas
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
 \endcode
 
-We are already set up to deal with wide characters internally, but in order to make the library (specifically the stream buffer) code convert the wide characters to UTF-8, we need to set up a proper UTF-8 locale. I've picked "en_US.UTF-8" because it is the most common, but for different primary languages and localities you might want to pick something different eg. "ru_RU.UTF-8". You could simply call out.imbue(), but since we have two streams (err and our) and a locale object stored in the class for general reference, the request class implements a member function to change all locales simultaneously. If you don't have any UTF-8 locales installed on your system, edit /etc/locale.gen, add them and then run locale-gen.
-
-\code
-		setloc(std::locale("en_US.UTF-8"));
-\endcode
-
 Now we're ready to insert all the HTML data into the stream.
 
 \code
@@ -1043,8 +1021,6 @@ class HelloWorld: public Fastcgipp::Request<wchar_t>
 		wchar_t runic[]={ 0x16ba, 0x16d6, 0x16da, 0x16df, 0x0020, 0x16b9, 0x16df, 0x16c9, 0x16da, 0x16de, 0x0000 };
 
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
-
-		setloc(std::locale("en_US.UTF-8"));
 
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 		out << "<title>fastcgi++: Hello World in UTF-8</title></head><body>";

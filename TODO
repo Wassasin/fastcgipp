@@ -4,4 +4,3 @@ THINGS TO DO
 	+ Make a class to assist in the creation of HTTP headers
 	+ Create SQL fetching class
 	+ Create file fetching class
-	+ Solve code conversion errors on older GCCs

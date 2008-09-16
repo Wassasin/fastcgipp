@@ -74,12 +74,6 @@ class HelloWorld: public Fastcgipp::Request<wchar_t>
 		// must be terminated with \r\n\r\n. NOT just \n\n.
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
 
-		// Now we set our requests locale. We must have a UTF-8 locale for this to work. Any locale with a
-		// .UTF-8 at the end will do. Depending on what language you are using you might want something other
-		// than en_US. That way you get proper number formatting as well in the stream. If you don't have any
-		// UTF-8 locales installed on your system, edit /etc/locale.gen, add them and them run locale-gen.
-		setloc(std::locale("en_US.UTF-8"));
-
 		// Now it's all stuff you should be familiar with
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 		out << "<title>fastcgi++: Hello World in UTF-8</title></head><body>";

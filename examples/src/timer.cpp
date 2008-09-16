@@ -78,12 +78,6 @@ private:
 				// must be terminated with \r\n\r\n. NOT just \n\n.
 				out << "Content-Type: text/html; charset=ISO-8859-1\r\n\r\n";
 
-				// Now we set our requests locale. We must have a ISO-8859-1 locale for this to work. Any locale with a
-				// .ISO-8859-1 at the end will do. Depending on what language you are using you might want something other
-				// than en_US. That way you get proper number formatting as well in the stream. If you don't have any
-				// ISO-8859-1 locales installed on your system, edit /etc/locale.gen, add them and them run locale-gen.
-				setloc(std::locale("en_US.ISO-8859-1"));
-
 				// Here it's all stuff you should be familiar with
 				out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1' />";
 				out << "<title>fastcgi++: Threaded Timer</title></head><body>";
