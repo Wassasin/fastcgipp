@@ -52,11 +52,11 @@ make install</tt>
 
 The default prefix for installation is /usr/local. If you wanted to change it to /usr simply change <tt>"make install"</tt> to <tt>"PREFIX=/usr make install"</tt>. If you want the binary files to be run through \c strip change \c "make" to <tt>"STRIP=true make"</tt>.
 
-To also install the documentation into $(PREFIX)/share/doc/fastcgi++ with PREFIX preceded as above run this:
+To also install the documentation into $PREFIX/share/doc/fastcgi++ with PREFIX preceded as above run this:
 
 <tt>make doc-install</tt>
 
-If you want to build and install the examples, simply run.
+If you want to build and install the examples, simply the commands below. The build the examples statically, precede make with STATIC=yes.
 
 <tt>make examples\n
 make examples-install</tt>
