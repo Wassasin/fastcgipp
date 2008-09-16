@@ -23,6 +23,8 @@
 
 #include <fastcgi++/http.hpp>
 
+#include "utf8_codecvt.hpp"
+
 void Fastcgipp::Http::Address::assign(const char* start, const char* end)
 {
 	data=0;
@@ -190,7 +192,7 @@ bool Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& 
 			wchar_t* it;
 			const char* tmpData;
 			mbstate_t conversionState = mbstate_t();
-			cr=use_facet<codecvt<wchar_t, char, mbstate_t> >(locale("en_US.UTF-8")).in(conversionState, data, data+size, tmpData, buffer, buffer+bufferSize, it);
+			cr=use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, data, data+size, tmpData, buffer, buffer+bufferSize, it);
 			string.append(buffer, it);
 			size-=tmpData-data;
 			data=tmpData;

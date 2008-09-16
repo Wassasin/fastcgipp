@@ -60,7 +60,7 @@ namespace Fastcgipp
 	{
 	public:
 		//! Initializes what it can. set() must be called by Manager before the data is usable.
-		Request(): state(Protocol::PARAMS), loc(std::locale::classic()) { out.imbue(loc); err.imbue(loc); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); session.clearPostBuffer(); }
+		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); session.clearPostBuffer(); }
 
 	protected:
 		//! Structure containing all HTTP session data
@@ -120,13 +120,14 @@ namespace Fastcgipp
 		//! Set the requests locale
 		/*!
 		 * This function both sets loc to the locale passed to it and imbues the locale into the
-		 * out stream.
+		 * out and err stream. The user should always call this function as opposed to setting the
+		 * locales directly is this functions insures the utf8 code conversion is functioning properly.
 		 *
 		 * @param[in] loc_ New locale
 		 * @sa loc
 		 * @sa out
 		 */
-		void setloc(std::locale loc_) { loc=loc_; out.imbue(loc); }
+		void setloc(std::locale loc_);
 
 		//! Callback function for dealings outside the fastcgi++ library
 		/*!
@@ -156,7 +157,7 @@ namespace Fastcgipp
 		 * This function is called by Manager::handler() to handle messages destined for the request.
 		 * It deals with FastCGI messages (type=0) while passing all other messages off to response().
 		 *
-		 * @return Boolean value indication completion (true means complete)
+		 * @return Boolean value indicating completion (true means complete)
 		 * @sa callback
 		 */
 		bool handler();

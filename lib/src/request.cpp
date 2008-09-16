@@ -20,6 +20,20 @@
 
 
 #include <fastcgi++/request.hpp>
+#include "utf8_codecvt.hpp"
+
+namespace Fastcgipp
+{
+	template<class charT> inline std::locale makeLocale(std::locale& loc)
+	{
+		return loc;
+	}
+	
+	template<> std::locale inline makeLocale<wchar_t>(std::locale& loc)
+	{
+		return std::locale(loc, new utf8CodeCvt::utf8_codecvt_facet);
+	}
+}
 
 template int Fastcgipp::Fcgistream<char, std::char_traits<char> >::Fcgibuf::emptyBuffer();
 template int Fastcgipp::Fcgistream<wchar_t, std::char_traits<wchar_t> >::Fcgibuf::emptyBuffer();
@@ -223,3 +237,13 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 	return false;
 }
 
+template void Fastcgipp::Request<char>::setloc(std::locale loc_);
+template void Fastcgipp::Request<wchar_t>::setloc(std::locale loc_);
+template<class charT> void Fastcgipp::Request<charT>::setloc(std::locale loc_)
+{
+	loc=makeLocale<charT>(loc_);
+	out.imbue(loc);
+	err.imbue(loc);
+}
+
+#include "utf8_codecvt_facet.cpp"
