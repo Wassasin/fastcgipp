@@ -545,7 +545,6 @@ void error_log(const char* msg)
 
 class ShowGnu: public Fastcgipp::Request<char>
 {
-	// Now we define the actual function that sends a response to the client.
 	bool response()
 	{
 		using namespace std;
