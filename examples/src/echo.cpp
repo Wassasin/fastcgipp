@@ -72,31 +72,31 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
 
-		// This session data structure is defined in fastcgi++/http.hpp
-		out << "<h1>Session Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << session.host << "<br />";
-		out << "<b>User Agent:</b> " << session.userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << session.acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << session.acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << session.acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << session.referer << "<br />";
-		out << "<b>Content Type:</b> " << session.contentType << "<br />";
-		out << "<b>Query String:</b> " << session.queryString << "<br />";
-		out << "<b>Cookies:</b> " << session.cookies << "<br />";
-		out << "<b>Root:</b> " << session.root << "<br />";
-		out << "<b>Script Name:</b> " << session.scriptName << "<br />";
-		out << "<b>Content Length:</b> " << session.contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << session.keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << session.serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << session.serverPort << "<br />";
-		out << "<b>Client Address:</b> " << session.remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << session.remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << session.ifModifiedSince << "</p>";
+		// This environment data structure is defined in fastcgi++/http.hpp
+		out << "<h1>Environment Parameters</h1>";
+		out << "<p><b>Hostname:</b> " << environment.host << "<br />";
+		out << "<b>User Agent:</b> " << environment.userAgent << "<br />";
+		out << "<b>Accepted Content Types:</b> " << environment.acceptContentTypes << "<br />";
+		out << "<b>Accepted Languages:</b> " << environment.acceptLanguages << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
+		out << "<b>Referer:</b> " << environment.referer << "<br />";
+		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
+		out << "<b>Query String:</b> " << environment.queryString << "<br />";
+		out << "<b>Cookies:</b> " << environment.cookies << "<br />";
+		out << "<b>Root:</b> " << environment.root << "<br />";
+		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
+		out << "<b>Content Length:</b> " << environment.contentLength << "<br />";
+		out << "<b>Keep Alive Time:</b> " << environment.keepAlive << "<br />";
+		out << "<b>Server Address:</b> " << environment.serverAddress << "<br />";
+		out << "<b>Server Port:</b> " << environment.serverPort << "<br />";
+		out << "<b>Client Address:</b> " << environment.remoteAddress << "<br />";
+		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
+		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
 
 		//Fastcgipp::Http::Post is defined in fastcgi++/http.hpp
 		out << "<h1>Post Data</h1>";
-		if(session.posts.size())
-			for(Fastcgipp::Http::Session<wchar_t>::Posts::iterator it=session.posts.begin(); it!=session.posts.end(); ++it)
+		if(environment.posts.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
 				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)

@@ -43,7 +43,7 @@ namespace Fastcgipp
 	//! %Request handling class
 	/*!
 	 * Derivations of this class will handle requests. This
-	 * includes building the session data, processing post/get data,
+	 * includes building the environment data, processing post/get data,
 	 * fetching data (files, database), and producing a response.
 	 * Once all client data is organized, response() will be called.
 	 * At minimum, derivations of this class must define response().
@@ -60,11 +60,11 @@ namespace Fastcgipp
 	{
 	public:
 		//! Initializes what it can. set() must be called by Manager before the data is usable.
-		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); session.clearPostBuffer(); }
+		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); environment.clearPostBuffer(); }
 
 	protected:
-		//! Structure containing all HTTP session data
-		Http::Session<charT> session;
+		//! Structure containing all HTTP environment data
+		Http::Environment<charT> environment;
 
 		// To dump data into the stream without it being code converted and bypassing the stream buffer call Fcgistream::dump(char* data, size_t size)
 		// or Fcgistream::dump(std::basic_istream<char>& stream)
@@ -98,7 +98,7 @@ namespace Fastcgipp
 		 * bytes received from the client. The function is called by handler() every time a FastCGI IN record is received.
 		 * The function has no access to the data, but knows exactly how much was received based on the value that was passed.
 		 * Note this value represents the amount of data received in the individual record, not the total amount received in
-		 * the session. If the library user wishes to have such a value they would have to keep a tally of all size values
+		 * the environment. If the library user wishes to have such a value they would have to keep a tally of all size values
 		 * passed.
 		 *
 		 * @param[in] bytesReceived Amount of bytes received in this FastCGI record

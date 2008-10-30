@@ -187,7 +187,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						state=IN;
 						break;
 					}
-					if(!session.fill(body, header.getContentLength())) throw Exceptions::Param(id);
+					if(!environment.fill(body, header.getContentLength())) throw Exceptions::Param(id);
 					break;
 				}
 
@@ -196,7 +196,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 					if(state!=IN) throw Exceptions::RecordOutOfOrder(id, state, IN);
 					if(header.getContentLength()==0)
 					{
-						session.clearPostBuffer();
+						environment.clearPostBuffer();
 						state=OUT;
 						if(response())
 						{
@@ -205,7 +205,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						}
 						break;
 					}
-					session.fillPosts(body, header.getContentLength());
+					environment.fillPosts(body, header.getContentLength());
 					inHandler(header.getContentLength());
 					break;
 				}

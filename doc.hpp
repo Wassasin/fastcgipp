@@ -15,13 +15,13 @@
 
 \section intro Introduction
 
-The fastcgi++ library started out as a C++ alternative to the official FastCGI developers kit. Although the official developers kit provided some degree of C++ interface, it was very limited. The goal of this project was to provide a framework that offered all the facilities that the C++ language has to offer. Over time the scope broadened to the point that it became more than just a simple protocol library, but a platform to develop web application under C++. To the dismay of many, this library has zero support for the old CGI protocol. The consensus was that if one were to be developing web applications under C++, efficient memory management and CPU usage would be a top priority, not CGI compatibility. Effective management of simultaneous requests without the need for multiple threads is something that fastcgi++ does best. Session data is organized into meaningful data types as opposed to a series of text strings. Internationalization and Unicode support is another top priority. The library is templated to allow internal wide character use for efficient text processing while code converting down to utf-8 upon transmission to the client.
+The fastcgi++ library started out as a C++ alternative to the official FastCGI developers kit. Although the official developers kit provided some degree of C++ interface, it was very limited. The goal of this project was to provide a framework that offered all the facilities that the C++ language has to offer. Over time the scope broadened to the point that it became more than just a simple protocol library, but a platform to develop web application under C++. To the dismay of many, this library has zero support for the old CGI protocol. The consensus was that if one were to be developing web applications under C++, efficient memory management and CPU usage would be a top priority, not CGI compatibility. Effective management of simultaneous requests without the need for multiple threads is something that fastcgi++ does best. Environment data is organized into meaningful data types as opposed to a series of text strings. Internationalization and Unicode support is another top priority. The library is templated to allow internal wide character use for efficient text processing while code converting down to utf-8 upon transmission to the client.
 
 \section features Features
 
 	\li Support for multiple locales and characters sets including wide Unicode and utf-8
 	\li Internally manages simultaneous requests instead of leaving that to the user
-	\li Establishes session data into usable data structures
+	\li Establishes environment data into usable data structures
 	\li Implements a task manager that can not only easily communicate outside the library, but with separate threads
 	\li Provides a familiar io interface by implementing it through STL iostreams
 	\li Complete compliance with FastCGI protocol version 1
@@ -30,7 +30,7 @@ The fastcgi++ library started out as a C++ alternative to the official FastCGI d
 
 The fastcgi++ library is built around three classes. Fastcgipp::Manager handles all task and request management along with the communication inside and outside the library. Fastcgipp::Transceiver handles all low level socket io and maintains send/receive buffers. Fastcgipp::Request is designed to handle the individual requests themselves. The aspects of the FastCGI protocol itself are defined in the Fastcgipp::Protocol namespace.
 
-The Fastcgipp::Request class is a pure virtual class. The class, as is, establishes and parses session data. Once complete it looks to user defined virtual functions for actually generating the response. A response shall be outputted by the user defined virtuals through an output stream. Once a request has control over operation it maintains it until relinquishing it. Should the user know a request will sit around waiting for data, it can return control to Fastcgipp::Manager and have a message sent back through the manager when the data is ready. The aspects of the session are build around the Fastcgipp::Http namespace.
+The Fastcgipp::Request class is a pure virtual class. The class, as is, establishes and parses environment data. Once complete it looks to user defined virtual functions for actually generating the response. A response shall be outputted by the user defined virtuals through an output stream. Once a request has control over operation it maintains it until relinquishing it. Should the user know a request will sit around waiting for data, it can return control to Fastcgipp::Manager and have a message sent back through the manager when the data is ready. The aspects of the environment are build around the Fastcgipp::Http namespace.
 
 Fastcgipp::Manager basically runs an endless loop (which can be terminated through POSIX signals or a function call from another thread) that passes control to requests that have a message queued or the transceiver. It is smart enough to go into a sleep mode when there are no tasks to complete or data to receive.
 
@@ -444,7 +444,7 @@ We'll use the POSIX stat() function (man 2 stat) to get the modification time, f
 			modTime = posix_time::from_time_t(fileStat.st_mtime);
 \endcode
 
-Fastcgipp::Http::Session implements the etag variable as an integer for better processing efficiency.
+Fastcgipp::Http::Environment implements the etag variable as an integer for better processing efficiency.
 
 \code
 			etag = fileStat.st_ino;
@@ -460,7 +460,7 @@ We will need to call Fastcgipp::Request::setloc() to set a facet in our requests
 If the modification time of the file is older or equal to the if-modified-since value sent to us from the client and the etag matches, we don't need to send the image to them.
 
 \code
-		if(!session.ifModifiedSince.is_not_a_date_time() && etag==session.etag && modTime<=session.ifModifiedSince)
+		if(!environment.ifModifiedSince.is_not_a_date_time() && etag==environment.etag && modTime<=environment.ifModifiedSince)
 		{
 			out << "Status: 304 Not Modified\r\n\r\n";
 			return true;
@@ -565,7 +565,7 @@ class ShowGnu: public Fastcgipp::Request<char>
 
 		setloc(locale(loc, new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
 
-		if(!session.ifModifiedSince.is_not_a_date_time() && etag==session.etag && modTime<=session.ifModifiedSince)
+		if(!environment.ifModifiedSince.is_not_a_date_time() && etag==environment.etag && modTime<=environment.ifModifiedSince)
 		{
 			out << "Status: 304 Not Modified\r\n\r\n";
 			return true;
@@ -606,7 +606,7 @@ int main()
 
 \section echoTutorial Tutorial
 
-Our goal here will be to make a FastCGI application that responds to clients with an echo of all session data that was processed. This will include HTTP header data along with post data that was transmitted by the client. Since we want to be able to echo any alphabets, our best solution is to use UTF-32 wide characters internally and have the library code convert it to UTF-8 before sending it to the client. Your going to need the boost C++ libraries for this. At least version 1.35.0.
+Our goal here will be to make a FastCGI application that responds to clients with an echo of all environment data that was processed. This will include HTTP header data along with post data that was transmitted by the client. Since we want to be able to echo any alphabets, our best solution is to use UTF-32 wide characters internally and have the library code convert it to UTF-8 before sending it to the client. Your going to need the boost C++ libraries for this. At least version 1.35.0.
 
 All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
 
@@ -671,31 +671,31 @@ Next we'll get some initial HTML stuff out of the way
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
 \endcode
 
-Now we are ready to start outputting session data. We'll start with the non-post session data. This data is defined and initialized in the session object which is of type Fastcgipp::Http::Session.
+Now we are ready to start outputting environment data. We'll start with the non-post environment data. This data is defined and initialized in the environment object which is of type Fastcgipp::Http::Environment.
 
 \code
-		out << "<h1>Session Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << session.host << "<br />";
-		out << "<b>User Agent:</b> " << session.userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << session.acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << session.acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << session.acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << session.referer << "<br />";
-		out << "<b>Content Type:</b> " << session.contentType << "<br />";
-		out << "<b>Query String:</b> " << session.queryString << "<br />";
-		out << "<b>Cookies:</b> " << session.cookies << "<br />";
-		out << "<b>Root:</b> " << session.root << "<br />";
-		out << "<b>Script Name:</b> " << session.scriptName << "<br />";
-		out << "<b>Content Length:</b> " << session.contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << session.keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << session.serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << session.serverPort << "<br />";
-		out << "<b>Client Address:</b> " << session.remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << session.remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << session.ifModifiedSince << "</p>";
+		out << "<h1>Environment Parameters</h1>";
+		out << "<p><b>Hostname:</b> " << environment.host << "<br />";
+		out << "<b>User Agent:</b> " << environment.userAgent << "<br />";
+		out << "<b>Accepted Content Types:</b> " << environment.acceptContentTypes << "<br />";
+		out << "<b>Accepted Languages:</b> " << environment.acceptLanguages << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
+		out << "<b>Referer:</b> " << environment.referer << "<br />";
+		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
+		out << "<b>Query String:</b> " << environment.queryString << "<br />";
+		out << "<b>Cookies:</b> " << environment.cookies << "<br />";
+		out << "<b>Root:</b> " << environment.root << "<br />";
+		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
+		out << "<b>Content Length:</b> " << environment.contentLength << "<br />";
+		out << "<b>Keep Alive Time:</b> " << environment.keepAlive << "<br />";
+		out << "<b>Server Address:</b> " << environment.serverAddress << "<br />";
+		out << "<b>Server Port:</b> " << environment.serverPort << "<br />";
+		out << "<b>Client Address:</b> " << environment.remoteAddress << "<br />";
+		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
+		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
 \endcode
 
-Next, we will make a little loop to output the post data. The post data is stored in the associative container session.posts of type Fastcgipp::Http::Session::Posts linking field names to Fastcgipp::Http::Post objects.
+Next, we will make a little loop to output the post data. The post data is stored in the associative container environment.posts of type Fastcgipp::Http::Environment::Posts linking field names to Fastcgipp::Http::Post objects.
 
 \code
 		out << "<h1>Post Data</h1>";
@@ -704,8 +704,8 @@ Next, we will make a little loop to output the post data. The post data is store
 If there isn't any POST data, we'll just say so
 
 \code
-		if(session.posts.size())
-			for(Fastcgipp::Http::Session<wchar_t>::Posts::iterator it=session.posts.begin(); it!=session.posts.end(); ++it)
+		if(environment.posts.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
 
@@ -803,29 +803,29 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
 
-		out << "<h1>Session Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << session.host << "<br />";
-		out << "<b>User Agent:</b> " << session.userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << session.acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << session.acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << session.acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << session.referer << "<br />";
-		out << "<b>Content Type:</b> " << session.contentType << "<br />";
-		out << "<b>Query String:</b> " << session.queryString << "<br />";
-		out << "<b>Cookies:</b> " << session.cookies << "<br />";
-		out << "<b>Root:</b> " << session.root << "<br />";
-		out << "<b>Script Name:</b> " << session.scriptName << "<br />";
-		out << "<b>Content Length:</b> " << session.contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << session.keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << session.serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << session.serverPort << "<br />";
-		out << "<b>Client Address:</b> " << session.remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << session.remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << session.ifModifiedSince << "</p>";
+		out << "<h1>Environment Parameters</h1>";
+		out << "<p><b>Hostname:</b> " << environment.host << "<br />";
+		out << "<b>User Agent:</b> " << environment.userAgent << "<br />";
+		out << "<b>Accepted Content Types:</b> " << environment.acceptContentTypes << "<br />";
+		out << "<b>Accepted Languages:</b> " << environment.acceptLanguages << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
+		out << "<b>Referer:</b> " << environment.referer << "<br />";
+		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
+		out << "<b>Query String:</b> " << environment.queryString << "<br />";
+		out << "<b>Cookies:</b> " << environment.cookies << "<br />";
+		out << "<b>Root:</b> " << environment.root << "<br />";
+		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
+		out << "<b>Content Length:</b> " << environment.contentLength << "<br />";
+		out << "<b>Keep Alive Time:</b> " << environment.keepAlive << "<br />";
+		out << "<b>Server Address:</b> " << environment.serverAddress << "<br />";
+		out << "<b>Server Port:</b> " << environment.serverPort << "<br />";
+		out << "<b>Client Address:</b> " << environment.remoteAddress << "<br />";
+		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
+		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
 
 		out << "<h1>Post Data</h1>";
-		if(session.posts.size())
-			for(Fastcgipp::Http::Session<wchar_t>::Posts::iterator it=session.posts.begin(); it!=session.posts.end(); ++it)
+		if(environment.posts.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
 				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)
