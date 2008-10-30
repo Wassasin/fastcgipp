@@ -86,7 +86,7 @@ class ShowGnu: public Fastcgipp::Request<char>
 		// If the modification time of the file is older or equal to the if-modified-since value
 		// sent to us from the client and we were actually sent an if-modified since value,
 		// we don't need to send the image to them.
-		if(!session.ifModifiedSince.is_not_a_date_time() && etag==session.etag && modTime<=session.ifModifiedSince)
+		if(!environment.ifModifiedSince.is_not_a_date_time() && etag==environment.etag && modTime<=environment.ifModifiedSince)
 		{
 			out << "Status: 304 Not Modified\r\n\r\n";
 			return true;
@@ -98,7 +98,7 @@ class ShowGnu: public Fastcgipp::Request<char>
 		// Now we transmit our HTTP header to the client
 		// First we send the modification time of the file
 		out << "Last-Modified: " << modTime << '\n';
-		// Then a Etag. Note that the session.etag is an integer value. NOT an std::string.
+		// Then a Etag. Note that the environment.etag is an integer value. NOT an std::string.
 		out << "Etag: " << etag << '\n';
 		// Next the size
 		out << "Content-Length: " << fileSize << '\n';

@@ -272,9 +272,9 @@ int Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destina
 	return destination-start;
 }
 
-template bool Fastcgipp::Http::Session<char>::fill(const char* data, size_t size);
-template bool Fastcgipp::Http::Session<wchar_t>::fill(const char* data, size_t size);
-template<class charT> bool Fastcgipp::Http::Session<charT>::fill(const char* data, size_t size)
+template bool Fastcgipp::Http::Environment<char>::fill(const char* data, size_t size);
+template bool Fastcgipp::Http::Environment<wchar_t>::fill(const char* data, size_t size);
+template<class charT> bool Fastcgipp::Http::Environment<charT>::fill(const char* data, size_t size)
 {
 	using namespace std;
 	using namespace boost;
@@ -365,9 +365,9 @@ template<class charT> bool Fastcgipp::Http::Session<charT>::fill(const char* dat
 	return status;
 }
 
-template void Fastcgipp::Http::Session<char>::fillPosts(const char* data, size_t size);
-template void Fastcgipp::Http::Session<wchar_t>::fillPosts(const char* data, size_t size);
-template<class charT> void Fastcgipp::Http::Session<charT>::fillPosts(const char* data, size_t size)
+template void Fastcgipp::Http::Environment<char>::fillPosts(const char* data, size_t size);
+template void Fastcgipp::Http::Environment<wchar_t>::fillPosts(const char* data, size_t size);
+template<class charT> void Fastcgipp::Http::Environment<charT>::fillPosts(const char* data, size_t size)
 {
 	using namespace std;
 	while(1)

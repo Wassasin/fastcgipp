@@ -164,15 +164,15 @@ namespace Fastcgipp
 		 */
 		template<class charT, class Traits> std::basic_istream<charT, Traits>& operator>>(std::basic_istream<charT, Traits>& is, Address& address);
 
-		//! Data structure of HTTP session data
+		//! Data structure of HTTP environment data
 		/*!
-		 * This structure contains all HTTP session data for each individual request. The data is processed
+		 * This structure contains all HTTP environment data for each individual request. The data is processed
 		 * from FastCGI parameter records.
 		 *
 		 * @tparam charT Character type to use for strings
 		 */
 		template<class charT>
-		struct Session
+		struct Environment
 		{
 			//! Hostname of the server
 			std::basic_string<charT> host;
