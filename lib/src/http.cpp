@@ -175,6 +175,30 @@ template<class charT> bool Fastcgipp::Http::parseXmlValue(const char* const name
 		return false;
 
 	if(start-valueStart) charToString(valueStart, start-valueStart, string);
+	else string.erase();
+	return true;
+}
+
+template bool  Fastcgipp::Http::parseValue<char>(const std::basic_string<char>& name, const std::basic_string<char>& data, std::basic_string<char>& value, char fieldSep);
+template bool  Fastcgipp::Http::parseValue<wchar_t>(const std::basic_string<wchar_t>& name, const std::basic_string<wchar_t>& data, std::basic_string<wchar_t>& value, wchar_t fieldSep);
+template<class charT> bool Fastcgipp::Http::parseValue(const std::basic_string<charT>& name, const std::basic_string<charT>& data, std::basic_string<charT>& value, charT fieldSep)
+{
+	std::basic_string<charT> searchString(name);
+	searchString+='=';
+
+	size_t it=data.find(searchString);
+
+	if(it==std::string::npos)
+		return false;
+
+	it+=searchString.size();
+
+	size_t size=data.find(fieldSep, it);
+	if(size==std::string::npos)
+		size=data.size();
+	size-=it;
+	value.assign(data, it, size);
+
 	return true;
 }
 
@@ -408,4 +432,4 @@ template<class charT> void Fastcgipp::Http::Session<charT>::fillPosts(const char
 	}}
 }
 
-
+const char Fastcgipp::Http::base64Characters[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

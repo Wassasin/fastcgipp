@@ -295,9 +295,26 @@ namespace Fastcgipp
 		 * @param[in] start Pointer to the first byte of data to look in
 		 * @param[in] end Pointer to the last byte of data to look in + 1
 		 * @param[out] string Reference to the string the value should be stored in.
+		 *
+		 * @return Returns false if the name isn't found. True otherwise.
 		 */
 		template<class charT>
 		bool parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string);
+
+		/** 
+		 * @brief Finds the value associated with a name in a 'name=value&name2=value2' string
+		 * 
+		 * Use this function to find values in the name/value pairs in get/cookie strings.
+		 *
+		 * @param[in] name Name of field
+		 * @param[in] data Data to look for it in
+		 * @param[out] value String to store the value in
+		 * @param[in] fieldSep Character that separates fields (default: '&')
+		 *
+		 * @return Returns false if the name isn't found. True otherwise.
+		 */
+		template<class charT>
+		bool parseValue(const std::basic_string<charT>& name, const std::basic_string<charT>& data, std::basic_string<charT>& value, charT fieldSep='&');
 
 		//! Convert a string with percent escaped byte values to their actual values
 		/*!
@@ -311,6 +328,106 @@ namespace Fastcgipp
 		 * @return Actual size of the new string
 		 */
 		int percentEscapedToRealBytes(const char* source, char* destination, size_t size);
+
+		/** 
+		 * @brief List of characters in order for Base64 encoding.
+		 */
+		extern const char base64Characters[];
+
+		/** 
+		 * @brief Convert a binary container of data to a Base64 encoded container.
+		 *
+		 * If destination is a fixed size container, it should have a size of at least ((end-start-1)/3 + 1)*4 not including null terminators if used and assuming integer arithmetic.
+		 *
+		 * @param[in] start Iterator to start of binary data.
+		 * @param[in] end Iterator to end of binary data.
+		 * @param[out] destination Iterator to start of Base64 destination.
+		 *
+		 * @tparam In Input iterator type. Should be dereferenced to type char.
+		 * @tparam Out Output iterator type. Should be dereferenced to type char.
+		 */
+		template<class In, class Out> void base64Encode(In start, In end, Out destination);
+
+		/** 
+		 * @brief Convert a Base64 encoded container to a binary container.
+		 *
+		 * If destination is a fixed size container, it should have a size of at least (end-start)*3/4 not including null terminators if used.
+		 * 
+		 * @param[in] start Iterator to start of Base64 data.
+		 * @param[in] end Iterator to end of Base64 data.
+		 * @param[out] destination Iterator to start of binary destination.
+		 *
+		 * @tparam In Input iterator type. Should be dereferenced to type char.
+		 * @tparam Out Output iterator type. Should be dereferenced to type char.
+		 * 
+		 * @return Iterator to last position in destination
+		 */
+		template<class In, class Out> Out base64Decode(In start, In end, Out destination);
+	}
+}
+
+template<class In, class Out> Out Fastcgipp::Http::base64Decode(In start, In end, Out destination)
+{
+	for(int buffer, bitPos=-8, padStart; start!=end || bitPos>-6; ++destination)
+	{
+		if(bitPos==-8)
+		{
+			bitPos=18;
+			padStart=-6;
+			buffer=0;
+			while(bitPos!=-6)
+			{
+				if(start==end) throw;
+				int value=*start++;
+				if(value >= 'A' && 'Z' >= value) value -= 'A';
+				else if(value >= 'a' && 'z' >= value) value -= 'a' - 26;
+				else if(value >= '0' && '9' >= value) value -= '0' - 52;
+				else if(value == '+') value = 62;
+				else if(value == '/') value = 63;
+				else if(value == '=') { padStart+=8; value=0; }
+				else throw;
+
+				buffer |= value << bitPos;
+				bitPos-=6;
+			}
+			bitPos=16;
+		}
+
+		if(padStart==bitPos)
+			return ++destination;
+		*destination++ = (buffer >> bitPos) & 0xff;
+		bitPos-=8;
+	}
+
+	return destination;
+}
+
+template<class In, class Out> void Fastcgipp::Http::base64Encode(In start, In end, Out destination)
+{
+	for(int buffer, bitPos=-6, padded; start!=end || bitPos>-6; ++destination)
+	{
+		if(bitPos==-6)
+		{
+			bitPos=16;
+			buffer=0;
+			padded=-6;
+			while(bitPos!=-8)
+			{
+				if(start!=end) 
+					buffer |= (uint32_t)*start++ << bitPos;
+				else padded+=6;
+				bitPos-=8;
+			}
+			bitPos=18;
+		}
+
+		if(padded == bitPos)
+		{
+			*destination='=';
+			padded-=6;
+		}
+		else *destination=base64Characters[ (buffer >> bitPos)&0x3f ];
+		bitPos -= 6;
 	}
 }
 
