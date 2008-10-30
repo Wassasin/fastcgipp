@@ -315,7 +315,7 @@ template<class charT> bool Fastcgipp::Http::Environment<charT>::fill(const char*
 				const char* start=(char*)memchr(end, '=', valueSize-(end-data));
 				if(start)
 				{
-					boundarySize=valueSize-(++start-data);
+					boundarySize=valueSize-(++start-value);
 					boundary.reset(new char[boundarySize]);
 					memcpy(boundary.get(), start, boundarySize);
 				}
