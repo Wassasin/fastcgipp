@@ -432,4 +432,29 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPosts(const 
 	}}
 }
 
+bool Fastcgipp::Http::SessionId::seeded=false;
+
+Fastcgipp::Http::SessionId::SessionId()
+{
+	if(!seeded)
+	{
+		std::srand(boost::posix_time::microsec_clock::universal_time().time_of_day().fractional_seconds());
+		seeded=true;
+	}
+
+	for(char* i=data; i<data+size; ++i)
+		*i=char(rand()%256);
+	timestamp = boost::posix_time::second_clock::universal_time();
+}
+
+template const Fastcgipp::Http::SessionId& Fastcgipp::Http::SessionId::operator=<const char>(const char* data_);
+template const Fastcgipp::Http::SessionId& Fastcgipp::Http::SessionId::operator=<const wchar_t>(const wchar_t* data_);
+template<class charT> const Fastcgipp::Http::SessionId& Fastcgipp::Http::SessionId::operator=(charT* data_)
+{
+	if(base64Decode(data_, data_+size*4/3, data)!=data+size)
+		std::memset(data, 0, size);
+	timestamp = boost::posix_time::second_clock::universal_time();
+	return *this;
+}
+
 const char Fastcgipp::Http::base64Characters[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
