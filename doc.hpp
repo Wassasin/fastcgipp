@@ -75,6 +75,8 @@ This is a collection of tutorials that should cover most aspects of the fastcgi+
 
 \subpage timer : A tutorial covering the use of the task manager and threads to have requests efficiently communicate with non-fastcgi++ data.
 
+\subpage sessions : An example of how to utilize the internal mechanism in fastcgi++ to handle HTTP sessions.
+
 */
 
 /*!
@@ -375,7 +377,7 @@ int main()
 
 \section showGnuTutorial Tutorial
 
-Our goal here is simple and easy. All we want to do is show the gnu.png file and effectively utilize caching.
+Our goal here is simple and easy. All we want to do is show the gnu.png file and effectively utilize client caching.
 
 All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
 
@@ -876,7 +878,7 @@ int main()
 
 \section helloWorldTutorial Tutorial
 
-Our goal here will be to make a FastCGI application that responds to clients with a "Hello World" in five different languages. Your going to need the boost C++ libraries for this. At least version 1.35.0. In this example we are going to use boost::asio to handle our timers and callback. Unfortunately because mod_fastcgi buffers the output before sending it to the client by default, we will only get to see the true effects of the timer if you put the following directive in your apache configuration: FastCgiConfig -flush
+Our goal here will be to make a FastCGI application that responds to clients with a "Hello World" in five different languages.
 
 All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
 
@@ -1042,6 +1044,368 @@ int main()
 	try
 	{
 		Fastcgipp::Manager<HelloWorld> fcgi;
+		fcgi.handler();
+	}
+	catch(std::exception& e)
+	{
+		error_log(e.what());
+	}
+}
+\endcode
+
+*/
+
+/*!
+
+\page sessions Sessions
+
+\section sessionsTutorial Tutorial
+
+Our goal here will be a FastCGI application that has very simple session capabilities. We won't authenticate the creation of sessions, and the only data we will store in them is a user supplied text string. Be warned that the facilities that fastcgi++ supplies for handling sessions are quite low level to allow for maximum customizability and no overhead costs if they aren't used.
+
+All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
+
+\subsection sessionsError Error Logging
+
+Our first step will be setting up an error logging system. Although requests can log errors directly to the HTTP server error log, I like to have an error logging system that's separate from the library when testing applications. Let's set up a function that takes a c style string and logs it to a file with a timestamp. Since everyone has access to the /tmp directory, I set it up to send error messages to /tmp/errlog. You can change it if you want to.
+
+\code
+#include <fstream>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <string>
+
+void error_log(const char* msg)
+{
+	using namespace std;
+	using namespace boost;
+	static ofstream error;
+	if(!error.is_open())
+	{
+		error.open("/tmp/errlog", ios_base::out | ios_base::app);
+		error.imbue(locale(error.getloc(), new posix_time::time_facet()));
+	}
+
+	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
+}
+\endcode
+
+\subsection sessionsRequest Request Handler
+
+Now we need to write the code that actually handles the request. Quite simply, all we need to do is derive from Fastcgipp::Request and define the Fastcgipp::Request::response() function. For this example we'll just use ISO-8859-1 as the character set so we'll pass char as the template parameter to the Request class as opposed to wchar_t.
+
+\code
+#include <fastcgi++/request.hpp>
+
+class SessionExample: public Fastcgipp::Request<char>
+{
+\endcode
+
+The first thing we are going to do here is set up a typedef to make accessing our sessions container easier. Sessions are contained in the Fastcgipp::Http::Sessions container which in almost all ways is just an std::map. The template parameter that the class takes is any data type you want to associate with the session. Typically someone might associate a struct that contains user ids and access level with each sessions. In this example we will just use a string. The passed template type ends up as the second type in the std::pair<> of the std::map. The first type will always be a type Fastcgipp::Http::SessionId which is a class for managing session id with their expiries effectively.
+
+\code
+	typedef Fastcgipp::Http::Sessions<std::string> Sessions;
+\endcode
+
+Now let's define our actual session data in the class. We need to declare two items: a static Sessions container and a non-static iterator for the container. The iterator will obviously point to the session data pair associate with this particular request.
+
+\code
+	static Sessions sessions;
+	Sessions::iterator session;
+\endcode
+
+Now we can define our response function. It is this function that is called to generate a response for the client. It isn't a good idea to define the response() function inline as it is called from numerous spots, but for the examples readability we will make an exception.
+
+\code
+	bool response()
+	{
+\endcode
+
+First off let's clean up any expired sessions. Calling this function at the beginning of every request actually doesn't create all that much overhead as is explained later on.
+
+\code
+		sessions.cleanup();
+\endcode
+
+Now we need to initialize the session data member. In this example we will do this by finding a session id passed to us from the client as a cookie. You could also use get data obviously. fastcgi++ has a function for parsing data in a cookie or url string called Fastcgipp::Http::parseValue(). Let's call our session cookie SESSIONID. Remember that our cookie/query data is stored in a Fastcgipp::Http::Environment object called environment.
+
+\code
+		std::string command;
+
+		Fastcgipp::Http::parseValue(std::string("SESSIONID"), environment.cookies, command, ';');
+		session=sessions.find(command.c_str());
+\endcode
+	
+Now the session data member will be a valid iterator to a session or it will point to end() if the client didn't provide a session id or it was invalid.
+
+In order to get login/logout commands from the client we will use get information. A simple ?command=login/logout system will suffice. As for the get query string, we will use Fastcgipp::Http::parseValue() to acquire the command value.
+
+\code
+		Fastcgipp::Http::parseValue(std::string("command"), environment.queryString, command, '&');
+\endcode
+
+Now we're going to need to set our locale to output boost::date_time stuff in a proper cookie expiry way. See Fastcgipp::Request::setloc().
+
+\code
+		setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
+\endcode
+
+Now we do what needs to be done if we received valid session data.
+
+\code
+		if(session!=sessions.end())
+		{
+			if(command=="logout")
+			{
+\endcode
+
+If we received a logout command then we need to delete the cookie, remove the session data from the container, reset our session iterator, and then send the response.
+
+\code
+				out << "Set-Cookie: SESSIONID=deleted; expires=Thu, 01-Jan-1970 00:00:00 GMT;\n";
+				sessions.erase(session);
+				session=sessions.end();
+				handleNoSession();
+			}
+			else
+			{
+\endcode
+
+Otherwise, we just call Fastcgipp::Http::SessionId::refresh() on our session ID to update the expiry time, update it on the client side and then do the response.
+
+\code
+				session->first.refresh();
+				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				handleSession();
+			}
+		}
+\endcode
+
+With no valid session id from the client it is even easier.
+
+\code
+		else
+		{
+			if(command=="login")
+			{
+\endcode
+
+Since the client wants to make a new session, we call Fastcgipp::Http::Sessions::generate(). This function will generate a new random session id and associated the passed session data with it. Calling a stream insertion operation on Fastcgipp::Http::SessionId will output a base64 encoding of the id value. Perfect for http communications. To coordinate, constructing the class from a char* / wchar_t* will assume the string is base64 encoded and decode it accordingly.
+
+\code
+				session=sessions.generate(environment.posts["data"].value);
+				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				handleSession();
+			}
+			else
+				handleNoSession();
+		}
+\endcode
+
+Now we can output some basic stuff that will be sent regardless of whether we are in a session or not.
+
+\code
+		out << "<p>There are " << sessions.size() << " sessions open</p>\n\
+	</body>\n\
+</html>";
+\endcode
+
+And we're basically done defining our response! All we need to do is return a boolean value. Always return true if you are done. This will let apache and the manager know we are done so they can destroy the request and free it's resources. Return false if you are not finished but want to relinquish control and allow other requests to operate. You would do this if the request needed to wait for a message to be passed back to it through the task manager.
+
+\code
+		return true;
+	}
+\endcode
+
+Now we can define the functions that generate a response whether in session or not.
+
+\code
+	void handleSession()
+	{
+		out << "\
+Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
+	<head>\n\
+		<meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1' />\n\
+		<title>fastcgi++: Session Handling example</title>\n\
+	</head>\n\
+	<body>\n\
+		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << session->second << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
+		<p>Click <a href='?command=logout'>here</a> to logout</p>\n";
+	}
+
+	void handleNoSession()
+	{
+		out << "\
+Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
+	<head>\n\
+		<meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1' />\n\
+		<title>fastcgi++: Session Handling example</title>\n\
+	</head>\n\
+	<body>\n\
+		<p>We are currently not in a session.</p>\n\
+		<form action='?command=login' method='post' enctype='multipart/form-data' accept-charset='ISO-8859-1'>\n\
+			<div>\n\
+				Text: <input type='text' name='data' value='Hola señor, usted me almacenó en una sesión' /> \n\
+				<input type='submit' name='submit' value='submit' />\n\
+			</div>\n\
+		</form>\n";
+	}
+};
+\endcode
+
+Now let's initialize the static sessions object. The constructor takes to parameters. The first defines how many seconds session live for without an refresh. The second defines the minimum number of seconds that have to pass between cleanups of old sessions. This means that if the value is 30 two calls to Fastcgipp::Sessions::cleanup() in a 30 second period will only actually preform the cleanup once. We'll go 30 seconds for each in this example.
+
+\code
+Session::Sessions Session::sessions(30, 30);
+\endcode
+
+\subsection sessionsManager Requests Manager
+
+Now we need to make our main() function. Really all one needs to do is create a Fastcgipp::Manager object with the new class we made as a template parameter, then call it's handler. Let's go one step further though and set up a try/catch loop in case we get any exceptions and log them with our error_log function.
+
+\code
+#include <fastcgi++/manager.hpp>
+int main()
+{
+	try
+	{
+		Fastcgipp::Manager<SessionExample> fcgi;
+		fcgi.handler();
+	}
+	catch(std::exception& e)
+	{
+		error_log(e.what());
+	}
+}
+\endcode
+
+And that's it! About as simple as it gets.
+
+\section sessionsCode Full Source Code
+
+\code
+#include <fstream>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <string>
+
+void error_log(const char* msg)
+{
+	using namespace std;
+	using namespace boost;
+	static ofstream error;
+	if(!error.is_open())
+	{
+		error.open("/tmp/errlog", ios_base::out | ios_base::app);
+		error.imbue(locale(error.getloc(), new posix_time::time_facet()));
+	}
+
+	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
+}
+
+#include <fastcgi++/request.hpp>
+
+class SessionExample: public Fastcgipp::Request<char>
+{
+	typedef Fastcgipp::Http::Sessions<std::string> Sessions;
+
+	static Sessions sessions;
+	Sessions::iterator session;
+
+	bool response()
+	{
+
+		sessions.cleanup();
+
+		std::string command;
+
+		Fastcgipp::Http::parseValue(std::string("SESSIONID"), environment.cookies, command, ';');
+		session=sessions.find(command.c_str());
+
+		Fastcgipp::Http::parseValue(std::string("command"), environment.queryString, command, '&');
+
+		setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
+
+		if(session!=sessions.end())
+		{
+			if(command=="logout")
+			{
+				out << "Set-Cookie: SESSIONID=deleted; expires=Thu, 01-Jan-1970 00:00:00 GMT;\n";
+				sessions.erase(session);
+				session=sessions.end();
+				handleNoSession();
+			}
+			else
+			{
+				session->first.refresh();
+				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				handleSession();
+			}
+		}
+
+		else
+		{
+			if(command=="login")
+			{
+				session=sessions.generate(environment.posts["data"].value);
+				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				handleSession();
+			}
+			else
+				handleNoSession();
+		}
+
+		out << "<p>There are " << sessions.size() << " sessions open</p>\n\
+	</body>\n\
+</html>";
+	
+		return true;
+	}
+
+	void handleSession()
+	{
+		out << "\
+Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
+	<head>\n\
+		<meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1' />\n\
+		<title>fastcgi++: Session Handling example</title>\n\
+	</head>\n\
+	<body>\n\
+		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << session->second << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
+		<p>Click <a href='?command=logout'>here</a> to logout</p>\n";
+	}
+
+	void handleNoSession()
+	{
+		out << "\
+Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
+	<head>\n\
+		<meta http-equiv='Content-Type' content='text/html; charset=ISO-8859-1' />\n\
+		<title>fastcgi++: Session Handling example</title>\n\
+	</head>\n\
+	<body>\n\
+		<p>We are currently not in a session.</p>\n\
+		<form action='?command=login' method='post' enctype='multipart/form-data' accept-charset='ISO-8859-1'>\n\
+			<div>\n\
+				Text: <input type='text' name='data' value='Hola señor, usted me almacenó en una sesión' /> \n\
+				<input type='submit' name='submit' value='submit' />\n\
+			</div>\n\
+		</form>\n";
+	}
+};
+
+#include <fastcgi++/manager.hpp>
+int main()
+{
+	try
+	{
+		Fastcgipp::Manager<SessionExample> fcgi;
 		fcgi.handler();
 	}
 	catch(std::exception& e)

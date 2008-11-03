@@ -75,10 +75,16 @@ include/fastcgi++/transceiver.hpp: include/fastcgi++/protocol.hpp include/fastcg
 
 
 
-examples: examples/utf8-helloworld.fcgi examples/showgnu.fcgi examples/echo.fcgi examples/timer.fcgi examples/upload.fcgi
+examples: examples/utf8-helloworld.fcgi examples/showgnu.fcgi examples/echo.fcgi examples/timer.fcgi examples/upload.fcgi examples/session.fcgi
 
 examplesclean:
 	rm -f examples/*.fcgi
+
+examples/session.fcgi: examples/src/session.cpp include/fastcgi++/request.hpp include/fastcgi++/manager.hpp
+	g++ ${CXXFLAGS} ${STATIC} -o examples/session.fcgi examples/src/session.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -pthread
+ifeq ($(STRIP),true)
+	strip -s examples/session.fcgi
+endif
 
 examples/echo.fcgi: examples/src/echo.cpp include/fastcgi++/request.hpp include/fastcgi++/manager.hpp
 	g++ ${CXXFLAGS} ${STATIC} -o examples/echo.fcgi examples/src/echo.cpp -Llib -Iinclude -lfastcgipp -lboost_thread -pthread
