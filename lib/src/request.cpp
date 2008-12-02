@@ -101,6 +101,41 @@ int Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::emptyBuffer()
 	return 0;
 }
 
+template std::streamsize Fastcgipp::Fcgistream<char, std::char_traits<char> >::Fcgibuf::xsputn(const char_type *s, std::streamsize n);
+template std::streamsize Fastcgipp::Fcgistream<wchar_t, std::char_traits<wchar_t> >::Fcgibuf::xsputn(const char_type *s, std::streamsize n);
+template <class charT, class traits>
+std::streamsize Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::xsputn(const char_type *s, std::streamsize n)
+{
+	std::streamsize remainder=n;
+	while(remainder)
+	{
+		std::streamsize actual=std::min(remainder, this->epptr()-this->pptr());
+		std::memcpy(this->pptr(), s, actual*sizeof(char_type));
+		this->pbump(actual);
+		remainder-=actual;
+		if(remainder)
+		{
+			s+=actual;
+			emptyBuffer();
+		}
+	}
+
+	return n;
+}
+
+template Fastcgipp::Fcgistream<char, std::char_traits<char> >::Fcgibuf::int_type Fastcgipp::Fcgistream<char, std::char_traits<char> >::Fcgibuf::overflow(Fastcgipp::Fcgistream<char, std::char_traits<char> >::Fcgibuf::int_type c = traits_type::eof());
+template Fastcgipp::Fcgistream<wchar_t, std::char_traits<wchar_t> >::Fcgibuf::int_type Fastcgipp::Fcgistream<wchar_t, std::char_traits<wchar_t> >::Fcgibuf::overflow(Fastcgipp::Fcgistream<wchar_t, std::char_traits<wchar_t> >::Fcgibuf::int_type c = traits_type::eof());
+template <class charT, class traits>
+typename Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::int_type Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::overflow(Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::int_type c)
+{
+	if(emptyBuffer() < 0)
+		return traits_type::eof();
+	if(!traits_type::eq_int_type(c, traits_type::eof()))
+		return sputc(c);
+	else
+		return traits_type::not_eof(c);
+}
+
 template void Fastcgipp::Request<char>::complete();
 template void Fastcgipp::Request<wchar_t>::complete();
 template<class charT> void Fastcgipp::Request<charT>::complete()
