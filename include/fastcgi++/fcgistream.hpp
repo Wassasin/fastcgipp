@@ -112,25 +112,11 @@ namespace Fastcgipp
 			typedef typename std::basic_streambuf<charT, traits>::traits_type traits_type;
 			typedef typename std::basic_streambuf<charT, traits>::char_type char_type;
 
-			int_type overflow(int_type c = traits_type::eof())
-			{
-				if(emptyBuffer() < 0)
-					return traits_type::eof();
-				if(!traits_type::eq_int_type(c, traits_type::eof()))
-					return sputc(c);
-				else
-					return traits_type::not_eof(c);
-			}
+			int_type overflow(int_type c = traits_type::eof());
 
 			int sync() { return emptyBuffer(); }
 
-			std::streamsize xsputn(const char_type *s, std::streamsize n)
-			{
-				std::streamsize actual=std::min(n, this->epptr()-this->pptr());
-				std::memcpy(this->pptr(), s, actual*sizeof(char_type));
-				this->pbump(actual);
-				return actual;
-			}
+			std::streamsize xsputn(const char_type *s, std::streamsize n);
 
 			//! Pointer to the data that needs to be transmitted upon flush
 			char* dumpPtr;
