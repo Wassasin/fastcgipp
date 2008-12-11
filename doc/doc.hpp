@@ -2,7 +2,7 @@
 /*!
 
 \version $(VERSION)
-\author Eddie
+\author Eddie Carle
 \date $(DATE)
 \mainpage
 
@@ -43,25 +43,13 @@ Fastcgipp::Transceiver's transmit half implements a cyclic buffer that can grow 
 
 \section installation Installation
 
-The installation of fastcgi++ is pretty standard save a few quirks. The most basic installation of the library is the traditional:
+fastcgi++ installs just the same as any library out there...
 
 <tt>tar -xvjf fastcgi++-$(VERSION).tar.bz2\n
 cd fastcgi++-$(VERSION)\n
+./configure\n
 make\n
 make install</tt>
-
-The default prefix for installation is /usr/local. If you wanted to change it to /usr simply change <tt>"make install"</tt> to <tt>"PREFIX=/usr make install"</tt>. If you want the binary files to be run through \c strip change \c "make" to <tt>"STRIP=true make"</tt>.
-
-To also install the documentation into $PREFIX/share/doc/fastcgi++ with PREFIX preceded as above run this:
-
-<tt>make doc-install</tt>
-
-If you want to build and install the examples, simply the commands below. The build the examples statically, precede make with STATIC=yes.
-
-<tt>make examples\n
-make examples-install</tt>
-
-The examples will by default install to $WWWROOT/fastcgipp with WWWROOT = /var/www/localhost/htdocs. To change WWWROOT, simply precede <tt>"make examples-install"</tt> with a definition of WWWROOT as in the prefix example above.
 
 \section tutorials Tutorials
 

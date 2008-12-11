@@ -1,5 +1,4 @@
 THINGS TO DO
-	+ Change installation to a ./configure style
 	+ Make the upload example work
 	+ Make a class to assist in the creation of HTTP headers
 	+ Create SQL fetching class

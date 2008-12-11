@@ -280,5 +280,3 @@ template<class charT> void Fastcgipp::Request<charT>::setloc(std::locale loc_)
 	out.imbue(loc);
 	err.imbue(loc);
 }
-
-#include "utf8_codecvt_facet.cpp"

@@ -1,0 +1,12 @@
+export VERSION=trunk.r`svn info | grep Revision | cut -d ' ' -f 2`
+export DATE=`svn info | grep 'Last Changed Date' | cut -d ' ' -f 4`
+mv configure.ac configure.ac.bak
+touch ChangeLog
+sed "s/ACTUALVERSION/$VERSION/" configure.ac.bak > configure.ac
+aclocal -I config
+libtoolize --force
+autoheader
+autoconf
+automake -a
+doxygen doc/doxygen
+mv configure.ac.bak configure.ac

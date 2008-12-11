@@ -10,6 +10,8 @@
 // Please see the comments in <boost/detail/utf8_codecvt_facet.hpp> to
 // learn how this file should be used.
 
+#include "utf8_codecvt.hpp"
+
 #include <boost/detail/utf8_codecvt_facet.hpp>
 
 #include <cstdlib> // for multi-byte converson routines
