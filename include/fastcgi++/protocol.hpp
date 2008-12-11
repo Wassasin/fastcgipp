@@ -22,9 +22,18 @@
 #ifndef PROTOCOL_HPP
 #define PROTOCOL_HPP
 
+#include <fastcgi++/config.h>
 #include <map>
 #include <string>
+
+#if defined (HAVE_ENDIAN_H)
 #include <endian.h>
+#elif defined (HAVE_MACHINE_ENDIAN_H)
+#include <machine/endian.h>
+#else
+#error Could not locate "endian.h"
+#endif
+
 #include <stdint.h>
 
 #include <boost/shared_array.hpp>
@@ -337,6 +346,7 @@ namespace Fastcgipp
 		 * up with a pointer/size for both the name and value of the parameter.
 		 *
 		 * @param[in] data Pointer to the record body
+		 * @param[in] dataSize Size of data pointed to by data
 		 * @param[out] name Reference to a pointer that will be pointed to the first byte of the parameter name
 		 * @param[out] nameSize Reference to a value to will be given the size in bytes of the parameter name
 		 * @param[out] value Reference to a pointer that will be pointed to the first byte of the parameter value

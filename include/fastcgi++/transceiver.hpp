@@ -189,7 +189,7 @@ namespace Fastcgipp
 			 * @param[out] pollFds_ A reference to Transceiver::pollFds is needed for removing file descriptors when they are closed
 			 * @param[out] fdBuffers_ A reference to Transceiver::fdBuffer is needed for deleting buffers upon closing of the file descriptor
 			 */
-			Buffer(std::vector<pollfd>& pollFds, std::map<int, fdBuffer>& fdBuffers_): pollFds(pollFds), fdBuffers(fdBuffers_), chunks(1), pRead(chunks.begin()->data.get()), writeIt(chunks.begin()) { }
+			Buffer(std::vector<pollfd>& pollFds_, std::map<int, fdBuffer>& fdBuffers_): pollFds(pollFds_), fdBuffers(fdBuffers_), chunks(1), pRead(chunks.begin()->data.get()), writeIt(chunks.begin()) { }
 
 			//! Request a write block in the buffer
 			/*!

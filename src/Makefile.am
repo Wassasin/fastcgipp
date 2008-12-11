@@ -1,0 +1,22 @@
+## @(#) Makefile.am - Automake file for the FastCGI++ src directory
+##
+## $Id$
+##
+
+DISTCLEANFILES = Makefile.in Makefile
+
+INCLUDES = -I$(top_srcdir)/include
+AM_CPPFLAGS = $(BOOST_CPPFLAGS)
+LDADD = $(BOOST_THREAD_LIBS)
+
+lib_LTLIBRARIES = libfastcgipp.la
+
+libfastcgipp_la_LDFLAGS = -version-info 2:0:0
+
+libfastcgipp_la_SOURCES = \
+	exceptions.cpp \
+	http.cpp \
+	protocol.cpp \
+	request.cpp \
+	transceiver.cpp \
+	utf8_codecvt_facet.cpp
