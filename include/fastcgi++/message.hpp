@@ -1,4 +1,4 @@
-//! \file exceptions.hpp Defines fastcgi++ exceptions
+//! \file protocol.hpp Defines FastCGI protocol
 /***************************************************************************
 * Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
@@ -18,47 +18,32 @@
 * along with fastcgi++.  If not, see <http://www.gnu.org/licenses/>.       *
 ****************************************************************************/
 
+#ifndef MESSAGE_HPP
+#define MESSAGE_HPP
 
-#ifndef EXCEPTIONS_HPP
-#define EXCEPTIONS_HPP
+#include <boost/shared_array.hpp>
 
-#include <exception>
-
-//! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
-	//! Includes all exceptions used by the fastcgi++ library
-	namespace Exceptions
+	//! Data structure used to pass messages within the fastcgi++ task management system
+	/*!
+	 * This data structure is crucial to all operation in the FastCGI library as all
+	 * data passed to requests must be encapsulated in this data structure. A type value
+	 * of 0 means that the message is a FastCGI record and will be processed at a low
+	 * level by the library. Any other type value and the message will be passed up to
+	 * the user to be processed. The data may contain any data that can be casted to/from
+	 * a raw character array. The size obviously represents the exact size of the data
+	 * section.
+	 */
+	struct Message
 	{
-		/** 
-		 * @brief General exception class for container errnos and messages.
-		 */
-		struct CodedException: public std::exception
-		{
-			/** 
-			 * @brief Associated error number.
-			 */
-			const int erno;
-			/** 
-			 * @brief Pointer to string data explaining error.
-			 */
-			const char* msg;
-			/** 
-			 * @param[in] msg_ Pointer to string explaining error.
-			 * @param[in] erno_ Associated error number.
-			 */
-			CodedException(const char* msg_, const int erno_): msg(msg_), erno(erno_) {}
-			const char* what() const throw() { return msg; }
-		};
-
-		/** 
-		 * @brief Exception for code conversion errors between UTF-16/32 and UTF-8
-		 */
-		struct CodeCvt: public std::exception
-		{
-			const char* what() const throw() { return "Code Conversion error"; }
-		};
-	}
+		//! Type of message. A 0 means FastCGI record. Anything else is open.
+		int type;
+		//! Size of the data section.
+		size_t size;
+		//! Pointer to the raw data being passed along with the message.
+		boost::shared_array<char> data;
+	};
 }
 
 #endif

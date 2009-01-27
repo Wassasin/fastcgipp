@@ -1,6 +1,6 @@
 //! \file request.cpp Defines member functions for Fastcgipp::Fcgistream and Fastcgipp::Request
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -69,7 +69,7 @@ int Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::emptyBuffer()
 					pbump(-(this->pptr()-this->pbase()));
 					dumpSize=0;
 					dumpPtr=0;
-					throw Exceptions::Stream(id);
+					throw Exceptions::CodeCvt();
 				}
 			}
 			else
@@ -216,19 +216,19 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 			{
 				case PARAMS:
 				{
-					if(state!=PARAMS) throw Exceptions::RecordOutOfOrder(id, state, PARAMS);
+					if(state!=PARAMS) return true;
 					if(header.getContentLength()==0) 
 					{
 						state=IN;
 						break;
 					}
-					if(!environment.fill(body, header.getContentLength())) throw Exceptions::Param(id);
+					environment.fill(body, header.getContentLength());
 					break;
 				}
 
 				case IN:
 				{
-					if(state!=IN) throw Exceptions::RecordOutOfOrder(id, state, IN);
+					if(state!=IN) return true;
 					if(header.getContentLength()==0)
 					{
 						environment.clearPostBuffer();

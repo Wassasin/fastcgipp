@@ -1,6 +1,6 @@
 //! \file manager.hpp Defines the Fastcgipp::Manager class
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -36,7 +36,6 @@
 #include <signal.h>
 #include <pthread.h>
 
-#include <fastcgi++/exceptions.hpp>
 #include <fastcgi++/protocol.hpp>
 #include <fastcgi++/transceiver.hpp>
 

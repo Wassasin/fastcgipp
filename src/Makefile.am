@@ -14,9 +14,14 @@ lib_LTLIBRARIES = libfastcgipp.la
 libfastcgipp_la_LDFLAGS = -version-info 2:0:0
 
 libfastcgipp_la_SOURCES = \
-	exceptions.cpp \
 	http.cpp \
 	protocol.cpp \
 	request.cpp \
 	transceiver.cpp \
 	utf8_codecvt_facet.cpp
+
+if HAVE_MYSQL_H
+libfastcgipp_la_SOURCES += mysql.cpp
+LDADD += -lmysqlclient
+endif
+

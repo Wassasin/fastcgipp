@@ -1,6 +1,5 @@
 THINGS TO DO
 	+ Make the upload example work
 	+ Make a class to assist in the creation of HTTP headers
-	+ Create SQL fetching class
+	+ Add additional SQL engines (sqlite, postgresql, mssql)
 	+ Create file fetching class
-	+ Make windows compatible

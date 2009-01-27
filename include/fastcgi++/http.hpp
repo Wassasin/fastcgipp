@@ -1,6 +1,6 @@
 //! \file http.hpp Defines elements of the HTTP protocol
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -79,19 +79,19 @@ namespace Fastcgipp
 			/*!
 			 * @return Unsigned 32bit integer representing the IPv4 address
 			 */
-			uint32_t getInt() const { return data; }
+			const unsigned int& getInt() const { return data; }
 			//! Assign the IPv4 address from an integer
 			/*!
 			 * @param[in] data_ Unsigned 32bit integer representing the IPv4 address
 			 */
-			Address operator=(uint32_t data_) { data=data_; return *this; }
+			Address operator=(unsigned int data_) { data=data_; return *this; }
 			Address operator=(Address address) { data=address.data; return *this; }
 			Address(const Address& address): data(address.data) { }
 			//! Construct the IPv4 address from an integer
 			/*!
 			 * @param[in] data_ Unsigned 32bit integer representing the IPv4 address
 			 */
-			Address(uint32_t data_): data(data_) { }
+			Address(unsigned int data_): data(data_) { }
 			//! Constructs from a value of 0.0.0.0 (0)
 			Address(): data(0) { }
 			//! Assign the IPv4 address from a string of characters
@@ -113,37 +113,37 @@ namespace Fastcgipp
 			template<class charT, class Traits> friend std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const Address& address);
 			template<class charT, class Traits> friend std::basic_istream<charT, Traits>& operator>>(std::basic_istream<charT, Traits>& is, Address& address);
 			//! Data representation of the IPv4 address
-			uint32_t data;
+			unsigned int data;
 		};
 
 		//! Compare two Address values
 		/*!
 		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned 32 bit integer.
+		 * unsigned integer.
 		 */
 		inline bool operator==(Address x, Address y) { return x.data==y.data; }
 		//! Compare two Address values
 		/*!
 		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned 32 bit integer.
+		 * unsigned integer.
 		 */
 		inline bool operator>(Address x, Address y) { return x.data>y.data; }
 		//! Compare two Address values
 		/*!
 		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned 32 bit integer.
+		 * unsigned integer.
 		 */
 		inline bool operator<(Address x, Address y) { return x.data<y.data; }
 		//! Compare two Address values
 		/*!
 		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned 32 bit integer.
+		 * unsigned integer.
 		 */
 		inline bool operator<=(Address x, Address y) { return x.data<=y.data; }
 		//! Compare two Address values
 		/*!
 		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned 32 bit integer.
+		 * unsigned integer.
 		 */
 		inline bool operator>=(Address x, Address y) { return x.data>=y.data; }
 		//! Bitwise AND two Address values
@@ -229,7 +229,7 @@ namespace Fastcgipp
 			 * @param[in] data Pointer to the first byte of parameter data
 			 * @param[in] size Size of data in bytes
 			 */
-			bool fill(const char* data, size_t size);
+			void fill(const char* data, size_t size);
 			//! Parses raw http post data into the posts object
 			/*!
 			 * This function will take arbitrarily divided chunks of raw http post
@@ -264,7 +264,7 @@ namespace Fastcgipp
 		 * @param[out] string Reference to the wstring that should be modified
 		 * @return Returns true on success, false on failure
 		 */
-		bool charToString(const char* data, size_t size, std::wstring& string);
+		void charToString(const char* data, size_t size, std::wstring& string);
 
 		//! Convert a char string to a std::string
 		/*!
@@ -273,7 +273,7 @@ namespace Fastcgipp
 		 * @param[out] string Reference to the string that should be modified
 		 * @return Returns true on success, false on failure
 		 */
-		inline bool charToString(const char* data, size_t size, std::string& string) { string.assign(data, size); return true; }
+		inline void charToString(const char* data, size_t size, std::string& string) { string.assign(data, size); }
 
 		//! Convert a char string to an integer
 		/*!
@@ -371,12 +371,12 @@ namespace Fastcgipp
 		 */
 		class SessionId
 		{
-		private:
 			/** 
 			 * @brief Size in bytes of the ID data
 			 */
-			static const int size=12;
+			public: static const int size=12;
 
+		private:
 			/** 
 			 * @brief ID data
 			 */
@@ -429,12 +429,14 @@ namespace Fastcgipp
 			 * @brief Resets the last access timestamp to the current time.
 			 */
 			void refresh() const { *const_cast<boost::posix_time::ptime*>(&timestamp)=boost::posix_time::second_clock::universal_time(); }
+
+			const char* getInternalPointer() const { return data; }
 		};
 
 		/** 
 		 * @brief Output the ID data in base64 encoding
 		 */
-		template<class charT, class Traits> std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const SessionId& x) { base64Encode(x.data, x.data+SessionId::size, std::ostream_iterator<charT>(os)); return os; }
+		template<class charT, class Traits> std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const SessionId& x) { base64Encode(x.data, x.data+SessionId::size, std::ostream_iterator<charT, charT, Traits>(os)); return os; }
 
 		/** 
 		 * @brief Container for HTTP sessions

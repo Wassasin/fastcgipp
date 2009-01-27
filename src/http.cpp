@@ -1,6 +1,6 @@
 //! \file http.cpp Defines elements of the HTTP protocol
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -202,7 +202,7 @@ template<class charT> bool Fastcgipp::Http::parseValue(const std::basic_string<c
 	return true;
 }
 
-bool Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& string)
+void Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& string)
 {
 	const size_t bufferSize=512;
 	wchar_t buffer[bufferSize];
@@ -221,8 +221,7 @@ bool Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& 
 			size-=tmpData-data;
 			data=tmpData;
 		}}
-		if(cr==codecvt_base::error) return false;
-		return true;
+		if(cr==codecvt_base::error) throw Exceptions::CodeCvt();
 	}
 }
 
@@ -272,44 +271,42 @@ int Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destina
 	return destination-start;
 }
 
-template bool Fastcgipp::Http::Environment<char>::fill(const char* data, size_t size);
-template bool Fastcgipp::Http::Environment<wchar_t>::fill(const char* data, size_t size);
-template<class charT> bool Fastcgipp::Http::Environment<charT>::fill(const char* data, size_t size)
+template void Fastcgipp::Http::Environment<char>::fill(const char* data, size_t size);
+template void Fastcgipp::Http::Environment<wchar_t>::fill(const char* data, size_t size);
+template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char* data, size_t size)
 {
 	using namespace std;
 	using namespace boost;
 	
-	bool status=true;
-
 	while(size)
 	{{
 		size_t nameSize;
 		size_t valueSize;
 		const char* name;
 		const char* value;
-		if(!Protocol::processParamHeader(data, size, name, nameSize, value, valueSize)) return false;;
+		Protocol::processParamHeader(data, size, name, nameSize, value, valueSize);
 		size-=value-data+valueSize;
 		data=value+valueSize;
 		
 		if(nameSize==9 && !memcmp(name, "HTTP_HOST", 9))
-			status=charToString(value, valueSize, host);
+			charToString(value, valueSize, host);
 		else if(nameSize==15 && !memcmp(name, "HTTP_USER_AGENT", 15))
-			status=charToString(value, valueSize, userAgent);
+			charToString(value, valueSize, userAgent);
 		else if(nameSize==11 && !memcmp(name, "HTTP_ACCEPT", 11))
-			status=charToString(value, valueSize, acceptContentTypes);
+			charToString(value, valueSize, acceptContentTypes);
 		else if(nameSize==20 && !memcmp(name, "HTTP_ACCEPT_LANGUAGE", 20))
-			status=charToString(value, valueSize, acceptLanguages);
+			charToString(value, valueSize, acceptLanguages);
 		else if(nameSize==19 && !memcmp(name, "HTTP_ACCEPT_CHARSET", 19))
-			status=charToString(value, valueSize, acceptCharsets);
+			charToString(value, valueSize, acceptCharsets);
 		else if(nameSize==12 && !memcmp(name, "HTTP_REFERER", 12) && valueSize)
 		{
 			scoped_array<char> buffer(new char[valueSize]);
-			status=charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), referer);
+			charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), referer);
 		}
 		else if(nameSize==12 && !memcmp(name, "CONTENT_TYPE", 12))
 		{
 			const char* end=(char*)memchr(value, ';', valueSize);
-			status=charToString(value, end?end-value:valueSize, contentType);
+			charToString(value, end?end-value:valueSize, contentType);
 			if(end)
 			{
 				const char* start=(char*)memchr(end, '=', valueSize-(end-data));
@@ -322,15 +319,15 @@ template<class charT> bool Fastcgipp::Http::Environment<charT>::fill(const char*
 			}
 		}
 		else if(nameSize==11 && !memcmp(name, "HTTP_COOKIE", 11))
-			status=charToString(value, valueSize, cookies);
+			charToString(value, valueSize, cookies);
 		else if(nameSize==13 && !memcmp(name, "DOCUMENT_ROOT", 13))
-			status=charToString(value, valueSize, root);
+			charToString(value, valueSize, root);
 		else if(nameSize==11 && !memcmp(name, "SCRIPT_NAME", 11))
-			status=charToString(value, valueSize, scriptName);
+			charToString(value, valueSize, scriptName);
 		else if(nameSize==12 && !memcmp(name, "QUERY_STRING", 12) && valueSize)
 		{
 			scoped_array<char> buffer(new char[valueSize]);
-			status=charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), queryString);
+			charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), queryString);
 		}
 		else if(nameSize==15 && !memcmp(name, "HTTP_KEEP_ALIVE", 15))
 			keepAlive=atoi(value, value+valueSize);
@@ -362,7 +359,6 @@ template<class charT> bool Fastcgipp::Http::Environment<charT>::fill(const char*
 		}
 		*/
 	}}
-	return status;
 }
 
 template void Fastcgipp::Http::Environment<char>::fillPosts(const char* data, size_t size);

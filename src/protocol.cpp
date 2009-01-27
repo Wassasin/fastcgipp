@@ -1,6 +1,6 @@
 //! \file protocol.cpp Defines FastCGI protocol
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -21,7 +21,7 @@
 
 #include <fastcgi++/protocol.hpp>
 
-bool Fastcgipp::Protocol::processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
+void Fastcgipp::Protocol::processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize)
 {
 	if(*data>>7)
 	{
@@ -38,8 +38,6 @@ bool Fastcgipp::Protocol::processParamHeader(const char* data, size_t dataSize, 
 	else valueSize=*data++;
 	name=data;
 	value=name+nameSize;
-	if(name+nameSize+valueSize > data+dataSize) return false;
-	return true;
 }
 
 Fastcgipp::Protocol::ManagementReply<14, 2, 8> Fastcgipp::Protocol::maxConnsReply("FCGI_MAX_CONNS", "10");
