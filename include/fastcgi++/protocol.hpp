@@ -1,6 +1,6 @@
 //! \file protocol.hpp Defines FastCGI protocol
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -25,6 +25,7 @@
 #include <fastcgi++/config.h>
 #include <map>
 #include <string>
+#include <exception>
 
 #if defined (HAVE_ENDIAN_H)
 #include <endian.h>
@@ -37,6 +38,8 @@
 #include <stdint.h>
 
 #include <boost/shared_array.hpp>
+
+#include <fastcgi++/message.hpp>
 
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
@@ -352,7 +355,7 @@ namespace Fastcgipp
 		 * @param[out] value Reference to a pointer that will be pointed to the first byte of the parameter value
 		 * @param[out] valueSize Reference to a value to will be given the size in bytes of the parameter value
 		 */
-		bool processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize);
+		void processParamHeader(const char* data, size_t dataSize, const char*& name, size_t& nameSize, const char*& value, size_t& valueSize);
 
 		
 		//!Used for the reply of FastCGI management records of type GET_VALUES
@@ -416,26 +419,6 @@ namespace Fastcgipp
 		//! Reply record that will be sent when asked if requests can be multiplexed over a single connections
 		extern ManagementReply<15, 1, 8> mpxsConnsReply;
 	}
-
-	//! Data structure used to pass messages within the fastcgi++ task management system
-	/*!
-	 * This data structure is crucial to all operation in the FastCGI library as all
-	 * data passed to requests must be encapsulated in this data structure. A type value
-	 * of 0 means that the message is a FastCGI record and will be processed at a low
-	 * level by the library. Any other type value and the message will be passed up to
-	 * the user to be processed. The data may contain any data that can be casted to/from
-	 * a raw character array. The size obviously represents the exact size of the data
-	 * section.
-	 */
-	struct Message
-	{
-		//! Type of message. A 0 means FastCGI record. Anything else is open.
-		int type;
-		//! Size of the data section.
-		size_t size;
-		//! Pointer to the raw data being passed along with the message.
-		boost::shared_array<char> data;
-	};
 }
 
 #endif

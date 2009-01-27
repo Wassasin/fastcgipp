@@ -1,6 +1,6 @@
 //! \file transceiver.hpp Defines the Fastcgipp::Transceiver class
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -285,6 +285,54 @@ namespace Fastcgipp
 	inline bool reventsZero(const pollfd& x)
 	{
 		return x.revents;
+	}
+
+	namespace Exceptions
+	{
+		//! General exception for socket related errors
+		struct Socket: public CodedException
+		{
+			//! Sole Constructor
+			/*!
+			 * @param[in] fd_ File descriptor of socket
+			 * @param[in] erno_ Associated errno
+			 */
+			Socket(const int& fd_, const int& erno_): CodedException(0, erno_), fd(fd_) { }
+			//! File descriptor of socket
+			const int fd;
+		};
+		
+		//! %Exception for write errors to sockets
+		struct SocketWrite: public Socket
+		{
+			//! Sole Constructor
+			/*!
+			 * @param[in] fd_ File descriptor of socket
+			 * @param[in] erno_ Associated errno
+			 */
+			SocketWrite(int fd_, int erno_);
+		};
+		
+		//! %Exception for read errors to sockets
+		struct SocketRead: public Socket
+		{
+			//! Sole Constructor
+			/*!
+			 * @param[in] fd_ File descriptor of socket
+			 * @param[in] erno_ Associated errno
+			 */
+			SocketRead(int fd_, int erno_);
+		};
+		
+		//! %Exception for poll() errors
+		struct SocketPoll: public CodedException
+		{
+			//! Sole Constructor
+			/*!
+			 * @param[in] erno_ Associated errno
+			 */
+			SocketPoll(int erno_);
+		};
 	}
 }
 

@@ -1,6 +1,6 @@
 //! \file fcgistream.hpp Defines the Fastcgipp::Fcgistream stream and stream buffer classes
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *

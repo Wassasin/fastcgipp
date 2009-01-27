@@ -1,4 +1,23 @@
 //! \file doc.hpp Documentation file for main page and tutorials
+/***************************************************************************
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
+*                                                                          *
+* This file is part of fastcgi++.                                          *
+*                                                                          *
+* fastcgi++ is free software: you can redistribute it and/or modify it     *
+* under the terms of the GNU Lesser General Public License as  published   *
+* by the Free Software Foundation, either version 3 of the License, or (at *
+* your option) any later version.                                          *
+*                                                                          *
+* fastcgi++ is distributed in the hope that it will be useful, but WITHOUT *
+* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or    *
+* FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public     *
+* License for more details.                                                *
+*                                                                          *
+* You should have received a copy of the GNU Lesser General Public License *
+* along with fastcgi++.  If not, see <http://www.gnu.org/licenses/>.       *
+****************************************************************************/
+
 /*!
 
 \version $(VERSION)
@@ -43,7 +62,7 @@ Fastcgipp::Transceiver's transmit half implements a cyclic buffer that can grow 
 
 \section installation Installation
 
-fastcgi++ installs just the same as any library out there...
+fastcgi++ installs just the same as any library out there the uses the GNU build system...
 
 <tt>tar -xvjf fastcgi++-$(VERSION).tar.bz2\n
 cd fastcgi++-$(VERSION)\n
@@ -64,6 +83,8 @@ This is a collection of tutorials that should cover most aspects of the fastcgi+
 \subpage timer : A tutorial covering the use of the task manager and threads to have requests efficiently communicate with non-fastcgi++ data.
 
 \subpage sessions : An example of how to utilize the internal mechanism in fastcgi++ to handle HTTP sessions.
+
+\subpage database : An example of the explains the usage of fastcgi++'s SQL facilities with a MySQL database.
 
 */
 
@@ -1394,6 +1415,556 @@ int main()
 	try
 	{
 		Fastcgipp::Manager<SessionExample> fcgi;
+		fcgi.handler();
+	}
+	catch(std::exception& e)
+	{
+		error_log(e.what());
+	}
+}
+\endcode
+
+*/
+
+/*!
+
+\page database Database
+
+\section databaseTutorial Tutorial
+
+Our goal here will be a FastCGI application that utilizes the SQL facilities of fastcgi++. This example will rely on the MySQL engine of the SQL facilities but can be easily changed to any other. We'll create a simple logging mechanism that stores a few values into a table and then pulls the results out of it.
+
+The process that the SQL facilities use can take some getting used to as it places emphasis on a few key things that most people might not care about. For one, maintaining data types from start to finish is insured. Two, data types are standard data types, not some weird library types (unless you consider the boost::date_time stuff weird). Three, it works with data structures that you control the allocation of. This means the members can be statically allocated should you want. Four, most importantly, queries can be done asynchronously.
+
+In order to fulfil these requirements we lose a few things. No quick and easy queries based on textual representations of data. Those kinds of features are what we have PHP for. This means that every query has to be prepared and have appropriate data structures built for it's parameters. It was deemed that since a FastCGI script is constantly running the same queries over and over, they might as well be prepared.
+
+All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread -lmysqlclient
+
+\subsection databaseCreate Creating the database
+
+The first this we need to do is create a database and table to work with our script. For simplicity's sake, connect to you MySQL server and run these commands.
+
+\verbatim
+CREATE DATABASE fastcgipp;
+USE fastcgipp;
+CREATE TABLE logs (ipAddress INT UNSIGNED NOT NULL, timeStamp TIMESTAMP NOT NULL, sessionId BINARY(12) NOT NULL UNIQUE, referral TEXT) CHARACTER SET="utf8";
+GRANT ALL PRIVILEGES ON fastcgipp.* TO 'fcgi'@'localhost' IDENTIFIED BY 'databaseExample';
+\endverbatim
+
+Note that if your not connecting to localhost, then make sure to change the above accordingly.
+
+\subsection databaseError Error Logging
+
+Our next step will be setting up an error logging system. Although requests can log errors directly to the HTTP server error log, I like to have an error logging system that's separate from the library when testing applications. Let's set up a function that takes a c style string and logs it to a file with a timestamp. Since everyone has access to the /tmp directory, I set it up to send error messages to /tmp/errlog. You can change it if you want to.
+
+\code
+#include <fstream>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#include <fastcgi++/mysql.hpp>
+#include <fastcgi++/manager.hpp>
+#include <fastcgi++/request.hpp>
+
+void error_log(const char* msg)
+{
+	using namespace std;
+	using namespace boost;
+	static ofstream error;
+	if(!error.is_open())
+	{
+		error.open("/tmp/errlog", ios_base::out | ios_base::app);
+		error.imbue(locale(error.getloc(), new posix_time::time_facet()));
+	}
+
+	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
+}
+\endcode
+
+\subsection databaseSqlSet Query Data Structure
+
+At this point we need to define the data structures that will contain our results and parameters for our queries. In this example the insert and select queries will both deal with the same set of fields so we only need to create one structure. To make a data structure usable with the SQL facilities it must be derived from Fastcgipp::Sql::Data::Set. The derivation will require the defining of at minimum two functions, most three. By defining these function we turn the structure into a sort of container in the eyes of the SQL facilities.
+
+\code
+struct Log: public Fastcgipp::Sql::Data::Set
+{
+\endcode
+
+First let's define our actual data elements in the structure. These must match up with one of the typedefs defined in Fastcgipp::Sql::Data. We can use custom types like Fastcgipp::Http::Address and Fastcgipp::Http::SessionId because they provide mechanisms of directly accessing the underlying data as a type that fits in with our permitted ones.
+
+As you can see, one of our values has the ability to contain null values. This capability comes from the Fastcgipp::Sql::Data::Nullable template class.
+
+Note we are in a wchar_t environment, and we are accordingly using Fastcgipp::Sql::Data::WtextN instead of Fastcgipp::Sql::Data::TextN. Since our SQL table and connection is in utf-8, all data is code converted for you upon reception.
+
+Our reason for using Fastcgipp::Http::SessionId is merely that it provides a good fixed binary data array that happens to have iostream inserter/extractor operators to/from base64. Also the default constructor randomly generates a value.
+
+\code
+	Fastcgipp::Http::Address ipAddress;
+	Fastcgipp::Sql::Data::Datetime timestamp;
+	Fastcgipp::Http::SessionId sessionId;
+	Fastcgipp::Sql::Data::WtextN referral;
+\endcode
+
+The SQL facilities need to be able to find out how many "elements" there are.
+
+\code
+	size_t numberOfSqlElements() const { return 4; }
+\endcode
+
+This function permits type identification of the "elements" based on an index value. The index should coincide with the order of parameters/results in the query. Make sure that the Fastcgipp::Sql::Data::Type that is returned matches up exactly with the actual data types in this structure. If they don't you are going to run into some annoying segfaults.
+
+\code
+	Fastcgipp::Sql::Data::Type getSqlType(size_t index) const
+	{
+		switch(index)
+		{
+			case 0:
+				return Fastcgipp::Sql::Data::U_INT;
+			case 1:
+				return Fastcgipp::Sql::Data::DATETIME;
+			case 2:
+				return Fastcgipp::Sql::Data::BINARY;
+			case 3:
+				return Fastcgipp::Sql::Data::WTEXT_N;
+			default:
+				return Fastcgipp::Sql::Data::NOTHING;
+		}
+	}
+\endcode
+
+This returns a void pointer to the "element" based on the index value. The index should obviously match up exactly with the above function.
+
+\code
+	const void* getConstPtr(size_t index) const
+	{
+		switch(index)
+		{
+			case 0:
+				return &ipAddress.getInt();
+			case 1:
+				return &timestamp;
+			case 2:
+				return sessionId.getInternalPointer();
+			case 3:
+				return &referral;
+			default:
+				return 0;
+		}
+	}
+\endcode
+
+This function need only be defined in the event that fixed length arrays or custom data structures are included that will be loaded directly with binary data to/from the SQL query. It will only be called for indexes that return a type of Fastcgipp::Sql::Data::BINARY or Fastcgipp::Sql::Data::CHAR from getSqlType(). Be sure that this size matches up with the actual field size in the SQL database.
+
+\code
+	size_t getSqlSize(size_t index) const
+	{
+		switch(index)
+		{
+			case 2:
+				return sessionId.size;
+			default:
+				return 0;
+		}
+	}
+};
+\endcode
+
+\subsection databaseRequest Request Handler
+
+Now we need to write the code that actually handles the request. This example will be a little bit more complicated than most, but for starters, let's decide on characters sets. Let's got utf-8 with this one; so pass wchar_t as our template parameter.
+
+\code
+class Database: public Fastcgipp::Request<wchar_t>
+{
+\endcode
+
+First things first, we are going to statically build our queries so that all requests can access them. Let's make some simple strings for our SQL queries.
+
+\code
+	static const char insertStatementString[];
+	static const char selectStatementString[];
+\endcode
+
+Next we'll define our SQL connection object and two SQL statement objects. We'll define them from the Fastcgipp::Sql::MySQL namespace but they can easily be redefined from another SQL engine and maintain the same interface. This way if you change SQL engines, you needn't change your code much at all. Certainly all data types will remain consistent.
+
+\code
+	static Fastcgipp::Sql::MySQL::Connection sqlConnection;
+	static Fastcgipp::Sql::MySQL::Statement insertStatement;
+	static Fastcgipp::Sql::MySQL::Statement selectStatement;
+\endcode
+
+Now we need a status indication variable for the request;
+
+\code
+	enum Status { START, FETCH } status;
+\endcode
+
+These next two items are for our SELECT query.
+
+The first is a special container (Fastcgipp::Sql::Data::SetContainer) for holding objects derived from Fastcgipp::Sql::Data::Set. For our purposes it behaves pretty much like std::list. It will be filled up with the result rows of our query.
+
+The second is a plain integer for holding the number of total matching rows. If we were doing an insert or update we would use this to tell use the total number of affecter rows. In this example we will use a SQL_CALC_FOUND_ROWS in the query so the value will be total matches before the LIMIT is applied.
+
+Objects passed to asynchronous queries must be dynamically allocated into a shared pointer. This is to prevent data from going out of scope/being destroyed before the query is done with it. Also, if the query finishes and the request has already been completed and destroyed, the shared pointer counter will run out and the data destroyed upon query completion.
+
+\code
+	boost::shared_ptr<Fastcgipp::Sql::Data::SetContainer<Log> > selectSet;
+	boost::shared_ptr<long long unsigned> rows;
+\endcode
+
+Now we declare our response function as usual.
+
+\code
+	bool response();
+public:
+\endcode
+
+The constructor sets our status indicator properly and initializes our two shared pointers.
+
+\code
+	Database(): status(START), selectSet(new Fastcgipp::Sql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+\endcode
+
+Here we'll declare a static function to handle initialization of static data.
+
+\code
+	static void initSql();
+};
+\endcode
+
+Now we need to do some basic initialization of our static data. The string are straightforward. The order of question marks must match exactly to the index order of the data structure they will be read from. In this case Log. For the connection and statement objects we'll call their basic constructors.
+
+\code
+const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
+const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
+
+Fastcgipp::Sql::MySQL::Connection Database::sqlConnection(1, 1);
+Fastcgipp::Sql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
+Fastcgipp::Sql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
+\endcode
+
+Now we'll declare the function to initialize our static data
+
+\code
+void Database::initSql()
+{
+\endcode
+
+Since we didn't use the full constructor on our connection object, we need to actually connect it. See Fastcgipp::Sql::MySQL::Connection::connect() for details.
+
+\code
+	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
+\endcode
+
+Now we initialize our insert and statements. We pass it any Log object (default constructed will do) so it can use the derived functions to build itself around it's structure. We pass a null pointer to the associated parameters/results spot if the statement doesn't actually have any. So obviously an insert will always pass a null pointer to the results set whereas a select would ofter have both parameters and results. See Fastcgipp::Sql::MySQL::Statement::init() for details.
+
+\code
+	insertStatement.init(insertStatementString, sizeof(insertStatementString), &Log(), 0);
+	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &Log());
+\endcode
+
+By calling this function we initialize the thread/threads that will handle SQL queries.
+
+\code
+	sqlConnection.start();
+}
+\endcode
+
+Now for the actual response.
+
+\code
+bool Database::response()
+{
+	switch(status)
+	{
+\endcode
+
+If we're here the request is brand new so let's get the query started. Queueing a query is pretty easy, we pass all the necessary data. The macros EMPTY_SQL_SET, EMPTY_SQL_CONT and EMPTY_SQL_INT are provided to fill in arguments that aren't used. See Fastcgipp::Sql::MySQL::Statement::queue() for details.
+
+\code
+		case START:
+		{
+			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, callback);
+\endcode
+
+Now we set our status to indicate we are fetching the data from the SQL source. As usual return false to indicate that the request is not yet complete, just relinquishing the computer.
+
+\code
+status=FETCH;
+			return false;
+		}
+\endcode
+
+So now our request is complete, let's send'er to the client. The following should be pretty straight forward if you've done the other tutorials.
+
+\code
+		case FETCH:
+		{
+			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
+	<head>\n\
+		<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />\n\
+		<title>fastcgi++: SQL Database example</title>\n\
+	</head>\n\
+	<body>\n\
+		<h2>Showing " << selectSet->size() << " results out of " << *rows << "</h2>\n\
+		<table>\n\
+			<tr>\n\
+				<td><b>IP Address</b></td>\n\
+				<td><b>Timestamp</b></td>\n\
+				<td><b>Session ID</b></td>\n\
+				<td><b>Referral</b></td>\n\
+			</tr>\n";
+\endcode
+
+Regarding the above, obviously selectSet->size() will give us the number of results post LIMIT whereas *rows will tell us the results pre LIMIT due to the use of SQL_CALC_FOUND_ROWS.
+
+Now we'll just iterate through our Fastcgipp::Sql::Data::SetContainer and show the results in a table.
+
+\code
+			for(Fastcgipp::Sql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			{
+				out << "\
+			<tr>\n\
+				<td>" << it->ipAddress << "</td>\n\
+				<td>" << it->timestamp << "</td>\n\
+				<td>" << it->sessionId << "</td>\n\
+				<td>" << it->referral << "</td>\n\
+			</tr>\n";
+			}
+
+			out << "\
+		</table>\n\
+		<p><a href='database.fcgi'>Refer Me</a></p>\n\
+	</body>\n\
+</html>";
+\endcode
+
+So now one last thing to do in the response: log this request. The beauty of our shared pointers is that we can queue the SQL insert statement up, return from here and have the request completed and destroyed before the SQL statement is even complete. We needn't worry about sefaulting.
+
+So here we go, let's build a Log structure and insert it into the database. We're also going to make is so that if the referer is empty, we'll make the value NULL instead of empty. Keep in mind that the default constructor for sessionId was called and randomly generated one.
+
+\code
+			boost::shared_ptr<Log> queryParameters(new Log);
+			queryParameters->ipAddress = environment.remoteAddress;
+			queryParameters->timestamp = boost::posix_time::second_clock::universal_time();
+			if(environment.referer.size())
+				queryParameters->referral = environment.referer;
+			else
+				queryParameters->referral.nullness = true;
+
+			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, callback);
+\endcode
+
+Now let's get our of here. Return a true and the request is completed and destroyed.
+
+\code
+			return true;
+		}
+	}
+}
+\endcode
+
+
+\subsection databaseManager Requests Manager
+
+Now we need to make our main() function. Really all one needs to do is create a Fastcgipp::Manager object with the new class we made as a template parameter, then call it's handler. Let's go one step further though and set up a try/catch loop in case we get any exceptions and log them with our error_log function. As an extra this time around we will call Database::initSql() to initialize the static data.
+
+\code
+#include <fastcgi++/manager.hpp>
+int main()
+{
+	try
+	{
+		Fastcgipp::Manager<SessionExample> fcgi;
+		fcgi.handler();
+	}
+	catch(std::exception& e)
+	{
+		error_log(e.what());
+	}
+}
+\endcode
+
+So be it... Jedi
+
+\section databaseCode Full Source Code
+
+\code
+#include <fstream>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#include <fastcgi++/mysql.hpp>
+#include <fastcgi++/manager.hpp>
+#include <fastcgi++/request.hpp>
+
+
+void error_log(const char* msg)
+{
+	using namespace std;
+	using namespace boost;
+	static ofstream error;
+	if(!error.is_open())
+	{
+		error.open("/tmp/errlog", ios_base::out | ios_base::app);
+		error.imbue(locale(error.getloc(), new posix_time::time_facet()));
+	}
+
+	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
+}
+
+struct Log: public Fastcgipp::Sql::Data::Set
+{
+public:
+	size_t numberOfSqlElements() const { return 4; }
+	Fastcgipp::Sql::Data::Type getSqlType(size_t index) const
+	{
+		switch(index)
+		{
+			case 0:
+				return Fastcgipp::Sql::Data::U_INT;
+			case 1:
+				return Fastcgipp::Sql::Data::DATETIME;
+			case 2:
+				return Fastcgipp::Sql::Data::BINARY;
+			case 3:
+				return Fastcgipp::Sql::Data::WTEXT_N;
+			default:
+				return Fastcgipp::Sql::Data::NOTHING;
+		}
+	}
+
+	const void* getConstPtr(size_t index) const
+	{
+		switch(index)
+		{
+			case 0:
+				return &ipAddress.getInt();
+			case 1:
+				return &timestamp;
+			case 2:
+				return sessionId.getInternalPointer();
+			case 3:
+				return &referral;
+			default:
+				return 0;
+		}
+	}
+
+	size_t getSqlSize(size_t index) const
+	{
+		return sessionId.size;
+	}
+
+	Fastcgipp::Http::Address ipAddress;
+	Fastcgipp::Sql::Data::Datetime timestamp;
+	Fastcgipp::Http::SessionId sessionId;
+	Fastcgipp::Sql::Data::WtextN referral;
+};
+
+
+class Database: public Fastcgipp::Request<wchar_t>
+{
+	static const char insertStatementString[];
+	static const char selectStatementString[];
+
+	static Fastcgipp::Sql::MySQL::Connection sqlConnection;
+	static Fastcgipp::Sql::MySQL::Statement insertStatement;
+	static Fastcgipp::Sql::MySQL::Statement selectStatement;
+
+	enum Status { START, FETCH } status;
+
+	boost::shared_ptr<Fastcgipp::Sql::Data::SetContainer<Log> > selectSet;
+	boost::shared_ptr<long long unsigned> rows;
+
+	bool response();
+public:
+	Database(): status(START), selectSet(new Fastcgipp::Sql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+	static void initSql();
+};
+
+const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
+const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
+
+Fastcgipp::Sql::MySQL::Connection Database::sqlConnection(1, 1);
+Fastcgipp::Sql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
+Fastcgipp::Sql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
+
+void Database::initSql()
+{
+	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
+	insertStatement.init(insertStatementString, sizeof(insertStatementString), &Log(), 0);
+	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &Log());
+	sqlConnection.start();
+}
+
+bool Database::response()
+{
+	switch(status)
+	{
+		case START:
+		{
+			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, callback);
+			status=FETCH;
+			return false;
+		}
+		case FETCH:
+		{
+			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
+<!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
+<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
+	<head>\n\
+		<meta http-equiv='Content-Type' content='text/html; charset=utf-8' />\n\
+		<title>fastcgi++: SQL Database example</title>\n\
+	</head>\n\
+	<body>\n\
+		<h2>Showing " << selectSet->size() << " results out of " << *rows << "</h2>\n\
+		<table>\n\
+			<tr>\n\
+				<td><b>IP Address</b></td>\n\
+				<td><b>Timestamp</b></td>\n\
+				<td><b>Session ID</b></td>\n\
+				<td><b>Referral</b></td>\n\
+			</tr>\n";
+
+			for(Fastcgipp::Sql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			{
+				out << "\
+			<tr>\n\
+				<td>" << it->ipAddress << "</td>\n\
+				<td>" << it->timestamp << "</td>\n\
+				<td>" << it->sessionId << "</td>\n\
+				<td>" << it->referral << "</td>\n\
+			</tr>\n";
+			}
+
+			out << "\
+		</table>\n\
+		<p><a href='database.fcgi'>Refer Me</a></p>\n\
+	</body>\n\
+</html>";
+			
+			boost::shared_ptr<Log> queryParameters(new Log);
+			queryParameters->ipAddress = environment.remoteAddress;
+			queryParameters->timestamp = boost::posix_time::second_clock::universal_time();
+			if(environment.referer.size())
+				queryParameters->referral = environment.referer;
+			else
+				queryParameters->referral.nullness = true;
+
+			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, callback);
+
+			return true;
+		}
+	}
+}
+
+int main()
+{
+	try
+	{
+		Database::initSql();
+		Fastcgipp::Manager<Database> fcgi;
 		fcgi.handler();
 	}
 	catch(std::exception& e)

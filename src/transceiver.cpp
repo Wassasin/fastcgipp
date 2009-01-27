@@ -1,6 +1,6 @@
 //! \file transceiver.cpp Defines member functions for Fastcgipp::Transceiver
 /***************************************************************************
-* Copyright (C) 2007 Eddie                                                 *
+* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
@@ -75,7 +75,7 @@ bool Fastcgipp::Transceiver::handler()
 		if(transmitEmpty) return true;
 		else return false;
 	}
-	if(retVal<0) throw Exceptions::Poll(errno);
+	if(retVal<0) throw Exceptions::SocketPoll(errno);
 	
 	std::vector<pollfd>::iterator pollFd = find_if(pollFds.begin(), pollFds.end(), reventsZero);
 
@@ -206,4 +206,106 @@ Fastcgipp::Transceiver::Transceiver(int fd_, boost::function<void(Protocol::Full
 	pollFds[0].fd = socket;
 	pollFds[1].events = POLLIN|POLLHUP;
 	pollFds[1].fd = wakeUpFdIn;
+}
+
+Fastcgipp::Exceptions::SocketWrite::SocketWrite(int fd_, int erno_): Socket(fd_, erno_)
+{
+	switch(errno)
+	{
+		case EAGAIN:
+			msg = "The file descriptor has been marked non-blocking (O_NONBLOCK) and the write would block.";
+			break;
+
+		case EBADF:
+			msg = "The file descriptor is not a valid file descriptor or is not open for writing.";
+			break;
+
+		case EFAULT:
+			msg = "The buffer is outside your accessible address space.";
+			break;
+
+		case EFBIG:
+			msg = "An attempt was made to write a file that exceeds the implementation-defined maximum file size or the process’s file size limit, or to write at a position past the maximum allowed offset.";
+			break;
+
+		case EINTR:
+			msg = "The call was interrupted by a signal before any data was written; see signal(7).";
+			break;
+
+		case EINVAL:
+			msg = "The file descriptor is attached to an object which is unsuitable for writing; or the file was opened with the O_DIRECT flag, and either the address specified for the buffer, the value specified in count, or the current file offset is not suitably aligned.";
+			break;
+
+		case EIO:
+			msg = "A low-level I/O error occurred while modifying the inode.";
+			break;
+
+		case ENOSPC:
+			msg = "The device containing the file referred to by the file descriptor has no room for the data.";
+			break;
+
+		case EPIPE:
+			msg = "The file descriptor is connected to a pipe or socket whose reading end is closed.  When this happens the writing process will also receive a SIGPIPE signal.  (Thus, the write return value is seen only if the program catches, blocks or ignores this signal.)";
+			break;
+	}
+}
+
+Fastcgipp::Exceptions::SocketRead::SocketRead(int fd_, int erno_): Socket(fd_, erno_)
+{
+	switch(errno)
+	{
+		case EAGAIN:
+			msg = "Non-blocking I/O has been selected using O_NONBLOCK and no data was immediately available for reading.";
+			break;
+
+		case EBADF:
+			msg = "The file descriptor is not valid or is not open for reading.";
+			break;
+
+		case EFAULT:
+			msg = "The buffer is outside your accessible address space.";
+			break;
+
+		case EINTR:
+			msg = "The call was interrupted by a signal before any data was written; see signal(7).";
+			break;
+
+		case EINVAL:
+			msg = "The file descriptor is attached to an object which is unsuitable for reading; or the file was opened with the O_DIRECT flag, and either the address specified in buf, the value specified in count, or the current file offset is not suitably aligned.";
+			break;
+
+		case EIO:
+			msg = "I/O error.  This will happen for example when the process is in a background process group, tries to read from its controlling tty, and either it is ignoring or blocking SIGTTIN or its process group is orphaned.  It may also occur when there is a low-level I/O error while reading from a disk or tape.";
+			break;
+
+		case EISDIR:
+			msg = "The file descriptor refers to a directory.";
+			break;
+	}
+}
+
+Fastcgipp::Exceptions::SocketPoll::SocketPoll(int erno_): CodedException(0, erno_)
+{
+	switch(errno)
+	{
+		case EBADF:
+			msg = "An invalid file descriptor was given in one of the sets.";
+			break;
+
+		case EFAULT:
+			msg = "The array given as argument was not contained in the calling program’s address space.";
+			break;
+
+		case EINTR:
+			msg = "A signal occurred before any requested event; see signal(7).";
+			break;
+
+		case EINVAL:
+			msg = "The nfds value exceeds the RLIMIT_NOFILE value.";
+			break;
+
+		case ENOMEM:
+			msg = "There was no space to allocate file descriptor tables.";
+			break;
+	}
 }
