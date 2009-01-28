@@ -24,43 +24,22 @@ struct Log: public Fastcgipp::Sql::Data::Set
 {
 public:
 	size_t numberOfSqlElements() const { return 4; }
-	Fastcgipp::Sql::Data::Type getSqlType(size_t index) const
+
+	Fastcgipp::Sql::Data::Index getSqlIndex(const size_t index) const
 	{
 		switch(index)
 		{
 			case 0:
-				return Fastcgipp::Sql::Data::U_INT;
+				return ipAddress.getInt();
 			case 1:
-				return Fastcgipp::Sql::Data::DATETIME;
+				return timestamp;
 			case 2:
-				return Fastcgipp::Sql::Data::BINARY;
+				return sessionId;
 			case 3:
-				return Fastcgipp::Sql::Data::WTEXT_N;
+				return referral;
 			default:
-				return Fastcgipp::Sql::Data::NOTHING;
+				return Fastcgipp::Sql::Data::Index();
 		}
-	}
-
-	const void* getConstPtr(size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return &ipAddress.getInt();
-			case 1:
-				return &timestamp;
-			case 2:
-				return sessionId.getInternalPointer();
-			case 3:
-				return &referral;
-			default:
-				return 0;
-		}
-	}
-
-	size_t getSqlSize(size_t index) const
-	{
-		return sessionId.size;
 	}
 
 	Fastcgipp::Http::Address ipAddress;
