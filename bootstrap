@@ -1,5 +1,5 @@
-export VERSION=trunk.r`svn info | grep Revision | cut -d ' ' -f 2`
-export DATE=`svn info | grep 'Last Changed Date' | cut -d ' ' -f 4`
+export VERSION="2.0alpha"
+export DATE="Jan 27, 2009"
 mv configure.ac configure.ac.bak
 touch ChangeLog
 sed "s/ACTUALVERSION/$VERSION/" configure.ac.bak > configure.ac

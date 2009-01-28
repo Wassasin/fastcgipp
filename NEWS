@@ -1,5 +1,5 @@
-Version trunk.r58 - Jan 27, 2009, by Eddie Carle
+Version 2.0alpha - Jan 27, 2009, by Eddie Carle
 
+* Code transfered from svn to git
 * Added SQL Support included a MySQL engine
-
 * Converted package to autotools
