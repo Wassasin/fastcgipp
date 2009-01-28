@@ -1,7 +1,7 @@
 export VERSION="2.0alpha"
 export DATE="Jan 28, 2009"
 mv configure.ac configure.ac.bak
-touch ChangeLog
+git log > ChangeLog
 sed "s/ACTUALVERSION/$VERSION/" configure.ac.bak > configure.ac
 aclocal -I config
 libtoolize --force
