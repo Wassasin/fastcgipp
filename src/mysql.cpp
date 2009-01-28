@@ -143,22 +143,22 @@ void Fastcgipp::Sql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, co
 	std::memset(bindings.get(), 0, sizeof(MYSQL_BIND)*bindSize);
 
 	for(int i=0; i<bindSize; ++i)
-	{{
-		Type type=set.getSqlType(i);
+	{
+		Index element(set.getSqlIndex(i));
 
 		// Handle NULL
-		if(type>=U_TINY_N)
-			type=Type(type-U_TINY_N);	// Make it the same type without the nullableness
+		if(element.type>=U_TINY_N)
+			element.type=Type(element.type-U_TINY_N);	// Make it the same type without the nullableness
 
 		// Handle unsigned
-		if(type<=U_BIGINT)
+		if(element.type<=U_BIGINT)
 		{
 			bindings[i].is_unsigned=1;
-			type=Type(type+TINY);
+			element.type=Type(element.type+TINY);
 		}
 
 		// Start decoding values
-		switch(type)
+		switch(element.type)
 		{
 			case TINY:
 			{
@@ -254,34 +254,34 @@ void Fastcgipp::Sql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, co
 			case CHAR:
 			case BINARY:
 			{
-				bindings[i].buffer_length = set.getSqlSize(i);
-				bindings[i].buffer_type = type==CHAR?MYSQL_TYPE_STRING:MYSQL_TYPE_BLOB;
+				bindings[i].buffer_length = element.size;
+				bindings[i].buffer_type = element.type==CHAR?MYSQL_TYPE_STRING:MYSQL_TYPE_BLOB;
 			}
 		}
-	}}
+	}
 }
 
 void Fastcgipp::Sql::MySQL::Statement::bindBindings(MYSQL_STMT* const& stmt, Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
 {
 	int bindSize=set.numberOfSqlElements();
 	for(int i=0; i<bindSize; ++i)
-	{{
-		void* data=set.getSqlPtr(i);
-		if(set.getSqlType(i) >= Data::U_TINY_N)
+	{
+		Data::Index element(set.getSqlIndex(i));
+		if(element.type >= Data::U_TINY_N)
 		{
-			bindings[i].is_null = (my_bool*)&((Data::NullablePar*)data)->nullness;
-			data = ((Data::NullablePar*)data)->getVoid();
+			bindings[i].is_null = (my_bool*)&((Data::NullablePar*)element.data)->nullness;
+			element.data = ((Data::NullablePar*)element.data)->getVoid();
 		}
 
 		Data::Conversions::iterator it=conversions.find(i);
 		if(it==conversions.end())
-			bindings[i].buffer=data;
+			bindings[i].buffer=element.data;
 		else
 		{
-			it->second->external=data;
+			it->second->external=element.data;
 			bindings[i].buffer=it->second->getPointer();
 		}
-	}}
+	}
 }
 
 void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Datetime>::convertResult()

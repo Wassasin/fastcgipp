@@ -174,7 +174,7 @@ namespace Fastcgipp
 			typedef Nullable<unsigned char> UtinyN;
 			typedef Nullable<char> TinyN;
 			typedef Nullable<unsigned short int> UshortN;
-			typedef short int Short;
+			typedef Nullable<short int> ShortN;
 			typedef Nullable<unsigned int> UintN;
 			typedef Nullable<int> IntN;
 			typedef Nullable<unsigned long long int> UbigintN;
@@ -189,71 +189,87 @@ namespace Fastcgipp
 			typedef Nullable<std::wstring> WtextN;
 			//typedef Nullable<std::bitset> BitN;
 
+			struct Index
+			{
+				Type type;
+				void* data;
+				size_t size;
+
+				Index(const Utiny& x): type(U_TINY), data(const_cast<Utiny*>(&x)) { }
+				Index(const Tiny& x): type(TINY), data(const_cast<Tiny*>(&x)) { }
+				Index(const Ushort& x): type(U_SHORT), data(const_cast<Ushort*>(&x)) { }
+				Index(const Short& x): type(SHORT), data(const_cast<Short*>(&x)) { }
+				Index(const Uint& x): type(U_INT), data(const_cast<Uint*>(&x)) { }
+				Index(const Int& x): type(INT), data(const_cast<Int*>(&x)) { }
+				Index(const Ubigint& x): type(U_BIGINT), data(const_cast<Ubigint*>(&x)) { }
+				Index(const Bigint& x): type(BIGINT), data(const_cast<Bigint*>(&x)) { }
+				Index(const Float& x): type(FLOAT), data(const_cast<Float*>(&x)) { }
+				Index(const Double& x): type(DOUBLE), data(const_cast<Double*>(&x)) { }
+				Index(const Time& x): type(TIME), data(const_cast<Time*>(&x)) { }
+				Index(const Date& x): type(DATE), data(const_cast<Date*>(&x)) { }
+				Index(const Datetime& x): type(DATETIME), data(const_cast<Datetime*>(&x)) { }
+				Index(const Blob& x): type(BLOB), data(const_cast<Blob*>(&x)) { }
+				Index(const Text& x): type(TEXT), data(const_cast<Text*>(&x)) { }
+				Index(const Wtext& x): type(WTEXT), data(const_cast<Wtext*>(&x)) { }
+				Index(const char* const x, const size_t size_): type(CHAR), data(const_cast<char*>(x)), size(size_) { }
+				template<class T> Index(const T& x): type(BINARY), data(const_cast<T*>(&x)), size(sizeof(T)) { }
+				Index(const UtinyN& x): type(U_TINY_N), data(const_cast<UtinyN*>(&x)) { }
+				Index(const TinyN& x): type(TINY_N), data(const_cast<TinyN*>(&x)) { }
+				Index(const UshortN& x): type(U_SHORT_N), data(const_cast<UshortN*>(&x)) { }
+				Index(const ShortN& x): type(SHORT_N), data(const_cast<ShortN*>(&x)) { }
+				Index(const UintN& x): type(U_INT_N), data(const_cast<UintN*>(&x)) { }
+				Index(const IntN& x): type(INT_N), data(const_cast<IntN*>(&x)) { }
+				Index(const UbigintN& x): type(U_BIGINT_N), data(const_cast<UbigintN*>(&x)) { }
+				Index(const BigintN& x): type(BIGINT_N), data(const_cast<BigintN*>(&x)) { }
+				Index(const FloatN& x): type(FLOAT_N), data(const_cast<FloatN*>(&x)) { }
+				Index(const DoubleN& x): type(DOUBLE_N), data(const_cast<DoubleN*>(&x)) { }
+				Index(const TimeN& x): type(TIME_N), data(const_cast<TimeN*>(&x)) { }
+				Index(const DateN& x): type(DATE_N), data(const_cast<DateN*>(&x)) { }
+				Index(const DatetimeN& x): type(DATETIME_N), data(const_cast<DatetimeN*>(&x)) { }
+				Index(const BlobN& x): type(BLOB_N), data(const_cast<BlobN*>(&x)) { }
+				Index(const TextN& x): type(TEXT_N), data(const_cast<TextN*>(&x)) { }
+				Index(const WtextN& x): type(WTEXT_N), data(const_cast<WtextN*>(&x)) { }
+				template<int size_> Index(const NullableArray<char, size_>& x): type(CHAR_N), data(const_cast<NullableArray<char, size_>*>(&x)), size(size_) { }
+				template<class T> Index(const Nullable<T>& x): type(BINARY_N), data(const_cast<Nullable<T>*>(&x)), size(sizeof(T)) { }
+
+				Index(const Index& x): type(x.type), data(x.data), size(x.size) {}
+				Index(): type(NOTHING), data(0), size(0) {}
+
+				const Index& operator=(const Index& x) { type=x.type; data=x.data; size=x.size; }
+				bool operator==(const Index& x) { return type==x.type && data==x.data && size==x.size; }
+			};
+
 			/** 
 			 * @brief Base data set class for communicating parameters and results with SQL queries.
 			 *
 			 * By deriving from this class any data structure can gain the capability to be binded to
-			 * the parameters or results of an SQL query. This is accomplished polymorphically through three
+			 * the parameters or results of an SQL query. This is accomplished polymorphically through two
 			 * virtual member functions that allow the object to be treated as a container and it's member
 			 * data indexed as it's elements. An example derivation follows:
 @code
 struct TestSet: public Fastcgipp::Sql::Data::Set
 {
 	size_t numberOfSqlElements() const { return 7; }
-	Fastcgipp::Sql::Data::Type getSqlType(size_t index) const
+	Fastcgipp::Sql::Data::Index getInternalSqlIndex(size_t index) const
 	{
 		switch(index)
 		{
 			case 0:
-				return Fastcgipp::Sql::Data::DOUBLE_N;
+				return fraction;
 			case 1:
-				return Fastcgipp::Sql::Data::DATE_N;
+				return aDate;
 			case 2:
-				return Fastcgipp::Sql::Data::TIME;
+				return aTime;
 			case 3:
-				return Fastcgipp::Sql::Data::DATETIME_N;
+				return timeStamp;
 			case 4:
-				return Fastcgipp::Sql::Data::WTEXT_N;
+				return someText;
 			case 5:
-				return Fastcgipp::Sql::Data::BLOB_N;
+				return someData;
 			case 6:
-				return Fastcgipp::Sql::Data::BINARY;
+				return Fastcgipp::Sql::Data::Index(fixedChunk, sizeof(fixedChunk));
 			default:
-				return Fastcgipp::Sql::Data::NOTHING;
-		}
-	}
-
-	const void* getConstPtr(size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return &fraction;
-			case 1:
-				return &aDate;
-			case 2:
-				return &aTime;
-			case 3:
-				return &timestamp;
-			case 4:
-				return &someText;
-			case 5:
-				return &someData;
-			case 6:
-				return fixedChunk;
-			default:
-				return 0;
-		}
-	}
-
-	size_t getSqlSize(size_t index) const
-	{
-		switch(index)
-		{
-			case 6:
-				return sizeof(fixedChunk);
-			default:
-				return 0;
+				return Fastcgipp::Sql::Data::Index();
 		}
 	}
 
@@ -269,9 +285,11 @@ struct TestSet: public Fastcgipp::Sql::Data::Set
 			 * Note that the indexing order must match the result column/parameter order of the
 			 * SQL query.
 			 *
-			 * All bindable types in the class should be of a type that is typedefed in Fastcgipp::Sql::Data
-			 * (don't worry, they are all standard types). Each of these typedefs has a corresponding value
-			 * in the Fastcgipp::Sql::Data::Type enumeration for return from getSqlType().
+			 * In order to be binded to a particular SQL type indexed elements in the class should be of a
+			 * type that is typedefed in Fastcgipp::Sql::Data (don't worry, they are all standard types).
+			 * This however is not a requirement as any plain old data structure can be indexed but it will
+			 * be stored as a binary data array. Be sure to examine the constructors for Index. For a default
+			 * it is best to return a default constructed Index object.
 			 *
 			 * @sa Fastcgipp::Sql::Data::Nullable
 			 */
@@ -285,55 +303,16 @@ struct TestSet: public Fastcgipp::Sql::Data::Set
 				virtual size_t numberOfSqlElements() const =0;
 
 				/** 
-				 * @brief Get type associated with particular index value.
-				 * 
-				 * @param[in] index Index number for member, starting at 0.
-				 * 
-				 * @return Associated type;
-				 */
-				virtual Type getSqlType(size_t index) const =0;
-
-				/** 
-				 * @brief Get size associated with particular index value.
+				 * @brief Get constant void pointer to member data.
 				 *
-				 * This virtual function need only be defined in the event of custom
-				 * binary data structures. Anything of fixed length like an array or
-				 * some sort of struct. It will only be called for types that identify
-				 * themselves as Fastcgipp::Sql::Data::BINARY, Fastcgipp::Sql::Data::CHAR
-				 * or their nullable equivalents.
-				 * 
-				 * @param[in] index Index number for member, starting at 0.
-				 * 
-				 * @return Size of fixed data chunk in bytes.
-				 */
-				virtual size_t getSqlSize(size_t index) const { }
-
-				/** 
-				 * @brief Get constant void pointer to member data.
+				 * Because of the implicit constructors in Index, for most types it suffices to just return the
+				 * member object itself. 
 				 * 
 				 * @param[in] index index Index number for member, starting at 0.
 				 * 
 				 * @return Constant void pointer to member data.
 				 */
-				const void* getSqlPtr(size_t index) const { return getConstPtr(index); }
-
-				/** 
-				 * @brief Get non-constant void pointer to member data.
-				 * 
-				 * @param[in] index index Index number for member, starting at 0.
-				 * 
-				 * @return Non-constant void pointer to member data.
-				 */
-				void* getSqlPtr(size_t index) { return const_cast<void*>(getConstPtr(index)); }
-			protected:
-				/** 
-				 * @brief Get constant void pointer to member data.
-				 * 
-				 * @param[in] index index Index number for member, starting at 0.
-				 * 
-				 * @return Constant void pointer to member data.
-				 */
-				virtual const void* getConstPtr(size_t index) const =0; 
+				virtual Index getSqlIndex(const size_t index) const =0; 
 			};
 
 			/** 

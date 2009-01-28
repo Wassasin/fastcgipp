@@ -127,9 +127,8 @@ namespace Fastcgipp
 				 *
 				 * The constructor builds the query and the associated parameters/result data structures based on
 				 * the template objects provided by resultSet and parameterSet. These should point to data structures
-				 * derived from Fastcgipp::Sql::Data::Set. The objects need not have any actual data in them as the only
-				 * two functions called on the object are Fastcgipp::Sql::Data::Set::numberOfSqlElements() and
-				 * Fastcgipp::Sql::Data::Set::getSqlType(). A null pointer indicates no parameter/result data.
+				 * derived from Fastcgipp::Sql::Data::Set. The objects need not have any actual data in them as they are
+				 * only used to find sizes and types of indexable member objects. A null pointer indicates no parameter/result data.
 				 *
 				 * The SQL query string should be a valid SQL query with '?' as a placeholder for all parameters ex. "SELECT *
 				 * FROM testTable WHERE id=?". Note the lack of a terminating semicolon and lack of quotations around the question
@@ -160,9 +159,8 @@ namespace Fastcgipp
 				 *
 				 * The initializer builds the query and the associated parameters/result data structures based on
 				 * the template objects provided by resultSet and parameterSet. These should point to data structures
-				 * derived from Fastcgipp::Sql::Data::Set. The objects need not have any actual data in them as the only
-				 * two functions called on the object are Fastcgipp::Sql::Data::Set::numberOfSqlElements() and
-				 * Fastcgipp::Sql::Data::Set::getSqlType(). A null pointer indicates no parameter/result data.
+				 * derived from Fastcgipp::Sql::Data::Set. The objects need not have any actual data in them as they are
+				 * only used to find sizes and types of indexable member objects. A null pointer indicates no parameter/result data.
 				 *
 				 * The SQL query string should be a valid SQL query with '?' as a placeholder for all parameters ex. "SELECT *
 				 * FROM testTable WHERE id=?". Note the lack of a terminating semicolon and lack of quotations around the question
@@ -242,8 +240,8 @@ namespace Fastcgipp
 				 * @brief Build an array of %MySQL C API prepared statement bindings.
 				 *
 				 * This static function will take an object derived from a Data::Set and build a corresponding %MySQL bind array.
-				 * The object need not contain any data but must have operational Fastcgipp::Sql::Data::Set::numberOfSqlElements()
-				 * and Fastcgipp::Sql::Data::Set::getSqlType() member functions.
+				 * The objects need not have any actual data in them as they are only used to find sizes and types of indexable
+				 * member objects. A null pointer indicates no parameter/result data.
 				 *
 				 * A Conversions container is also built to accommodate any types that can not be written/read directly to/from
 				 * the Data::Set passed and will require conversion beforehand.

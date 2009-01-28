@@ -1489,9 +1489,9 @@ struct Log: public Fastcgipp::Sql::Data::Set
 {
 \endcode
 
-First let's define our actual data elements in the structure. These must match up with one of the typedefs defined in Fastcgipp::Sql::Data. We can use custom types like Fastcgipp::Http::Address and Fastcgipp::Http::SessionId because they provide mechanisms of directly accessing the underlying data as a type that fits in with our permitted ones.
+First let's define our actual data elements in the structure. Unless we are fetching/sending a binary structure we must use one of the typedefed types in Fastcgipp::Sql::Data. We can use custom types like Fastcgipp::Http::Address and still have it behave like an interger because the class provides a mechanism to access the underlying integer as a reference or pointer. We us Fastcgipp::Http::SessionId as a fixed width field matching up with a plain old data structure. It will be stored in the table as raw binary data.
 
-As you can see, one of our values has the ability to contain null values. This capability comes from the Fastcgipp::Sql::Data::Nullable template class.
+As you can see, one of our values has the ability to contain null values. This capability comes from the Fastcgipp::Sql::Data::Nullable template class. See also Fastcgipp::Sql::Data::NullableArray.
 
 Note we are in a wchar_t environment, and we are accordingly using Fastcgipp::Sql::Data::WtextN instead of Fastcgipp::Sql::Data::TextN. Since our SQL table and connection is in utf-8, all data is code converted for you upon reception.
 
@@ -1510,59 +1510,25 @@ The SQL facilities need to be able to find out how many "elements" there are.
 	size_t numberOfSqlElements() const { return 4; }
 \endcode
 
-This function permits type identification of the "elements" based on an index value. The index should coincide with the order of parameters/results in the query. Make sure that the Fastcgipp::Sql::Data::Type that is returned matches up exactly with the actual data types in this structure. If they don't you are going to run into some annoying segfaults.
+This function provides a method of indexing the data in our structure. It provides a mechanism of communicating type information, data location and size to the SQL facilities. For most cases simply returning the object itself will suffice. This is accomplished through the appropriate constructor in Fastcgipp::Sql::Data::Index. Exceptional cases are when a fixed length char[] is returned as that requires a size parameter and any of the templated constructors as they merely read/write raw binary data with the table based on a field length matching the types size.
+
+The default constructor for Fastcgipp::Sql::Data::Index makes an invalid object that should be returned in the case of default. Although this won't happen if the size returned above matches below.
 
 \code
-	Fastcgipp::Sql::Data::Type getSqlType(size_t index) const
+	Fastcgipp::Sql::Data::Index getSqlIndex(const size_t index) const
 	{
 		switch(index)
 		{
 			case 0:
-				return Fastcgipp::Sql::Data::U_INT;
+				return ipAddress.getInt();
 			case 1:
-				return Fastcgipp::Sql::Data::DATETIME;
+				return timestamp;
 			case 2:
-				return Fastcgipp::Sql::Data::BINARY;
+				return sessionId;
 			case 3:
-				return Fastcgipp::Sql::Data::WTEXT_N;
+				return referral;
 			default:
-				return Fastcgipp::Sql::Data::NOTHING;
-		}
-	}
-\endcode
-
-This returns a void pointer to the "element" based on the index value. The index should obviously match up exactly with the above function.
-
-\code
-	const void* getConstPtr(size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return &ipAddress.getInt();
-			case 1:
-				return &timestamp;
-			case 2:
-				return sessionId.getInternalPointer();
-			case 3:
-				return &referral;
-			default:
-				return 0;
-		}
-	}
-\endcode
-
-This function need only be defined in the event that fixed length arrays or custom data structures are included that will be loaded directly with binary data to/from the SQL query. It will only be called for indexes that return a type of Fastcgipp::Sql::Data::BINARY or Fastcgipp::Sql::Data::CHAR from getSqlType(). Be sure that this size matches up with the actual field size in the SQL database.
-
-\code
-	size_t getSqlSize(size_t index) const
-	{
-		switch(index)
-		{
-			case 2:
-				return sessionId.size;
-			default:
-				return 0;
+				return Fastcgipp::Sql::Data::Index();
 		}
 	}
 };
