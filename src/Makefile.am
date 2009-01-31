@@ -17,6 +17,7 @@ libfastcgipp_la_SOURCES = \
 	http.cpp \
 	protocol.cpp \
 	request.cpp \
+	manager.cpp \
 	transceiver.cpp \
 	utf8_codecvt_facet.cpp
 
