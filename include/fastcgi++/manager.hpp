@@ -53,8 +53,7 @@ namespace Fastcgipp
 	 * @tparam T Class that will handle individual requests. Should be derived from
 	 * the Request class.
 	 */
-	template<typename T>
-	class Manager
+	class ManagerPar
 	{
 	public:
 		//! Construct from a file descriptor
@@ -67,9 +66,131 @@ namespace Fastcgipp
 		 *
 		 * @param [in] fd File descriptor to listen on.
 		 */
-		Manager(int fd=0): transceiver(fd, boost::bind(&Manager::push, boost::ref(*this), _1, _2)), asleep(false), terminateBool(false), stopBool(false) { setupSignals(); instance=this; }
+		ManagerPar(int fd, const boost::function<void(Protocol::FullId, Message)>& sendMessage_);
 
-		~Manager() { instance=0; }
+		~ManagerPar() { instance=0; }
+
+		//! Halter for the handler() function
+		/*!
+		 * This function is intended to be called from a thread separate from the handler()
+		 * in order to halt it. It should also be called by a signal handler in the case of
+		 * of a SIGTERM. Once %handler() has been halted it may be re-called to pick up
+		 * exactly where it left off without any data loss.
+		 *
+		 * @sa setupSignals()
+		 * @sa signalHandler()
+		 */
+		void stop();
+
+		
+		//! Configure the handlers for POSIX signals
+		/*!
+		 * By calling this function appropriate handlers will be set up for SIGPIPE, SIGUSR1 and
+		 * SIGTERM. It is called by default upon construction of a Manager object. Should
+		 * the user want to override these handlers, it should be done post-construction.
+		 *
+		 * @sa signalHandler()
+		 */
+		void setupSignals();
+	protected:
+		//! Handles low level communication with the other side
+		Transceiver transceiver;
+
+		//! Queue type for pending tasks
+		/*!
+		 * This is merely a derivation of a std::queue<Protocol::FullId> and a
+		 * boost::mutex that gives data locking abilities to the STL container.
+		 */
+		class Tasks: public std::queue<Protocol::FullId>, public boost::mutex {};
+		//! Queue for pending tasks
+		/*!
+		 * This contains a queue of Protocol::FullId that need their handlers called.
+		 */
+		Tasks tasks;
+
+		//! A queue of messages for the manager itself
+		std::queue<Message> messages;
+
+		//! Handles management messages
+		/*!
+		 * This function is called by handler() in the case that a management message is recieved.
+		 * Although the request id of a management record is always 0, the Protocol::FullId associated
+		 * with the message is passed to this function to keep track of it's associated
+		 * file descriptor.
+		 *
+		 * @param[in] id FullId associated with the messsage.
+		 */
+		void localHandler(Protocol::FullId id);
+
+		//! Indicated whether or not the manager is currently in sleep mode
+		bool asleep;
+		//! Mutex to make accessing asleep thread safe
+		boost::mutex sleepMutex;
+		//! The pthread id of the thread the handler() function is operating in.
+		/*!
+		 * Although this library is intended to be used with boost::thread and not pthread, the underlying
+		 * pthread id of the %handler() function is needed to call pthread_kill() when sleep is to be interrupted.
+		 */
+		pthread_t threadId;
+
+		//! Boolean value indicating that handler() should halt
+		/*!
+		 * @sa stop()
+		 */
+		bool stopBool;
+		//! Mutex to make stopBool thread safe
+		boost::mutex stopMutex;
+		//! Boolean value indication that handler() should terminate
+		/*!
+		 * @sa terminate()
+		 */
+		bool terminateBool;
+		//! Mutex to make terminateMutex thread safe
+		boost::mutex terminateMutex;
+
+	private:
+		//! General function to handler POSIX signals
+		static void signalHandler(int signum);
+		//! Pointer to the %Manager object
+		static ManagerPar* instance;
+		//! Terminator for the handler() function
+		/*!
+		 * This function is intended to be called from  a signal handler in the case of
+		 * of a SIGUSR1. It is similar to stop() except that handler() will wait until
+		 * all requests are complete before halting.
+		 *
+		 * @sa setupSignals()
+		 * @sa signalHandler()
+		 */
+		inline void terminate();
+	};
+	
+	//! General task and protocol management class
+	/*!
+	 * Handles all task and protocol management, creation/destruction
+	 * of requests and passing of messages to requests. The template argument
+	 * should be a class type derived from the Request class with at least the
+	 * response() function defined. To operate this class all that needs to be
+	 * done is creating an object and calling handler() on it.
+	 *
+	 * @tparam T Class that will handle individual requests. Should be derived from
+	 * the Request class.
+	 */
+	template<typename T>
+	class Manager: public ManagerPar
+	{
+	public:
+		//! Construct from a file descriptor
+		/*!
+		 * The only piece of data required to construct a %Manager object is a
+		 * file descriptor to listen on for incoming connections. By default
+		 * mod_fastcgi sets up file descriptor 0 to do this so it is the value
+		 * passed by default to the constructor. The only time it would be another
+		 * value is if an external FastCGI server was defined.
+		 *
+		 * @param [in] fd File descriptor to listen on.
+		 */
+		Manager(int fd=0): ManagerPar(fd, boost::bind(&Manager::push, boost::ref(*this), _1, _2)) {}
 
 		//! General handling function to be called after construction
 		/*!
@@ -98,45 +219,7 @@ namespace Fastcgipp
 		 * @sa Request::callback
 		 */
 		void push(Protocol::FullId id, Message message);
-
-		//! Halter for the handler() function
-		/*!
-		 * This function is intended to be called from a thread separate from the handler()
-		 * in order to halt it. It should also be called by a signal handler in the case of
-		 * of a SIGTERM. Once %handler() has been halted it may be re-called to pick up
-		 * exactly where it left off without any data loss.
-		 *
-		 * @sa setupSignals()
-		 * @sa signalHandler()
-		 */
-		void stop();
-
-		
-		//! Configure the handlers for POSIX signals
-		/*!
-		 * By calling this function appropriate handlers will be set up for SIGPIPE, SIGUSR1 and
-		 * SIGTERM. It is called by default upon construction of a Manager object. Should
-		 * the user want to override these handlers, it should be done post-construction.
-		 *
-		 * @sa signalHandler()
-		 */
-		void setupSignals();
 	private:
-		//! Handles low level communication with the other side
-		Transceiver transceiver;
-
-		//! Queue type for pending tasks
-		/*!
-		 * This is merely a derivation of a std::queue<Protocol::FullId> and a
-		 * boost::mutex that gives data locking abilities to the STL container.
-		 */
-		class Tasks: public std::queue<Protocol::FullId>, public boost::mutex {};
-		//! Queue for pending tasks
-		/*!
-		 * This contains a queue of Protocol::FullId that need their handlers called.
-		 */
-		Tasks tasks;
-
 		//! Associative container type for active requests
 		/*!
 		 * This is merely a derivation of a std::map<Protocol::FullId, boost::shared_ptr<T> > and a
@@ -149,108 +232,7 @@ namespace Fastcgipp
 		 * to the actual Request object.
 		 */
 		Requests requests;
-
-		//! A queue of messages for the manager itself
-		std::queue<Message> messages;
-
-		//! Handles management messages
-		/*!
-		 * This function is called by handler() in the case that a management message is recieved.
-		 * Although the request id of a management record is always 0, the Protocol::FullId associated
-		 * with the message is passed to this function to keep track of it's associated
-		 * file descriptor.
-		 *
-		 * @param[in] id FullId associated with the messsage.
-		 */
-		inline void localHandler(Protocol::FullId id);
-
-		//! Indicated whether or not the manager is currently in sleep mode
-		bool asleep;
-		//! Mutex to make accessing asleep thread safe
-		boost::mutex sleepMutex;
-		//! The pthread id of the thread the handler() function is operating in.
-		/*!
-		 * Although this library is intended to be used with boost::thread and not pthread, the underlying
-		 * pthread id of the %handler() function is needed to call pthread_kill() when sleep is to be interrupted.
-		 */
-		pthread_t threadId;
-
-		//! Boolean value indicating that handler() should halt
-		/*!
-		 * @sa stop()
-		 */
-		bool stopBool;
-		//! Mutex to make stopBool thread safe
-		boost::mutex stopMutex;
-		//! Boolean value indication that handler() should terminate
-		/*!
-		 * @sa terminate()
-		 */
-		bool terminateBool;
-		//! Mutex to make terminateMutex thread safe
-		boost::mutex terminateMutex;
-
-		//! General function to handler POSIX signals
-		static void signalHandler(int signum);
-		//! Pointer to the %Manager object
-		static Manager<T>* instance;
-		//! Terminator for the handler() function
-		/*!
-		 * This function is intended to be called from  a signal handler in the case of
-		 * of a SIGUSR1. It is similar to stop() except that handler() will wait until
-		 * all requests are complete before halting.
-		 *
-		 * @sa setupSignals()
-		 * @sa signalHandler()
-		 */
-		inline void terminate();
 	};
-}
-
-template<class T>
-Fastcgipp::Manager<T>* Fastcgipp::Manager<T>::instance=0;
-
-template<class T>
-void Fastcgipp::Manager<T>::terminate()
-{
-	boost::lock_guard<boost::mutex> lock(terminateMutex);
-	terminateBool=true;
-}
-
-template<class T>
-void Fastcgipp::Manager<T>::stop()
-{
-	boost::lock_guard<boost::mutex> lock(stopMutex);
-	stopBool=true;
-}
-
-template<class T>
-void Fastcgipp::Manager<T>::signalHandler(int signum)
-{
-	switch(signum)
-	{
-		case SIGUSR1:
-		{
-			if(instance) instance->terminate();
-			break;
-		}
-		case SIGTERM:
-		{
-			if(instance) instance->stop();
-			break;
-		}
-	}
-}
-
-template<class T>
-void Fastcgipp::Manager<T>::setupSignals()
-{
-	struct sigaction sigAction;
-	sigAction.sa_handler=Fastcgipp::Manager<T>::signalHandler;
-
-	sigaction(SIGPIPE, &sigAction, NULL);
-	sigaction(SIGUSR1, &sigAction, NULL);
-	sigaction(SIGTERM, &sigAction, NULL);
 }
 
 template<class T>
@@ -369,70 +351,6 @@ void Fastcgipp::Manager<T>::handler()
 			}
 		}
 	}}
-}
-
-template<class T>
-void Fastcgipp::Manager<T>::localHandler(Protocol::FullId id)
-{
-	using namespace std;
-	using namespace Protocol;
-	Message message(messages.front());
-	messages.pop();
-	
-	if(!message.type)
-	{
-		const Header& header=*(Header*)message.data.get(); 
-		switch(header.getType())
-		{
-			case GET_VALUES:
-			{
-				size_t nameSize;
-				size_t valueSize;
-				const char* name;
-				const char* value;
-				processParamHeader(message.data.get()+sizeof(Header), header.getContentLength(), name, nameSize, value, valueSize);
-				if(nameSize==14 && !memcmp(name, "FCGI_MAX_CONNS", 14))
-				{
-					Block buffer(transceiver.requestWrite(sizeof(maxConnsReply)));
-					memcpy(buffer.data, (const char*)&maxConnsReply, sizeof(maxConnsReply));
-					transceiver.secureWrite(sizeof(maxConnsReply), id, false);
-				}
-				else if(nameSize==13 && !memcmp(name, "FCGI_MAX_REQS", 13))
-				{
-					Block buffer(transceiver.requestWrite(sizeof(maxReqsReply)));
-					memcpy(buffer.data, (const char*)&maxReqsReply, sizeof(maxReqsReply));
-					transceiver.secureWrite(sizeof(maxReqsReply), id, false);
-				}
-				else if(nameSize==15 && !memcmp(name, "FCGI_MPXS_CONNS", 15))
-				{
-					Block buffer(transceiver.requestWrite(sizeof(mpxsConnsReply)));
-					memcpy(buffer.data, (const char*)&mpxsConnsReply, sizeof(mpxsConnsReply));
-					transceiver.secureWrite(sizeof(mpxsConnsReply), id, false);
-				}
-
-				break;
-			}
-
-			default:
-			{
-				Block buffer(transceiver.requestWrite(sizeof(Header)+sizeof(UnknownType)));
-
-				Header& sendHeader=*(Header*)buffer.data;
-				sendHeader.setVersion(version);
-				sendHeader.setType(UNKNOWN_TYPE);
-				sendHeader.setRequestId(0);
-				sendHeader.setContentLength(sizeof(UnknownType));
-				sendHeader.setPaddingLength(0);
-
-				UnknownType& sendBody=*(UnknownType*)(buffer.data+sizeof(Header));
-				sendBody.setType(header.getType());
-
-				transceiver.secureWrite(sizeof(Header)+sizeof(UnknownType), id, false);
-
-				break;
-			}
-		}
-	}
 }
 
 #endif
