@@ -1781,53 +1781,30 @@ void error_log(const char* msg)
 
 struct Log: public Fastcgipp::Sql::Data::Set
 {
-public:
-	size_t numberOfSqlElements() const { return 4; }
-	Fastcgipp::Sql::Data::Type getSqlType(size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return Fastcgipp::Sql::Data::U_INT;
-			case 1:
-				return Fastcgipp::Sql::Data::DATETIME;
-			case 2:
-				return Fastcgipp::Sql::Data::BINARY;
-			case 3:
-				return Fastcgipp::Sql::Data::WTEXT_N;
-			default:
-				return Fastcgipp::Sql::Data::NOTHING;
-		}
-	}
-
-	const void* getConstPtr(size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return &ipAddress.getInt();
-			case 1:
-				return &timestamp;
-			case 2:
-				return sessionId.getInternalPointer();
-			case 3:
-				return &referral;
-			default:
-				return 0;
-		}
-	}
-
-	size_t getSqlSize(size_t index) const
-	{
-		return sessionId.size;
-	}
-
 	Fastcgipp::Http::Address ipAddress;
 	Fastcgipp::Sql::Data::Datetime timestamp;
 	Fastcgipp::Http::SessionId sessionId;
 	Fastcgipp::Sql::Data::WtextN referral;
-};
 
+	size_t numberOfSqlElements() const { return 4; }
+
+	Fastcgipp::Sql::Data::Index getSqlIndex(const size_t index) const
+	{
+		switch(index)
+		{
+			case 0:
+				return ipAddress.getInt();
+			case 1:
+				return timestamp;
+			case 2:
+				return sessionId;
+			case 3:
+				return referral;
+			default:
+				return Fastcgipp::Sql::Data::Index();
+		}
+	}
+};
 
 class Database: public Fastcgipp::Request<wchar_t>
 {
