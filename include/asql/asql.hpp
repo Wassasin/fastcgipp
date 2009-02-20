@@ -33,8 +33,6 @@
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
-#include <fastcgi++/message.hpp>
-
 //! A empty parameters set placeholder for use with ASql::Statement::queue and it's children
 #define EMPTY_SQL_SET boost::shared_ptr<ASql::Data::Set>()
 //! A empty result set placeholder for use with ASql::Statement::queue and it's children
@@ -45,6 +43,30 @@
 //! Defines classes and functions relating to SQL querying
 namespace ASql
 {
+	/** 
+	 * @brief SQL Error
+	 */
+	struct Error: public std::exception
+	{
+		/** 
+		 * @brief Associated error number.
+		 */
+		int erno;
+		/** 
+		 * @brief Pointer to string data explaining error.
+		 */
+		const char* msg;
+		/** 
+		 * @param[in] msg_ Pointer to string explaining error.
+		 * @param[in] erno_ Associated error number.
+		 */
+		Error(const char* msg_, const int erno_): msg(msg_), erno(erno_) {}
+		Error(): msg(0), erno(0) {}
+		const char* what() const throw() { return msg; }
+
+		Error(const Error& e): msg(e.msg), erno(e.erno) {}
+	};
+
 	//! Defines data types and conversion techniques standard to the fastcgipp %SQL facilities.
 	namespace Data
 	{
@@ -436,11 +458,6 @@ char fixedChunk[16];
 	{
 	protected:
 		/** 
-		 * @brief Type value to use when sending Message structures back from asynchronous queries.
-		 */
-		const int typeVal;
-
-		/** 
 		 * @brief Number of threads to pool for simultaneous queries.
 		 */
 		const int maxThreads;
@@ -453,7 +470,7 @@ char fixedChunk[16];
 		boost::mutex terminateMutex;
 		bool terminateBool;
 
-		Connection(const int typeVal_, const int maxThreads_): typeVal(typeVal_), maxThreads(maxThreads_), threads(0) {}
+		Connection(const int maxThreads_): maxThreads(maxThreads_), threads(0) {}
 	public:
 		virtual ~Connection() { }
 		/** 
@@ -479,7 +496,7 @@ char fixedChunk[16];
 			boost::shared_ptr<Data::SetContainerPar> results;
 			boost::shared_ptr<unsigned long long int> insertId;
 			boost::shared_ptr<unsigned long long int> rows;
-			boost::function<void (Fastcgipp::Message)> callback;
+			boost::function<void (Error)> callback;
 		};
 
 		/** 
@@ -493,8 +510,8 @@ char fixedChunk[16];
 		void intHandler();
 
 	protected:
-		ConnectionPar(const int typeVal_, const int maxThreads_): Connection(typeVal_, maxThreads_) {}
-		inline void queue(T* const& statement, const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Fastcgipp::Message)>& callback);
+		ConnectionPar(const int maxThreads_): Connection(maxThreads_) {}
+		inline void queue(T* const& statement, const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback);
 	public:
 		virtual ~ConnectionPar() { }
 		void start();
@@ -546,9 +563,9 @@ char fixedChunk[16];
 		 * @param[out] results %Data set container of SQL query result data. If no data pass SQL_EMTPY_CONT.
 		 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value. If not needed pass SQL_EMPTY_INT
 		 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query. If not needed pass SQL_EMPTY_INT.
-		 * @param[in] callback Callback function taking a Message parameter.
+		 * @param[in] callback Callback function taking an Error parameter.
 		 */
-		virtual void queue(const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Fastcgipp::Message)>& callback) =0;
+		virtual void queue(const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback) =0;
 		virtual ~Statement() { }
 	};
 }
@@ -611,22 +628,18 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 		queries.pop();
 		queriesLock.unlock();
 
-		Fastcgipp::Message message;
-		message.type=typeVal;
-		message.size=0;
+		Error error;
 
 		try
 		{
 			query.statement->execute(query.parameters.get(), query.results.get(), query.insertId.get(), query.rows.get());
 		}
-		catch(std::exception& e)
+		catch(Error& e)
 		{
-			message.size=std::strlen(e.what()+1);
-			message.data.reset(new char[message.size]);
-			std::memcpy(message.data.get(), e.what(), message.size);
+			error=e;
 		}
 
-		query.callback(message);
+		query.callback(error);
 	}
 
 	{
@@ -636,7 +649,7 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 	threadsChanged.notify_one();
 }
 
-template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Fastcgipp::Message)>& callback)
+template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback)
 {
 	boost::lock_guard<boost::mutex> queriesLock(queries);
 	queries.push(Query());

@@ -4,6 +4,7 @@
 #include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
+#include <fastcgi++/asqlbind.hpp>
 
 
 void error_log(const char* msg)
@@ -72,7 +73,7 @@ public:
 const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-ASql::MySQL::Connection Database::sqlConnection(1, 1);
+ASql::MySQL::Connection Database::sqlConnection(1);
 ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 
@@ -90,7 +91,7 @@ bool Database::response()
 	{
 		case START:
 		{
-			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, callback);
+			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, Fastcgipp::asqlbind(callback));
 			status=FETCH;
 			return false;
 		}
@@ -138,7 +139,7 @@ bool Database::response()
 			else
 				queryParameters->referral.nullness = true;
 
-			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, callback);
+			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, Fastcgipp::asqlbind(callback));
 
 			return true;
 		}

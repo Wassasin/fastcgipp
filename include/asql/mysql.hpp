@@ -53,10 +53,9 @@ namespace ASql
 			 * @param[in] unix_socket If unix_socket is not NULL, the string specifies the socket or named pipe that should be used. Note that the host parameter determines the type of the connection.
 			 * @param[in] client_flag The value of client_flag is usually 0, but can be set to a combination of the following flags to enable certain features. See the mysql c api reference manual for more details.
 			 * @param[in] charset Null terminated string representation of desired connection character set (latin1, utf8, ...)
-			 * @param[in] typeVal_ Type value to use in the Message that is send in callback functions.
 			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
 			 */
-			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int typeVal_=1, const int maxThreads_=1): ConnectionPar<MySQL::Statement>(typeVal_, maxThreads_)
+			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_)
 			{
 				connect(host, user, passwd, db, port, unix_socket, client_flag, charset);
 			}
@@ -64,10 +63,9 @@ namespace ASql
 			/** 
 			 * @brief Incomplete Constructor
 			 * 
-			 * @param[in] typeVal_ Type value to use in the Message that is send in callback functions.
 			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
 			 */
-			Connection(const int typeVal_=1, const int maxThreads_=1): ConnectionPar<MySQL::Statement>(typeVal_, maxThreads_) {}
+			Connection(const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_) {}
 			~Connection();
 
 			/**
@@ -199,17 +197,16 @@ namespace ASql
 			 * in one thread before it is finished with in another (segfault). So don't cheat, make sure they are shared pointer controlled
 			 * on your end as well.
 			 *
-			 * For two, a callback function is replied that matches up nicely with the one provided in
-			 * Fastcgipp::Request::callback. The data passed in the message is Fastcgipp::Exceptions::MySQL
+			 * For two, a callback function is supplied to be called when the query is complete. The data passed is a ASql::Error
 			 * data structure.
 			 * 
 			 * @param[in] parameters %Data set of %MySQL query parameter data. If no data pass SQL_EMPTY_SET.
 			 * @param[out] results %Data set container of %MySQL query result data. If no data pass SQL_EMTPY_CONT.
 			 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value. If not needed pass SQL_EMPTY_INT
 			 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query. If not needed pass SQL_EMPTY_INT.
-			 * @param[in] callback Callback function taking a Message parameter.
+			 * @param[in] callback Callback function taking a ASql::Error parameter.
 			 */
-			inline void queue(const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Fastcgipp::Message)>& callback)
+			inline void queue(const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (ASql::Error)>& callback)
 			{
 				connection.queue(this, parameters, results, insertId, rows, callback);
 			}
@@ -425,26 +422,10 @@ namespace ASql
 		/** 
 		 * @brief MySQL Error
 		 */
-		struct Error: public std::exception
+		struct Error: public ASql::Error
 		{
-			/** 
-			 * @brief Associated error number.
-			 */
-			const int erno;
-			/** 
-			 * @brief Pointer to string data explaining error.
-			 */
-			const char* msg;
-			/** 
-			 * @param[in] msg_ Pointer to string explaining error.
-			 * @param[in] erno_ Associated error number.
-			 */
-			Error(const char* msg_, const int erno_): msg(msg_), erno(erno_) {}
-			const char* what() const throw() { return msg; }
-
 			Error(MYSQL* mysql);
 			Error(MYSQL_STMT* stmt);
-			Error(const Error& e): msg(e.msg), erno(e.erno) {}
 		};
 
 		extern const char CodeConversionErrorMsg[];

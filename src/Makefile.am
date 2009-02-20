@@ -22,6 +22,10 @@ libfastcgipp_la_SOURCES = \
 	utf8_codecvt_facet.cpp
 
 if HAVE_MYSQL_H
+libfastcgipp_la_SOURCES += asqlbind.cpp
+endif
+
+if HAVE_MYSQL_H
 libfastcgipp_la_SOURCES += mysql.cpp
 LDADD += -lmysqlclient
 endif
