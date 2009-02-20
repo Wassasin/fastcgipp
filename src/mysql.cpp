@@ -82,43 +82,56 @@ void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& 
 	if(resultSet) buildBindings(stmt, *resultSet, resultsConversions, resultsBindings);
 }
 
-void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
+void ASql::MySQL::Statement::executeParameters(Data::Set* const& parameters)
 {
-	boost::lock_guard<boost::mutex> executeLock(executeMutex);
-
 	if(parameters)
 	{
 		bindBindings(stmt, *parameters, paramsConversions, paramsBindings);
 		for(Data::Conversions::iterator it=paramsConversions.begin(); it!=paramsConversions.end(); ++it)
 			it->second->convertParam();
+		if(mysql_stmt_bind_param(stmt, paramsBindings.get())!=0) throw Error(stmt);
 	}
 
-	if(mysql_stmt_bind_param(stmt, paramsBindings.get())!=0) throw Error(stmt);
 	if(mysql_stmt_execute(stmt)!=0) throw Error(stmt);
+}
+
+bool ASql::MySQL::Statement::executeResult(Data::Set& row)
+{
+	bindBindings(stmt, row, resultsConversions, resultsBindings);
+	if(mysql_stmt_bind_result(stmt, resultsBindings.get())!=0) throw Error(stmt);
+	switch (mysql_stmt_fetch(stmt))
+	{
+	case 1:
+		throw Error(stmt);
+	case MYSQL_NO_DATA:
+		return false;
+	default:
+		for(Data::Conversions::iterator it=resultsConversions.begin(); it!=resultsConversions.end(); ++it)
+			it->second->convertResult();
+		return true;
+	};
+}
+
+void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
+{
+	boost::lock_guard<boost::mutex> executeLock(executeMutex);
+
+	executeParameters(parameters);
 
 	if(results)
 	{
 		Data::SetContainerPar& res=*results;
 		Data::SetContainerPar::Cont::iterator it;
 
-		bool keepLooping=true;
-		while(keepLooping)
+		while(1)
 		{
 			it=res.manufacture();
 			bindBindings(stmt, *it->get(), resultsConversions, resultsBindings);
-			if(mysql_stmt_bind_result(stmt, resultsBindings.get())!=0) throw Error(stmt);
-			switch (mysql_stmt_fetch(stmt))
+			if(!executeResult(*it->get()))
 			{
-			case 1:
-				throw Error(stmt);
-			case MYSQL_NO_DATA:
 				res.trim();
-				keepLooping=false;
 				break;
-			default:
-				for(Data::Conversions::iterator it=resultsConversions.begin(); it!=resultsConversions.end(); ++it)
-					it->second->convertResult();
-			};
+			}
 		}
 
 		if(rows) connection.getFoundRows(rows);
