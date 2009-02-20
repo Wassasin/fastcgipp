@@ -1,4 +1,4 @@
-//! \file http.cpp Defines functions and data for handling MySQL queries
+//! \file mysql.cpp Defines functions and data for handling MySQL queries
 /***************************************************************************
 * Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
 *                                                                          *
@@ -22,67 +22,67 @@
 #include <fastcgi++/mysql.hpp>
 #include <utf8_codecvt.hpp>
 
-void Fastcgipp::Sql::MySQL::Connection::connect(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset)
+void ASql::MySQL::Connection::connect(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset)
 {
 	if(!mysql_init(&connection))
-		throw Exceptions::MySQL(&connection);
+		throw Error(&connection);
 
 	if(!mysql_real_connect(&connection, host, user, passwd, db, port, unix_socket, client_flag))
-		throw Exceptions::MySQL(&connection);
+		throw Error(&connection);
 
 	if(mysql_set_character_set(&connection, charset))
-		throw Exceptions::MySQL(&connection);
+		throw Error(&connection);
 	
 	if(!(foundRowsStatement = mysql_stmt_init(&connection)))
-		throw Exceptions::MySQL(&connection);
+		throw Error(&connection);
 
 	if(mysql_stmt_prepare(foundRowsStatement, "SELECT FOUND_ROWS()", 19))
-		throw Exceptions::MySQL(foundRowsStatement);
+		throw Error(foundRowsStatement);
 
 	std::memset(&foundRowsBinding, 0, sizeof(MYSQL_BIND));
 	foundRowsBinding.buffer_type = MYSQL_TYPE_LONGLONG;
 	foundRowsBinding.is_unsigned = 1;
 }
 
-Fastcgipp::Sql::MySQL::Connection::~Connection()
+ASql::MySQL::Connection::~Connection()
 {
 	mysql_stmt_close(foundRowsStatement);
 	mysql_close(&connection);
 }
 
-void Fastcgipp::Sql::MySQL::Connection::getFoundRows(unsigned long long* const& rows)
+void ASql::MySQL::Connection::getFoundRows(unsigned long long* const& rows)
 {
 	if(mysql_stmt_bind_param(foundRowsStatement, 0))
-		throw Exceptions::MySQL(foundRowsStatement);
+		throw Error(foundRowsStatement);
 	
 	if(mysql_stmt_execute(foundRowsStatement))
-		throw Exceptions::MySQL(foundRowsStatement);
+		throw Error(foundRowsStatement);
 
 	foundRowsBinding.buffer = rows;
 	if(mysql_stmt_bind_result(foundRowsStatement, &foundRowsBinding))
-		throw Exceptions::MySQL(foundRowsStatement);
+		throw Error(foundRowsStatement);
 
 	if(mysql_stmt_fetch(foundRowsStatement))
-		throw Exceptions::MySQL(foundRowsStatement);
+		throw Error(foundRowsStatement);
 	mysql_stmt_free_result(foundRowsStatement);
 	mysql_stmt_reset(foundRowsStatement);
 
 }
 
-void Fastcgipp::Sql::MySQL::Statement::init(const char* const& queryString, const size_t& queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet)
+void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet)
 {
 	stmt=mysql_stmt_init(&connection.connection);
 	if(!stmt)
-		throw Exceptions::MySQL(&connection.connection);
+		throw Error(&connection.connection);
 
 	if(mysql_stmt_prepare(stmt, queryString, queryLength))
-		throw Exceptions::MySQL(stmt);
+		throw Error(stmt);
 
 	if(parameterSet) buildBindings(stmt, *parameterSet, paramsConversions, paramsBindings);
 	if(resultSet) buildBindings(stmt, *resultSet, resultsConversions, resultsBindings);
 }
 
-void Fastcgipp::Sql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
+void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
 {
 	boost::lock_guard<boost::mutex> executeLock(executeMutex);
 
@@ -93,8 +93,8 @@ void Fastcgipp::Sql::MySQL::Statement::execute(Data::Set* const parameters, Data
 			it->second->convertParam();
 	}
 
-	if(mysql_stmt_bind_param(stmt, paramsBindings.get())!=0) throw Exceptions::MySQL(stmt);
-	if(mysql_stmt_execute(stmt)!=0) throw Exceptions::MySQL(stmt);
+	if(mysql_stmt_bind_param(stmt, paramsBindings.get())!=0) throw Error(stmt);
+	if(mysql_stmt_execute(stmt)!=0) throw Error(stmt);
 
 	if(results)
 	{
@@ -106,11 +106,11 @@ void Fastcgipp::Sql::MySQL::Statement::execute(Data::Set* const parameters, Data
 		{
 			it=res.manufacture();
 			bindBindings(stmt, *it->get(), resultsConversions, resultsBindings);
-			if(mysql_stmt_bind_result(stmt, resultsBindings.get())!=0) throw Exceptions::MySQL(stmt);
+			if(mysql_stmt_bind_result(stmt, resultsBindings.get())!=0) throw Error(stmt);
 			switch (mysql_stmt_fetch(stmt))
 			{
 			case 1:
-				throw Exceptions::MySQL(stmt);
+				throw Error(stmt);
 			case MYSQL_NO_DATA:
 				res.trim();
 				keepLooping=false;
@@ -133,7 +133,7 @@ void Fastcgipp::Sql::MySQL::Statement::execute(Data::Set* const parameters, Data
 	mysql_stmt_reset(stmt);
 }
 
-void Fastcgipp::Sql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const Fastcgipp::Sql::Data::Set& set, Fastcgipp::Sql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
+void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::Data::Set& set, ASql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
 {
 	using namespace Data;
 
@@ -261,7 +261,7 @@ void Fastcgipp::Sql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, co
 	}
 }
 
-void Fastcgipp::Sql::MySQL::Statement::bindBindings(MYSQL_STMT* const& stmt, Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
+void ASql::MySQL::Statement::bindBindings(MYSQL_STMT* const& stmt, Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
 {
 	int bindSize=set.numberOfSqlElements();
 	for(int i=0; i<bindSize; ++i)
@@ -284,12 +284,12 @@ void Fastcgipp::Sql::MySQL::Statement::bindBindings(MYSQL_STMT* const& stmt, Dat
 	}
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Datetime>::convertResult()
+void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertResult()
 {
 	*(boost::posix_time::ptime*)external=boost::posix_time::ptime(boost::gregorian::date(internal.year, internal.month, internal.day), boost::posix_time::time_duration(internal.hour, internal.minute, internal.second));
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Datetime>::convertParam()
+void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertParam()
 {
 	std::memset(&internal, 0, sizeof(MYSQL_TIME));
 	internal.year = ((boost::posix_time::ptime*)external)->date().year();
@@ -300,12 +300,12 @@ void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Datetime>::con
 	internal.second = ((boost::posix_time::ptime*)external)->time_of_day().seconds();
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Date>::convertResult()
+void ASql::MySQL::TypedConversion<ASql::Data::Date>::convertResult()
 {
 	*(boost::gregorian::date*)external=boost::gregorian::date(internal.year, internal.month, internal.day);
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Date>::convertParam()
+void ASql::MySQL::TypedConversion<ASql::Data::Date>::convertParam()
 {
 	std::memset(&internal, 0, sizeof(MYSQL_TIME));
 	internal.year = ((boost::gregorian::date*)external)->year();
@@ -313,12 +313,12 @@ void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Date>::convert
 	internal.day = ((boost::gregorian::date*)external)->day();
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Time>::convertResult()
+void ASql::MySQL::TypedConversion<ASql::Data::Time>::convertResult()
 {
 	*(boost::posix_time::time_duration*)external = boost::posix_time::time_duration(internal.neg?internal.hour*-1:internal.hour, internal.minute, internal.second);
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Time>::convertParam()
+void ASql::MySQL::TypedConversion<ASql::Data::Time>::convertParam()
 {
 	std::memset(&internal, 0, sizeof(MYSQL_TIME));
 	internal.hour = std::abs(((boost::posix_time::time_duration*)external)->hours());
@@ -327,9 +327,9 @@ void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Time>::convert
 	internal.neg = ((boost::posix_time::time_duration*)external)->hours() < 0 ? 1:0;
 }
 
-template void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Blob>::grabIt(Fastcgipp::Sql::Data::Blob& data);
-template void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Text>::grabIt(Fastcgipp::Sql::Data::Text& data);
-template<typename T> void Fastcgipp::Sql::MySQL::TypedConversion<T>::grabIt(T& data)
+template void ASql::MySQL::TypedConversion<ASql::Data::Blob>::grabIt(ASql::Data::Blob& data);
+template void ASql::MySQL::TypedConversion<ASql::Data::Text>::grabIt(ASql::Data::Text& data);
+template<typename T> void ASql::MySQL::TypedConversion<T>::grabIt(T& data)
 {
 	if(data.size() != length) data.resize(length);
 
@@ -341,13 +341,13 @@ template<typename T> void Fastcgipp::Sql::MySQL::TypedConversion<T>::grabIt(T& d
 		bind.buffer_length=length;
 		bind.length=&length;
 		bind.buffer_type=bufferType;
-		if(mysql_stmt_fetch_column(statement, &bind, column, 0)!=0) throw Exceptions::MySQL(statement);
+		if(mysql_stmt_fetch_column(statement, &bind, column, 0)!=0) throw Error(statement);
 	}
 }
 
-template void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Blob>::convertParam();
-template void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Text>::convertParam();
-template<typename T> void Fastcgipp::Sql::MySQL::TypedConversion<T>::convertParam()
+template void ASql::MySQL::TypedConversion<ASql::Data::Blob>::convertParam();
+template void ASql::MySQL::TypedConversion<ASql::Data::Text>::convertParam();
+template<typename T> void ASql::MySQL::TypedConversion<T>::convertParam()
 {
 	T& data = *(T*)external;
 
@@ -355,7 +355,7 @@ template<typename T> void Fastcgipp::Sql::MySQL::TypedConversion<T>::convertPara
 	buffer = &data[0];
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Wtext>::convertResult()
+void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
 {
 	using namespace std;
 	
@@ -370,13 +370,13 @@ void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Wtext>::conver
 		wchar_t* it;
 		const char* tmp;
 		mbstate_t conversionState = mbstate_t();
-		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=codecvt_base::ok) throw Exceptions::CodeCvt();
+		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=codecvt_base::ok) throw Error(CodeConversionErrorMsg, -1);
 		output.resize(it-&output[0]);
 		conversionBuffer.clear();
 	}
 }
 
-void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Wtext>::convertParam()
+void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertParam()
 {
 	using namespace std;
 
@@ -389,7 +389,7 @@ void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Wtext>::conver
 		const wchar_t* tmp;
 		char* it;
 		mbstate_t conversionState = mbstate_t();
-		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).out(conversionState, (const wchar_t*)&data[0], (const wchar_t*)&data[0] + data.size(), tmp, &inputBuffer.front(), &inputBuffer.front() + inputBuffer.size(), it)!=codecvt_base::ok) throw Exceptions::CodeCvt();
+		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).out(conversionState, (const wchar_t*)&data[0], (const wchar_t*)&data[0] + data.size(), tmp, &inputBuffer.front(), &inputBuffer.front() + inputBuffer.size(), it)!=codecvt_base::ok) throw Error(CodeConversionErrorMsg, -1);
 		inputBuffer.resize(it-&inputBuffer[0]);
 	}
 
@@ -397,5 +397,7 @@ void Fastcgipp::Sql::MySQL::TypedConversion<Fastcgipp::Sql::Data::Wtext>::conver
 	length = inputBuffer.size();
 }
 
-Fastcgipp::Exceptions::MySQL::MySQL(MYSQL* mysql): CodedException(mysql_error(mysql), mysql_errno(mysql)) { }
-Fastcgipp::Exceptions::MySQL::MySQL(MYSQL_STMT* stmt): CodedException(mysql_stmt_error(stmt), mysql_stmt_errno(stmt)) { }
+ASql::MySQL::Error::Error(MYSQL* mysql): msg(mysql_error(mysql)), erno(mysql_errno(mysql)) { }
+ASql::MySQL::Error::Error(MYSQL_STMT* stmt): msg(mysql_stmt_error(stmt)), erno(mysql_stmt_errno(stmt)) { }
+
+const char ASql::MySQL::CodeConversionErrorMsg[]="Error in code conversion to/from MySQL server.";

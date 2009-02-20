@@ -1482,26 +1482,26 @@ void error_log(const char* msg)
 
 \subsection databaseSqlSet Query Data Structure
 
-At this point we need to define the data structures that will contain our results and parameters for our queries. In this example the insert and select queries will both deal with the same set of fields so we only need to create one structure. To make a data structure usable with the SQL facilities it must be derived from Fastcgipp::Sql::Data::Set. The derivation will require the defining of at minimum two functions, most three. By defining these function we turn the structure into a sort of container in the eyes of the SQL facilities.
+At this point we need to define the data structures that will contain our results and parameters for our queries. In this example the insert and select queries will both deal with the same set of fields so we only need to create one structure. To make a data structure usable with the SQL facilities it must be derived from ASql::Data::Set. The derivation will require the defining of at minimum two functions, most three. By defining these function we turn the structure into a sort of container in the eyes of the SQL facilities.
 
 \code
-struct Log: public Fastcgipp::Sql::Data::Set
+struct Log: public ASql::Data::Set
 {
 \endcode
 
-First let's define our actual data elements in the structure. Unless we are fetching/sending a binary structure we must use one of the typedefed types in Fastcgipp::Sql::Data. We can use custom types like Fastcgipp::Http::Address and still have it behave like an interger because the class provides a mechanism to access the underlying integer as a reference or pointer. We us Fastcgipp::Http::SessionId as a fixed width field matching up with a plain old data structure. It will be stored in the table as raw binary data.
+First let's define our actual data elements in the structure. Unless we are fetching/sending a binary structure we must use one of the typedefed types in ASql::Data. We can use custom types like Fastcgipp::Http::Address and still have it behave like an interger because the class provides a mechanism to access the underlying integer as a reference or pointer. We us Fastcgipp::Http::SessionId as a fixed width field matching up with a plain old data structure. It will be stored in the table as raw binary data.
 
-As you can see, one of our values has the ability to contain null values. This capability comes from the Fastcgipp::Sql::Data::Nullable template class. See also Fastcgipp::Sql::Data::NullableArray.
+As you can see, one of our values has the ability to contain null values. This capability comes from the ASql::Data::Nullable template class. See also ASql::Data::NullableArray.
 
-Note we are in a wchar_t environment, and we are accordingly using Fastcgipp::Sql::Data::WtextN instead of Fastcgipp::Sql::Data::TextN. Since our SQL table and connection is in utf-8, all data is code converted for you upon reception.
+Note we are in a wchar_t environment, and we are accordingly using ASql::Data::WtextN instead of ASql::Data::TextN. Since our SQL table and connection is in utf-8, all data is code converted for you upon reception.
 
 Our reason for using Fastcgipp::Http::SessionId is merely that it provides a good fixed binary data array that happens to have iostream inserter/extractor operators to/from base64. Also the default constructor randomly generates a value.
 
 \code
 	Fastcgipp::Http::Address ipAddress;
-	Fastcgipp::Sql::Data::Datetime timestamp;
+	ASql::Data::Datetime timestamp;
 	Fastcgipp::Http::SessionId sessionId;
-	Fastcgipp::Sql::Data::WtextN referral;
+	ASql::Data::WtextN referral;
 \endcode
 
 The SQL facilities need to be able to find out how many "elements" there are.
@@ -1510,12 +1510,12 @@ The SQL facilities need to be able to find out how many "elements" there are.
 	size_t numberOfSqlElements() const { return 4; }
 \endcode
 
-This function provides a method of indexing the data in our structure. It provides a mechanism of communicating type information, data location and size to the SQL facilities. For most cases simply returning the object itself will suffice. This is accomplished through the appropriate constructor in Fastcgipp::Sql::Data::Index. Exceptional cases are when a fixed length char[] is returned as that requires a size parameter and any of the templated constructors as they merely read/write raw binary data with the table based on a field length matching the types size.
+This function provides a method of indexing the data in our structure. It provides a mechanism of communicating type information, data location and size to the SQL facilities. For most cases simply returning the object itself will suffice. This is accomplished through the appropriate constructor in ASql::Data::Index. Exceptional cases are when a fixed length char[] is returned as that requires a size parameter and any of the templated constructors as they merely read/write raw binary data with the table based on a field length matching the types size.
 
-The default constructor for Fastcgipp::Sql::Data::Index makes an invalid object that should be returned in the case of default. Although this won't happen if the size returned above matches below.
+The default constructor for ASql::Data::Index makes an invalid object that should be returned in the case of default. Although this won't happen if the size returned above matches below.
 
 \code
-	Fastcgipp::Sql::Data::Index getSqlIndex(const size_t index) const
+	ASql::Data::Index getSqlIndex(const size_t index) const
 	{
 		switch(index)
 		{
@@ -1528,7 +1528,7 @@ The default constructor for Fastcgipp::Sql::Data::Index makes an invalid object 
 			case 3:
 				return referral;
 			default:
-				return Fastcgipp::Sql::Data::Index();
+				return ASql::Data::Index();
 		}
 	}
 };
@@ -1550,12 +1550,12 @@ First things first, we are going to statically build our queries so that all req
 	static const char selectStatementString[];
 \endcode
 
-Next we'll define our SQL connection object and two SQL statement objects. We'll define them from the Fastcgipp::Sql::MySQL namespace but they can easily be redefined from another SQL engine and maintain the same interface. This way if you change SQL engines, you needn't change your code much at all. Certainly all data types will remain consistent.
+Next we'll define our SQL connection object and two SQL statement objects. We'll define them from the ASql::MySQL namespace but they can easily be redefined from another SQL engine and maintain the same interface. This way if you change SQL engines, you needn't change your code much at all. Certainly all data types will remain consistent.
 
 \code
-	static Fastcgipp::Sql::MySQL::Connection sqlConnection;
-	static Fastcgipp::Sql::MySQL::Statement insertStatement;
-	static Fastcgipp::Sql::MySQL::Statement selectStatement;
+	static ASql::MySQL::Connection sqlConnection;
+	static ASql::MySQL::Statement insertStatement;
+	static ASql::MySQL::Statement selectStatement;
 \endcode
 
 Now we need a status indication variable for the request;
@@ -1566,14 +1566,14 @@ Now we need a status indication variable for the request;
 
 These next two items are for our SELECT query.
 
-The first is a special container (Fastcgipp::Sql::Data::SetContainer) for holding objects derived from Fastcgipp::Sql::Data::Set. For our purposes it behaves pretty much like std::list. It will be filled up with the result rows of our query.
+The first is a special container (ASql::Data::SetContainer) for holding objects derived from ASql::Data::Set. For our purposes it behaves pretty much like std::list. It will be filled up with the result rows of our query.
 
 The second is a plain integer for holding the number of total matching rows. If we were doing an insert or update we would use this to tell use the total number of affecter rows. In this example we will use a SQL_CALC_FOUND_ROWS in the query so the value will be total matches before the LIMIT is applied.
 
 Objects passed to asynchronous queries must be dynamically allocated into a shared pointer. This is to prevent data from going out of scope/being destroyed before the query is done with it. Also, if the query finishes and the request has already been completed and destroyed, the shared pointer counter will run out and the data destroyed upon query completion.
 
 \code
-	boost::shared_ptr<Fastcgipp::Sql::Data::SetContainer<Log> > selectSet;
+	boost::shared_ptr<ASql::Data::SetContainer<Log> > selectSet;
 	boost::shared_ptr<long long unsigned> rows;
 \endcode
 
@@ -1587,7 +1587,7 @@ public:
 The constructor sets our status indicator properly and initializes our two shared pointers.
 
 \code
-	Database(): status(START), selectSet(new Fastcgipp::Sql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+	Database(): status(START), selectSet(new ASql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
 \endcode
 
 Here we'll declare a static function to handle initialization of static data.
@@ -1603,9 +1603,9 @@ Now we need to do some basic initialization of our static data. The string are s
 const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-Fastcgipp::Sql::MySQL::Connection Database::sqlConnection(1, 1);
-Fastcgipp::Sql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
-Fastcgipp::Sql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
+ASql::MySQL::Connection Database::sqlConnection(1, 1);
+ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
+ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 \endcode
 
 Now we'll declare the function to initialize our static data
@@ -1615,13 +1615,13 @@ void Database::initSql()
 {
 \endcode
 
-Since we didn't use the full constructor on our connection object, we need to actually connect it. See Fastcgipp::Sql::MySQL::Connection::connect() for details.
+Since we didn't use the full constructor on our connection object, we need to actually connect it. See ASql::MySQL::Connection::connect() for details.
 
 \code
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
 \endcode
 
-Now we initialize our insert and statements. We pass it any Log object (default constructed will do) so it can use the derived functions to build itself around it's structure. We pass a null pointer to the associated parameters/results spot if the statement doesn't actually have any. So obviously an insert will always pass a null pointer to the results set whereas a select would ofter have both parameters and results. See Fastcgipp::Sql::MySQL::Statement::init() for details.
+Now we initialize our insert and statements. We pass it any Log object (default constructed will do) so it can use the derived functions to build itself around it's structure. We pass a null pointer to the associated parameters/results spot if the statement doesn't actually have any. So obviously an insert will always pass a null pointer to the results set whereas a select would ofter have both parameters and results. See ASql::MySQL::Statement::init() for details.
 
 \code
 	insertStatement.init(insertStatementString, sizeof(insertStatementString), &Log(), 0);
@@ -1644,7 +1644,7 @@ bool Database::response()
 	{
 \endcode
 
-If we're here the request is brand new so let's get the query started. Queueing a query is pretty easy, we pass all the necessary data. The macros EMPTY_SQL_SET, EMPTY_SQL_CONT and EMPTY_SQL_INT are provided to fill in arguments that aren't used. See Fastcgipp::Sql::MySQL::Statement::queue() for details.
+If we're here the request is brand new so let's get the query started. Queueing a query is pretty easy, we pass all the necessary data. The macros EMPTY_SQL_SET, EMPTY_SQL_CONT and EMPTY_SQL_INT are provided to fill in arguments that aren't used. See ASql::MySQL::Statement::queue() for details.
 
 \code
 		case START:
@@ -1685,10 +1685,10 @@ So now our request is complete, let's send'er to the client. The following shoul
 
 Regarding the above, obviously selectSet->size() will give us the number of results post LIMIT whereas *rows will tell us the results pre LIMIT due to the use of SQL_CALC_FOUND_ROWS.
 
-Now we'll just iterate through our Fastcgipp::Sql::Data::SetContainer and show the results in a table.
+Now we'll just iterate through our ASql::Data::SetContainer and show the results in a table.
 
 \code
-			for(Fastcgipp::Sql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(ASql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
 			{
 				out << "\
 			<tr>\n\
@@ -1779,16 +1779,16 @@ void error_log(const char* msg)
 	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
 }
 
-struct Log: public Fastcgipp::Sql::Data::Set
+struct Log: public ASql::Data::Set
 {
 	Fastcgipp::Http::Address ipAddress;
-	Fastcgipp::Sql::Data::Datetime timestamp;
+	ASql::Data::Datetime timestamp;
 	Fastcgipp::Http::SessionId sessionId;
-	Fastcgipp::Sql::Data::WtextN referral;
+	ASql::Data::WtextN referral;
 
 	size_t numberOfSqlElements() const { return 4; }
 
-	Fastcgipp::Sql::Data::Index getSqlIndex(const size_t index) const
+	ASql::Data::Index getSqlIndex(const size_t index) const
 	{
 		switch(index)
 		{
@@ -1801,7 +1801,7 @@ struct Log: public Fastcgipp::Sql::Data::Set
 			case 3:
 				return referral;
 			default:
-				return Fastcgipp::Sql::Data::Index();
+				return ASql::Data::Index();
 		}
 	}
 };
@@ -1811,27 +1811,27 @@ class Database: public Fastcgipp::Request<wchar_t>
 	static const char insertStatementString[];
 	static const char selectStatementString[];
 
-	static Fastcgipp::Sql::MySQL::Connection sqlConnection;
-	static Fastcgipp::Sql::MySQL::Statement insertStatement;
-	static Fastcgipp::Sql::MySQL::Statement selectStatement;
+	static ASql::MySQL::Connection sqlConnection;
+	static ASql::MySQL::Statement insertStatement;
+	static ASql::MySQL::Statement selectStatement;
 
 	enum Status { START, FETCH } status;
 
-	boost::shared_ptr<Fastcgipp::Sql::Data::SetContainer<Log> > selectSet;
+	boost::shared_ptr<ASql::Data::SetContainer<Log> > selectSet;
 	boost::shared_ptr<long long unsigned> rows;
 
 	bool response();
 public:
-	Database(): status(START), selectSet(new Fastcgipp::Sql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+	Database(): status(START), selectSet(new ASql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
 	static void initSql();
 };
 
 const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-Fastcgipp::Sql::MySQL::Connection Database::sqlConnection(1, 1);
-Fastcgipp::Sql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
-Fastcgipp::Sql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
+ASql::MySQL::Connection Database::sqlConnection(1, 1);
+ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
+ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 
 void Database::initSql()
 {
@@ -1870,7 +1870,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(Fastcgipp::Sql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(ASql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
 			{
 				out << "\
 			<tr>\n\
