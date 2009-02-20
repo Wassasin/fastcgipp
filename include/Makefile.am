@@ -16,11 +16,11 @@ nobase_include_HEADERS =  \
 	./fastcgi++/request.hpp
 
 if HAVE_MYSQL_H
-nobase_include_HEADERS += ./fastcgi++/sql.hpp
+nobase_include_HEADERS += ./asql/asql.hpp
 endif
 
 if HAVE_MYSQL_H
-nobase_include_HEADERS += ./fastcgi++/mysql.hpp
+nobase_include_HEADERS += ./asql/mysql.hpp
 endif
 
 nobase_nodist_include_HEADERS = ./fastcgi++/config.h

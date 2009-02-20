@@ -1,7 +1,7 @@
 #include <fstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <fastcgi++/mysql.hpp>
+#include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
 

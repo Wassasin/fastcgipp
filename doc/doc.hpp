@@ -1461,7 +1461,7 @@ Our next step will be setting up an error logging system. Although requests can 
 #include <fstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <fastcgi++/mysql.hpp>
+#include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
 
@@ -1760,7 +1760,7 @@ So be it... Jedi
 #include <fstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#include <fastcgi++/mysql.hpp>
+#include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
 
