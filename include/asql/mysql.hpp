@@ -269,6 +269,22 @@ namespace ASql
 			 * @brief Mutex for execute function
 			 */
 			boost::mutex executeMutex;
+
+			/** 
+			 * @brief Execute parameter part of statement
+			 * 
+			 * @param[in] parameters Parameters to use in query
+			 */
+			void executeParameters(Data::Set* const& parameters);
+			
+			/** 
+			 * @brief Fetch a row of the results
+			 * 
+			 * @param[out] row Set to store results in
+			 * 
+			 * @return true normally, false if no data
+			 */
+			bool executeResult(Data::Set& row);
 		};
 
 		/** 
