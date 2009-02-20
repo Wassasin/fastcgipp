@@ -370,7 +370,7 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
 		wchar_t* it;
 		const char* tmp;
 		mbstate_t conversionState = mbstate_t();
-		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=codecvt_base::ok) throw Error(CodeConversionErrorMsg, -1);
+		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=codecvt_base::ok) throw ASql::Error(CodeConversionErrorMsg, -1);
 		output.resize(it-&output[0]);
 		conversionBuffer.clear();
 	}
@@ -389,7 +389,7 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertParam()
 		const wchar_t* tmp;
 		char* it;
 		mbstate_t conversionState = mbstate_t();
-		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).out(conversionState, (const wchar_t*)&data[0], (const wchar_t*)&data[0] + data.size(), tmp, &inputBuffer.front(), &inputBuffer.front() + inputBuffer.size(), it)!=codecvt_base::ok) throw Error(CodeConversionErrorMsg, -1);
+		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).out(conversionState, (const wchar_t*)&data[0], (const wchar_t*)&data[0] + data.size(), tmp, &inputBuffer.front(), &inputBuffer.front() + inputBuffer.size(), it)!=codecvt_base::ok) throw ASql::Error(CodeConversionErrorMsg, -1);
 		inputBuffer.resize(it-&inputBuffer[0]);
 	}
 
@@ -397,7 +397,7 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertParam()
 	length = inputBuffer.size();
 }
 
-ASql::MySQL::Error::Error(MYSQL* mysql): msg(mysql_error(mysql)), erno(mysql_errno(mysql)) { }
-ASql::MySQL::Error::Error(MYSQL_STMT* stmt): msg(mysql_stmt_error(stmt)), erno(mysql_stmt_errno(stmt)) { }
+ASql::MySQL::Error::Error(MYSQL* mysql): ASql::Error(mysql_error(mysql), mysql_errno(mysql)) { }
+ASql::MySQL::Error::Error(MYSQL_STMT* stmt): ASql::Error(mysql_stmt_error(stmt), mysql_stmt_errno(stmt)) { }
 
 const char ASql::MySQL::CodeConversionErrorMsg[]="Error in code conversion to/from MySQL server.";

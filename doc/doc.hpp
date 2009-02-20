@@ -1464,6 +1464,7 @@ Our next step will be setting up an error logging system. Although requests can 
 #include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
+#include <fastcgi++/asqlbind.hpp>
 
 void error_log(const char* msg)
 {
@@ -1603,7 +1604,7 @@ Now we need to do some basic initialization of our static data. The string are s
 const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-ASql::MySQL::Connection Database::sqlConnection(1, 1);
+ASql::MySQL::Connection Database::sqlConnection(1);
 ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 \endcode
@@ -1649,7 +1650,7 @@ If we're here the request is brand new so let's get the query started. Queueing 
 \code
 		case START:
 		{
-			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, callback);
+			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, Fastcgipp::asqlbind(callback));
 \endcode
 
 Now we set our status to indicate we are fetching the data from the SQL source. As usual return false to indicate that the request is not yet complete, just relinquishing the computer.
@@ -1719,7 +1720,7 @@ So here we go, let's build a Log structure and insert it into the database. We'r
 			else
 				queryParameters->referral.nullness = true;
 
-			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, callback);
+			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, Fastcgipp::asqlbind(callback));
 \endcode
 
 Now let's get our of here. Return a true and the request is completed and destroyed.
@@ -1763,6 +1764,7 @@ So be it... Jedi
 #include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
+#include <fastcgi++/asqlbind.hpp>
 
 
 void error_log(const char* msg)
@@ -1829,7 +1831,7 @@ public:
 const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-ASql::MySQL::Connection Database::sqlConnection(1, 1);
+ASql::MySQL::Connection Database::sqlConnection(1);
 ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 
@@ -1847,7 +1849,7 @@ bool Database::response()
 	{
 		case START:
 		{
-			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, callback);
+			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, Fastcgipp::asqlbind(callback));
 			status=FETCH;
 			return false;
 		}
@@ -1895,7 +1897,7 @@ bool Database::response()
 			else
 				queryParameters->referral.nullness = true;
 
-			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, callback);
+			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, Fastcgipp::asqlbind(callback));
 
 			return true;
 		}
