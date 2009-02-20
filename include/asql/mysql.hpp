@@ -26,7 +26,7 @@
 #include <boost/scoped_array.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#include <fastcgi++/sql.hpp>
+#include <asql/asql.hpp>
 
 //! Defines classes and functions relating to SQL querying
 namespace ASql
