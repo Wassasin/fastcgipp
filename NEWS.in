@@ -1,4 +1,4 @@
-Version 2.0alpha - Jan 27, 2009, by Eddie Carle
+Version _VERSION_ - _DATE_, by Eddie Carle
 
 * Code transfered from svn to git
 * Added SQL Support included a MySQL engine
