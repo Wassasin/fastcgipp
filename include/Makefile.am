@@ -13,8 +13,11 @@ nobase_include_HEADERS =  \
 	./fastcgi++/fcgistream.hpp \
 	./fastcgi++/transceiver.hpp \
 	./fastcgi++/message.hpp \
-	./fastcgi++/sql.hpp \
 	./fastcgi++/request.hpp
+
+if HAVE_MYSQL_H
+nobase_include_HEADERS += ./fastcgi++/sql.hpp
+endif
 
 if HAVE_MYSQL_H
 nobase_include_HEADERS += ./fastcgi++/mysql.hpp

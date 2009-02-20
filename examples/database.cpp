@@ -20,12 +20,12 @@ void error_log(const char* msg)
 	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
 }
 
-struct Log: public Fastcgipp::Sql::Data::Set
+struct Log: public ASql::Data::Set
 {
 public:
 	size_t numberOfSqlElements() const { return 4; }
 
-	Fastcgipp::Sql::Data::Index getSqlIndex(const size_t index) const
+	ASql::Data::Index getSqlIndex(const size_t index) const
 	{
 		switch(index)
 		{
@@ -38,14 +38,14 @@ public:
 			case 3:
 				return referral;
 			default:
-				return Fastcgipp::Sql::Data::Index();
+				return ASql::Data::Index();
 		}
 	}
 
 	Fastcgipp::Http::Address ipAddress;
-	Fastcgipp::Sql::Data::Datetime timestamp;
+	ASql::Data::Datetime timestamp;
 	Fastcgipp::Http::SessionId sessionId;
-	Fastcgipp::Sql::Data::WtextN referral;
+	ASql::Data::WtextN referral;
 };
 
 
@@ -54,27 +54,27 @@ class Database: public Fastcgipp::Request<wchar_t>
 	static const char insertStatementString[];
 	static const char selectStatementString[];
 
-	static Fastcgipp::Sql::MySQL::Connection sqlConnection;
-	static Fastcgipp::Sql::MySQL::Statement insertStatement;
-	static Fastcgipp::Sql::MySQL::Statement selectStatement;
+	static ASql::MySQL::Connection sqlConnection;
+	static ASql::MySQL::Statement insertStatement;
+	static ASql::MySQL::Statement selectStatement;
 
 	enum Status { START, FETCH } status;
 
-	boost::shared_ptr<Fastcgipp::Sql::Data::SetContainer<Log> > selectSet;
+	boost::shared_ptr<ASql::Data::SetContainer<Log> > selectSet;
 	boost::shared_ptr<long long unsigned> rows;
 
 	bool response();
 public:
-	Database(): status(START), selectSet(new Fastcgipp::Sql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+	Database(): status(START), selectSet(new ASql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
 	static void initSql();
 };
 
 const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-Fastcgipp::Sql::MySQL::Connection Database::sqlConnection(1, 1);
-Fastcgipp::Sql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
-Fastcgipp::Sql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
+ASql::MySQL::Connection Database::sqlConnection(1, 1);
+ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
+ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 
 void Database::initSql()
 {
@@ -113,7 +113,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(Fastcgipp::Sql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(ASql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
 			{
 				out << "\
 			<tr>\n\
