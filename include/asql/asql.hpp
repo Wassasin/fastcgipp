@@ -549,6 +549,25 @@ char fixedChunk[16];
 		virtual void execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows) =0;
 
 		/** 
+		 * @brief Execute single result row SQL statement.
+		 *
+		 * Executes the built query with the passed parameter data storing the results in the passed results set.
+		 * This simple alternative exists for cases where the user is certain that only a single result row will be returned
+		 * and there will be no need for a container of sets.
+		 *
+		 *	The Data::Set pointed to by parameters must have the same derived type as was passed upon construction of the
+		 *	statement. A null pointer, as in the constructor, indicates no parameter data. The results parameter should be
+		 *	a Data::Set templated to the same derived type passed upon construction of the statement for the single result
+		 *	result row.
+		 * 
+		 * @param[in] parameters %Data set of %SQL query parameter data.
+		 * @param[out] results Set to store single result row in.
+		 *
+		 * @return True if result data was recieved, false otherwise.
+		 */
+		bool execute(Data::Set* const parameters, Data::Set& results);
+
+		/** 
 		 * @brief Asynchronously execute a %SQL statement.
 		 *
 		 * This function will queue the statement to be executed in a separate thread and return immediately. The information for
