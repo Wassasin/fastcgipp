@@ -146,13 +146,14 @@ void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetConta
 	mysql_stmt_reset(stmt);
 }
 
-void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::Set& results)
+bool ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::Set& results)
 {
 	boost::lock_guard<boost::mutex> executeLock(executeMutex);
 	executeParameters(parameters);
-	executeResult(results);
+	bool retval=executeResult(results);
 	mysql_stmt_free_result(stmt);
 	mysql_stmt_reset(stmt);
+	return retval;
 }
 
 void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::Data::Set& set, ASql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)

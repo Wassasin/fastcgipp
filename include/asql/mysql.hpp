@@ -203,8 +203,10 @@ namespace ASql
 			 * 
 			 * @param[in] parameters %Data set of %MySQL query parameter data.
 			 * @param[out] results Set to store single result row in.
+			 *
+			 * @return True if result data was recieved, false otherwise.
 			 */
-			void execute(Data::Set* const parameters, Data::Set& results);
+			bool execute(Data::Set* const parameters, Data::Set& results);
 
 			/** 
 			 * @brief Asynchronously execute a %MySQL statement.
