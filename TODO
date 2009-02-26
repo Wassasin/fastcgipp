@@ -3,3 +3,6 @@ THINGS TO DO
 	+ Make a class to assist in the creation of HTTP headers
 	+ Add additional SQL engines (sqlite, postgresql, mssql)
 	+ Create file fetching class
+	+ Improve efficiency of Http::Environment::fill()
+	+ Replace boost::_1... with boost::arg<1>...
+	+ Pull Fcgibuf out of Fcgistream
