@@ -277,7 +277,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 {
 	using namespace std;
 	using namespace boost;
-	
+
 	while(size)
 	{{
 		size_t nameSize;
@@ -287,7 +287,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 		Protocol::processParamHeader(data, size, name, nameSize, value, valueSize);
 		size-=value-data+valueSize;
 		data=value+valueSize;
-		
+
 		if(nameSize==9 && !memcmp(name, "HTTP_HOST", 9))
 			charToString(value, valueSize, host);
 		else if(nameSize==15 && !memcmp(name, "HTTP_USER_AGENT", 15))
@@ -324,6 +324,22 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 			charToString(value, valueSize, root);
 		else if(nameSize==11 && !memcmp(name, "SCRIPT_NAME", 11))
 			charToString(value, valueSize, scriptName);
+		else if(nameSize==9 && !memcmp(name, "PATH_INFO", 9))
+			charToString(value, valueSize, pathInfo);
+		else if(nameSize==14 && !memcmp(name, "REQUEST_METHOD", 14))
+		{
+			charToString(value, valueSize, _requestMethod);
+
+			if (_requestMethod == "HEAD") requestMethod = HTTP_METHOD_HEAD;
+			else if (_requestMethod == "GET") requestMethod = HTTP_METHOD_GET;
+			else if (_requestMethod == "POST") requestMethod = HTTP_METHOD_POST;
+			else if (_requestMethod == "PUT") requestMethod = HTTP_METHOD_PUT;
+			else if (_requestMethod == "DELETE") requestMethod = HTTP_METHOD_DELETE;
+			else if (_requestMethod == "TRACE") requestMethod = HTTP_METHOD_TRACE;
+			else if (_requestMethod == "OPTIONS") requestMethod = HTTP_METHOD_OPTIONS;
+			else if (_requestMethod == "CONNECT") requestMethod = HTTP_METHOD_CONNECT;
+			else requestMethod = HTTP_METHOD_ERROR;
+		}
 		else if(nameSize==12 && !memcmp(name, "QUERY_STRING", 12) && valueSize)
 		{
 			scoped_array<char> buffer(new char[valueSize]);
