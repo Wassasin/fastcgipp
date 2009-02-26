@@ -65,6 +65,20 @@ namespace Fastcgipp
 			size_t size;
 		};
 
+		//! The HTTP request method as an enumeration
+		enum RequestMethod
+		{
+			HTTP_METHOD_ERROR,
+			HTTP_METHOD_HEAD,
+			HTTP_METHOD_GET,
+			HTTP_METHOD_POST,
+			HTTP_METHOD_PUT,
+			HTTP_METHOD_DELETE,
+			HTTP_METHOD_TRACE,
+			HTTP_METHOD_OPTIONS,
+			HTTP_METHOD_CONNECT
+		};
+	
 		//! Efficiently stores IPv4 addresses
 		/*!
 		 * This class stores IPv4 addresses as unsigned 32bit integers. It does this
@@ -196,6 +210,11 @@ namespace Fastcgipp
 			std::basic_string<charT> root;
 			//! Filename of script relative to the HTTP root directory
 			std::basic_string<charT> scriptName;
+			//! REQUEST_METHOD
+			std::string _requestMethod;
+			RequestMethod requestMethod;
+			//! Path Information
+			std::basic_string<charT> pathInfo;
 			//! The etag the client assumes this document should have
 			int etag;
 			//! How many seconds the connection should be kept alive
