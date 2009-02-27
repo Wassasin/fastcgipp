@@ -150,10 +150,10 @@ namespace Fastcgipp
 		 * container. Should a situation arise where a different format of POST data it sent, override this
 		 * function to parse it in a compatible fashion.
 		 * 
-		 * @param data Block of POST data.
+		 * @param data %Block of POST data.
 		 * @param size Size in bytes of data.
 		 */
-		virtual void processPostData(const char* data, size_t size) { environment.fillPosts(date, size); }
+		virtual void processPostData(const char* data, size_t size) { environment.fillPosts(data, size); }
 	private:
 		//! Queue type for pending messages
 		/*!
