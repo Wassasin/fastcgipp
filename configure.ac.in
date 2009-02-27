@@ -1,6 +1,7 @@
 AC_INIT([fastcgi++], [_VERSION_], [Eddie Carle <eddie@mailforce.net>], [fastcgi++])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_HEADER(include/fastcgi++/config.h)
+AC_CONFIG_FILES(fastcgi++.pc)
 AM_INIT_AUTOMAKE(1.9 dist-bzip2 no-dist-gzip tar-ustar check-news gnu no-dependencies)
 AC_PROG_CXX
 AC_PROG_INSTALL
@@ -13,8 +14,18 @@ BOOST_FUNCTION
 BOOST_SMART_PTR
 BOOST_THREADS
 
-AC_CHECK_HEADER(mysql/mysql.h, [AM_CONDITIONAL(HAVE_MYSQL_H, true)],
-				[AM_CONDITIONAL(HAVE_MYSQL_H, false)])
+pkgConfigLibs="-lfastcgipp -lboost_thread"
+
+AC_CHECK_HEADER(mysql/mysql.h, hasMysql=yes)
+if test "$hasMysql" = yes
+then
+	AM_CONDITIONAL(HAVE_MYSQL_H, true)
+	pkgConfigLibs="$pkgConfigLibs -lmysqlclient"
+else
+	AM_CONDITIONAL(HAVE_MYSQL_H, false)
+fi
+
+AC_SUBST(pkgConfigLibs)
 
 ## Linux keeps its endian determination in endian.h
 AC_CHECK_HEADER(endian.h,
