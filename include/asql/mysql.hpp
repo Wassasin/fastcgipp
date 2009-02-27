@@ -129,7 +129,7 @@ namespace ASql
 			 * ASql::Data::Set::numberOfSqlElements() on parameterSet. Similarly, the number of returned result columns
 			 * from the query should match up with the same function called on resultSet.
 			 * 
-			 * @param[in] connection %MySQL connection to run query through.
+			 * @param[in] connection_ %MySQL connection to run query through.
 			 * @param[in] queryString SQL query. No null termination.
 			 * @param[in] queryLength Length of SQL query. No null termination.
 			 * @param[in] parameterSet Template object of parameter data set. Null means no parameters.
@@ -142,7 +142,7 @@ namespace ASql
 			/** 
 			 * @brief Simple Constructor
 			 * 
-			 * @param[in] connection %MySQL connection to run query through.
+			 * @param[in] connection_ %MySQL connection to run query through.
 			 */
 			Statement(Connection& connection_): connection(connection_), stmt(0) {}
 			~Statement() { mysql_stmt_close(stmt); }
