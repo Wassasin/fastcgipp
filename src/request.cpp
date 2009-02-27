@@ -240,7 +240,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						}
 						break;
 					}
-					environment.fillPosts(body, header.getContentLength());
+					processPostData(body, header.getContentLength());
 					inHandler(header.getContentLength());
 					break;
 				}
