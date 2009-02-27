@@ -70,6 +70,10 @@ cd fastcgi++-$(VERSION)\n
 make\n
 make install</tt>
 
+A pkg-config file will be installed so you can compile against the libraries with
+
+<tt>g++ -o script.fcgi script.cpp `pkg-config --libs --cflags fastcgi++`</tt>
+
 \section tutorials Tutorials
 
 This is a collection of tutorials that should cover most aspects of the fastcgi++ library
@@ -96,7 +100,7 @@ This is a collection of tutorials that should cover most aspects of the fastcgi+
 
 Our goal here will be to make a FastCGI application that responds to clients with some text, waits five seconds and then sends more. We're going to use threading and boost::asio to handle our timer. Your going to need the boost C++ libraries for this. At least version 1.35.0.
 
-All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread -lboost_system
+All code and data is located in the examples directory of the tarball. You'll have to compile with: `pkg-config --libs --cflags fastcgi++` -lboost_system
 
 \subsection timerError Error Logging
 
@@ -388,7 +392,7 @@ int main()
 
 Our goal here is simple and easy. All we want to do is show the gnu.png file and effectively utilize client caching.
 
-All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
+All code and data is located in the examples directory of the tarball. You'll have to compile with: `pkg-config --libs --cflags fastcgi++`
 
 \subsection showGnuError Error Logging
 
@@ -619,7 +623,7 @@ int main()
 
 Our goal here will be to make a FastCGI application that responds to clients with an echo of all environment data that was processed. This will include HTTP header data along with post data that was transmitted by the client. Since we want to be able to echo any alphabets, our best solution is to use UTF-32 wide characters internally and have the library code convert it to UTF-8 before sending it to the client. Your going to need the boost C++ libraries for this. At least version 1.35.0.
 
-All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
+All code and data is located in the examples directory of the tarball. You'll have to compile with: `pkg-config --libs --cflags fastcgi++`
 
 \subsection echoError Error Handling
 
@@ -889,7 +893,7 @@ int main()
 
 Our goal here will be to make a FastCGI application that responds to clients with a "Hello World" in five different languages.
 
-All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
+All code and data is located in the examples directory of the tarball. You'll have to compile with: `pkg-config --libs --cflags fastcgi++`
 
 \subsection helloWorldError Error Logging
 
@@ -1072,7 +1076,7 @@ int main()
 
 Our goal here will be a FastCGI application that has very simple session capabilities. We won't authenticate the creation of sessions, and the only data we will store in them is a user supplied text string. Be warned that the facilities that fastcgi++ supplies for handling sessions are quite low level to allow for maximum customizability and no overhead costs if they aren't used.
 
-All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread
+All code and data is located in the examples directory of the tarball. You'll have to compile with: `pkg-config --libs --cflags fastcgi++`
 
 \subsection sessionsError Error Logging
 
@@ -1438,7 +1442,7 @@ The process that the SQL facilities use can take some getting used to as it plac
 
 In order to fulfil these requirements we lose a few things. No quick and easy queries based on textual representations of data. Those kinds of features are what we have PHP for. This means that every query has to be prepared and have appropriate data structures built for it's parameters. It was deemed that since a FastCGI script is constantly running the same queries over and over, they might as well be prepared.
 
-All code and data is located in the examples directory of the tarball. Make sure to link this with the following library options: -lfastcgipp -lboost_thread -lmysqlclient
+All code and data is located in the examples directory of the tarball. You'll have to compile with: `pkg-config --libs --cflags fastcgi++`
 
 \subsection databaseCreate Creating the database
 
