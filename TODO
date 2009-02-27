@@ -6,3 +6,6 @@ THINGS TO DO
 	+ Improve efficiency of Http::Environment::fill()
 	+ Replace boost::_1... with boost::arg<1>...
 	+ Pull Fcgibuf out of Fcgistream
+	+ Use template specialization to improve Request::emptyBuffer()
+	+ Solve the ipv6 incompatibility without bloating or degrading
+	  performance.
