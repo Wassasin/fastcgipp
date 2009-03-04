@@ -1,6 +1,6 @@
 //! \file mysql.cpp Defines functions and data for handling MySQL queries
 /***************************************************************************
-* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
+* Copyright (C) 2007 Eddie Carle [eddie@erctech.org]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *

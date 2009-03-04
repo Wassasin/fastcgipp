@@ -1,4 +1,4 @@
-AC_INIT([fastcgi++], [_VERSION_], [Eddie Carle <eddie@mailforce.net>], [fastcgi++])
+AC_INIT([fastcgi++], [_VERSION_], [Eddie Carle <eddie@erctech.org>], [fastcgi++])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_HEADER(include/fastcgi++/config.h)
 AC_CONFIG_FILES(fastcgi++.pc)
