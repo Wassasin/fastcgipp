@@ -176,8 +176,7 @@ namespace Fastcgipp
 	 * @tparam T Class that will handle individual requests. Should be derived from
 	 * the Request class.
 	 */
-	template<typename T>
-	class Manager: public ManagerPar
+	template<class T> class Manager: public ManagerPar
 	{
 	public:
 		//! Construct from a file descriptor
@@ -235,8 +234,7 @@ namespace Fastcgipp
 	};
 }
 
-template<class T>
-void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message message)
+template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message message)
 {
 	using namespace std;
 	using namespace Protocol;
@@ -279,8 +277,7 @@ void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message message)
 		transceiver.wake();
 }
 
-template<class T>
-void Fastcgipp::Manager<T>::handler()
+template<class T> void Fastcgipp::Manager<T>::handler()
 {
 	using namespace std;
 	using namespace boost;

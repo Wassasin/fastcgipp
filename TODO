@@ -9,5 +9,5 @@ THINGS TO DO
 	+ Use template specialization to improve Request::emptyBuffer()
 	+ Solve the ipv6 incompatibility without bloating or degrading
 	  performance.
-	+ Add compression capabilities (gzip) to Fcgibuf
 	+ Add make target to build examples
+	+ Change SetContainer to use std::vector

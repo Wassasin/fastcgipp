@@ -352,7 +352,7 @@ void ASql::MySQL::TypedConversion<ASql::Data::Time>::convertParam()
 
 template void ASql::MySQL::TypedConversion<ASql::Data::Blob>::grabIt(ASql::Data::Blob& data);
 template void ASql::MySQL::TypedConversion<ASql::Data::Text>::grabIt(ASql::Data::Text& data);
-template<typename T> void ASql::MySQL::TypedConversion<T>::grabIt(T& data)
+template<class T> void ASql::MySQL::TypedConversion<T>::grabIt(T& data)
 {
 	if(data.size() != length) data.resize(length);
 
@@ -370,7 +370,7 @@ template<typename T> void ASql::MySQL::TypedConversion<T>::grabIt(T& data)
 
 template void ASql::MySQL::TypedConversion<ASql::Data::Blob>::convertParam();
 template void ASql::MySQL::TypedConversion<ASql::Data::Text>::convertParam();
-template<typename T> void ASql::MySQL::TypedConversion<T>::convertParam()
+template<class T> void ASql::MySQL::TypedConversion<T>::convertParam()
 {
 	T& data = *(T*)external;
 

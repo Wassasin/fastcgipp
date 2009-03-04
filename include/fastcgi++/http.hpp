@@ -185,8 +185,7 @@ namespace Fastcgipp
 		 *
 		 * @tparam charT Character type to use for strings
 		 */
-		template<class charT>
-		struct Environment
+		template<class charT> struct Environment
 		{
 			//! Hostname of the server
 			std::basic_string<charT> host;
@@ -319,8 +318,7 @@ namespace Fastcgipp
 		 *
 		 * @return Returns false if the name isn't found. True otherwise.
 		 */
-		template<class charT>
-		bool parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string);
+		template<class charT> bool parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string);
 
 		/** 
 		 * @brief Finds the value associated with a name in a 'name=value&name2=value2' string
@@ -334,8 +332,7 @@ namespace Fastcgipp
 		 *
 		 * @return Returns false if the name isn't found. True otherwise.
 		 */
-		template<class charT>
-		bool parseValue(const std::basic_string<charT>& name, const std::basic_string<charT>& data, std::basic_string<charT>& value, charT fieldSep='&');
+		template<class charT> bool parseValue(const std::basic_string<charT>& name, const std::basic_string<charT>& data, std::basic_string<charT>& value, charT fieldSep='&');
 
 		//! Convert a string with percent escaped byte values to their actual values
 		/*!
