@@ -312,7 +312,7 @@ namespace ASql
 		 * Although no conversion is necessary for these data chunks, we wait to retrieve the data until we
 		 * actually know how many bytes of it there is. This "conversion" handles that.
 		 */
-		template<typename T> struct TypedConversion: public Data::Conversion
+		template<class T> struct TypedConversion: public Data::Conversion
 		{
 			/** 
 			 * @brief &MySQL buffer type (MYSQL_TYPE_BLOB or MYSQL_TYPE_STRING)

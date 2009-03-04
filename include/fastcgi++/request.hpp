@@ -173,7 +173,7 @@ namespace Fastcgipp
 		 * @sa callback
 		 */
 		bool handler();
-		template <typename T> friend class Manager;
+		template <class T> friend class Manager;
 		//! Pointer to the transceiver object that will send data to the other side
 		Transceiver* transceiver;
 		//! The role that the other side expects this request to play

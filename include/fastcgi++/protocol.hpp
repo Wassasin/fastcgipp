@@ -372,8 +372,7 @@ namespace Fastcgipp
 		 * @tparam PADDINGLENGTH Length of padding at the end of the record. This is needed to keep
 		 * the record size a multiple of chunkSize.
 		 */
-		template<int NAMELENGTH, int VALUELENGTH, int PADDINGLENGTH>
-		struct ManagementReply
+		template<int NAMELENGTH, int VALUELENGTH, int PADDINGLENGTH> struct ManagementReply
 		{
 		private:
 			//! Management records header
