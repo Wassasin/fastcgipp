@@ -1,6 +1,6 @@
 //! \file transceiver.hpp Defines the Fastcgipp::Transceiver class
 /***************************************************************************
-* Copyright (C) 2007 Eddie Carle [eddie@erctech.org]                     *
+* Copyright (C) 2007 Eddie Carle [eddie@erctech.org]                       *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
