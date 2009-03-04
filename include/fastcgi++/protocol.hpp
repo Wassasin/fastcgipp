@@ -1,6 +1,6 @@
 //! \file protocol.hpp Defines FastCGI protocol
 /***************************************************************************
-* Copyright (C) 2007 Eddie Carle [eddie@mailforce.net]                     *
+* Copyright (C) 2007 Eddie Carle [eddie@erctech.org]                     *
 *                                                                          *
 * This file is part of fastcgi++.                                          *
 *                                                                          *
