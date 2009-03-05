@@ -22,7 +22,6 @@
 #define ASQL_HPP
 
 #include <vector>
-#include <list>
 #include <queue>
 #include <cstring>
 
@@ -337,20 +336,10 @@ char fixedChunk[16];
 		/** 
 		 * @brief Base class to to SetContainer.
 		 */
-		class SetContainerPar
+		struct SetContainerPar
 		{
-		public:
-			typedef std::list<boost::shared_ptr<Set> > Cont;
-		protected:
-			Cont data;
-
-		public:
-			virtual Cont::iterator manufacture() =0;
-			//Set& getSetEnd() { return *data.back(); }
-			void trim() { data.erase(--data.end()); }
-
-			size_t size() const { return data.size(); }
-			bool empty() const { return data.empty(); }
+			virtual Set& manufacture() =0;
+			virtual void trim() =0;
 		};
 
 		/** 
@@ -358,66 +347,12 @@ char fixedChunk[16];
 		 *
 		 * This class defines a basic container for types derived from the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. It is based
-		 *	on a linked list concept allowing efficient insertion of data but no random
-		 *	access.
+		 *	on a std::vector.
 		 */
-		template<class T> class SetContainer: public SetContainerPar
+		template<class T> class SetContainer: public SetContainerPar, public std::vector<T>
 		{
-		public:
-			class iterator
-			{
-			private:
-				Cont::iterator it;
-				friend class SetContainer;
-				iterator(const Cont::iterator it_): it(it_) {}
-			public:
-				iterator() {}
-				iterator(const iterator& it_): it(it_.it) {}
-				T& operator*() const { return *(T*)it->get(); }
-				T* operator->() const { return (T*)it->get(); }
-				iterator& operator++() { ++it; return *this; } 
-				iterator& operator--() { --it; return *this; } 
-				iterator operator++(int) { return iterator(it++); } 
-				iterator operator--(int) { return iterator(it--); } 
-				bool operator==(const iterator& x) const { return x.it==it; }
-				bool operator!=(const iterator& x) const { return x.it!=it; }
-				iterator& operator=(const iterator& x) { it=x.it; return *this; }
-			};
-
-			class const_iterator
-			{
-			private:
-				Cont::const_iterator it;
-				friend class SetContainer;
-				const_iterator(Cont::const_iterator it_): it(it_) {}
-			public:
-				const_iterator() {}
-				const_iterator(const const_iterator& it_): it(it_.it) {}
-				const T& operator*() const { return *(T*)it->get(); }
-				const T* operator->() const { return (const T*)it->get(); }
-				const_iterator& operator++() { ++it; return *this; } 
-				const_iterator& operator--() { --it; return *this; } 
-				const_iterator operator++(int) { return const_iterator(it++); } 
-				const_iterator operator--(int) { return const_iterator(it--); } 
-				bool operator==(const const_iterator& x) const { return x.it==it; }
-				bool operator!=(const const_iterator& x) const { return x.it!=it; }
-				const_iterator& operator=(const const_iterator& x) { it=x.it; return *this; }
-			};
-
-			iterator begin() { return iterator(data.begin()); }
-			iterator end() { return iterator(data.end()); }
-			const_iterator begin() const { return const_iterator(data.begin()); }
-			const_iterator end() const { return const_iterator(data.end()); }
-			T& front() { return *(T*)data.front().get(); }
-			T& back() { return *(T*)data.back().get(); }
-			const T& front() const { return *(T*)data.front().get(); }
-			const T& back() const { return *(T*)data.back().get(); }
-			/** 
-			 * @brief Allows the base class to append objects of the correct type.
-			 * 
-			 * @return Base class iterator pointing to the newly create object.
-			 */
-			Cont::iterator manufacture() { data.push_back(boost::shared_ptr<Set>(new T)); return --data.end(); }
+			Set& manufacture() { std::vector<T>::push_back(T()); return std::vector<T>::back(); }
+			void trim() { std::vector<T>::pop_back(); }
 		};
 	
 		/** 

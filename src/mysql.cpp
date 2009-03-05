@@ -121,18 +121,17 @@ void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetConta
 	if(results)
 	{
 		Data::SetContainerPar& res=*results;
-		Data::SetContainerPar::Cont::iterator it;
 
 		while(1)
-		{
-			it=res.manufacture();
-			bindBindings(stmt, *it->get(), resultsConversions, resultsBindings);
-			if(!executeResult(*it->get()))
+		{{
+			Data::Set& row=res.manufacture();
+			bindBindings(stmt, row, resultsConversions, resultsBindings);
+			if(!executeResult(row))
 			{
 				res.trim();
 				break;
 			}
-		}
+		}}
 
 		if(rows) connection.getFoundRows(rows);
 	}
