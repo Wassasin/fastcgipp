@@ -10,4 +10,3 @@ THINGS TO DO
 	+ Solve the ipv6 incompatibility without bloating or degrading
 	  performance.
 	+ Add make target to build examples
-	+ Change SetContainer to use std::vector

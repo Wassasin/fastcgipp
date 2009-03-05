@@ -1571,7 +1571,7 @@ Now we need a status indication variable for the request;
 
 These next two items are for our SELECT query.
 
-The first is a special container (ASql::Data::SetContainer) for holding objects derived from ASql::Data::Set. For our purposes it behaves pretty much like std::list. It will be filled up with the result rows of our query.
+The first is a special container (ASql::Data::SetContainer) for holding objects derived from ASql::Data::Set. For our purposes it behaves exactly like a std::vector. It will be filled up with the result rows of our query.
 
 The second is a plain integer for holding the number of total matching rows. If we were doing an insert or update we would use this to tell use the total number of affecter rows. In this example we will use a SQL_CALC_FOUND_ROWS in the query so the value will be total matches before the LIMIT is applied.
 
