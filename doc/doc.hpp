@@ -1463,6 +1463,7 @@ Our next step will be setting up an error logging system. Although requests can 
 
 \code
 #include <fstream>
+#include <vector>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <asql/mysql.hpp>
@@ -1571,14 +1572,15 @@ Now we need a status indication variable for the request;
 
 These next two items are for our SELECT query.
 
-The first is a special container (ASql::Data::SetContainer) for holding objects derived from ASql::Data::Set. For our purposes it behaves exactly like a std::vector. It will be filled up with the result rows of our query.
+The first is a special container for holding objects derived from ASql::Data::Set. We can pick out base container type as long as it follows the rules outlined by ASql::Data::SetContainer. Basically it needs to be a sequential container so in this case we'll go with an std::vector. For out purposes the thing is an std::vector. Just two private functions added for interfacing with the ASql facilities.
 
 The second is a plain integer for holding the number of total matching rows. If we were doing an insert or update we would use this to tell use the total number of affecter rows. In this example we will use a SQL_CALC_FOUND_ROWS in the query so the value will be total matches before the LIMIT is applied.
 
 Objects passed to asynchronous queries must be dynamically allocated into a shared pointer. This is to prevent data from going out of scope/being destroyed before the query is done with it. Also, if the query finishes and the request has already been completed and destroyed, the shared pointer counter will run out and the data destroyed upon query completion.
 
 \code
-	boost::shared_ptr<ASql::Data::SetContainer<Log> > selectSet;
+	typedef ASql::Data::SetContainer<std::vector<Log> > LogContainer;
+	boost::shared_ptr<LogContainer > selectSet;
 	boost::shared_ptr<long long unsigned> rows;
 \endcode
 
@@ -1592,7 +1594,7 @@ public:
 The constructor sets our status indicator properly and initializes our two shared pointers.
 
 \code
-	Database(): status(START), selectSet(new ASql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+	Database(): status(START), selectSet(new LogContainer), rows(new long long unsigned(0)) {}
 \endcode
 
 Here we'll declare a static function to handle initialization of static data.
@@ -1693,7 +1695,7 @@ Regarding the above, obviously selectSet->size() will give us the number of resu
 Now we'll just iterate through our ASql::Data::SetContainer and show the results in a table.
 
 \code
-			for(ASql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
 			{
 				out << "\
 			<tr>\n\
@@ -1823,12 +1825,12 @@ class Database: public Fastcgipp::Request<wchar_t>
 
 	enum Status { START, FETCH } status;
 
-	boost::shared_ptr<ASql::Data::SetContainer<Log> > selectSet;
+	boost::shared_ptr<LogContainer > selectSet;
 	boost::shared_ptr<long long unsigned> rows;
 
 	bool response();
 public:
-	Database(): status(START), selectSet(new ASql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+	Database(): status(START), selectSet(new LogContainer), rows(new long long unsigned(0)) {}
 	static void initSql();
 };
 
@@ -1876,7 +1878,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(ASql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
 			{
 				out << "\
 			<tr>\n\

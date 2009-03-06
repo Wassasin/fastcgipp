@@ -1,4 +1,5 @@
 #include <fstream>
+#include <vector>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <asql/mysql.hpp>
@@ -61,12 +62,14 @@ class Database: public Fastcgipp::Request<wchar_t>
 
 	enum Status { START, FETCH } status;
 
-	boost::shared_ptr<ASql::Data::SetContainer<Log> > selectSet;
+	typedef ASql::Data::SetContainer<std::vector<Log> > LogContainer;
+	
+	boost::shared_ptr<LogContainer> selectSet;
 	boost::shared_ptr<long long unsigned> rows;
 
 	bool response();
 public:
-	Database(): status(START), selectSet(new ASql::Data::SetContainer<Log>), rows(new long long unsigned(0)) {}
+	Database(): status(START), selectSet(new LogContainer), rows(new long long unsigned(0)) {}
 	static void initSql();
 };
 
@@ -114,7 +117,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(ASql::Data::SetContainer<Log>::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
 			{
 				out << "\
 			<tr>\n\

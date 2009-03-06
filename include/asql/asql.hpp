@@ -346,13 +346,16 @@ char fixedChunk[16];
 		 * @brief Container class for Set objects.
 		 *
 		 * This class defines a basic container for types derived from the Set class.
-		 *	It is intended for retrieving multi-row results from SQL queries. It is based
-		 *	on a std::vector.
+		 *	It is intended for retrieving multi-row results from SQL queries. In order
+		 *	function the passed container type must have the following member functions:
+		 *	push_back(), back(), pop_back().
+		 *
+		 *	@tparam Container type. Must be sequential.
 		 */
-		template<class T> class SetContainer: public SetContainerPar, public std::vector<T>
+		template<class T> class SetContainer: public SetContainerPar, public T
 		{
-			Set& manufacture() { std::vector<T>::push_back(T()); return std::vector<T>::back(); }
-			void trim() { std::vector<T>::pop_back(); }
+			Set& manufacture() { T::push_back(typename T::value_type()); return T::back(); }
+			void trim() { T::pop_back(); }
 		};
 	
 		/** 
