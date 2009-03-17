@@ -232,9 +232,6 @@ namespace Fastcgipp
 			//! Timestamp the client has for this document
 			boost::posix_time::ptime ifModifiedSince;
 
-			//typedef std::map<std::basic_string<charT>, std::basic_string<charT> > OtherData;
-			//OtherData otherData;
-
 			typedef std::map<std::basic_string<charT>, Post<charT> > Posts;
 			//! STL container associating Post objects with their name
 			Posts posts;
