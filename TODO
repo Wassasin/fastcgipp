@@ -1,18 +1,17 @@
 THINGS TO DO
- + Make the upload example work
- + Make a class to assist in the creation of HTTP headers
- + Add additional SQL engines (sqlite, postgresql, mssql)
- + Create file fetching class
- + Improve efficiency of Http::Environment::fill()
- + Replace boost::_1... with boost::arg<1>...
- + Pull Fcgibuf out of Fcgistream
- + Use template specialization to improve Request::emptyBuffer()
- + Solve the ipv6 incompatibility without bloating or degrading performance.
- + Add make target to build examples
- + Change fillPosts() to handle both multipart/form-data and
+ * Make the upload example work
+ * Make a class to assist in the creation of HTTP headers
+ * Add additional SQL engines (sqlite, postgresql, mssql)
+ * Create file fetching class
+ * Improve efficiency of Http::Environment::fill()
+ * Replace boost::_1... with boost::arg<1>...
+ * Pull Fcgibuf out of Fcgistream
+ * Use template specialization to improve Request::emptyBuffer()
+ * Solve the ipv6 incompatibility without bloating or degrading performance.
+ * Change fillPosts() to handle both multipart/form-data and
    application/x-www-form-urlencoded and pass unrecognized content to
-	virtualized processPostData().
- + Add the ability to fillPosts() to handle non utf-8 character sets when
+   virtualized processPostData().
+ * Add the ability to fillPosts() to handle non utf-8 character sets when
    wchar_t is used as the Request template parameter. Possibly through iconv.
- + Standardize some exceptions for client data parsing errors and generate
+ * Standardize some exceptions for client data parsing errors and generate
    appropriate HTTP status responses upon catch.
