@@ -6,3 +6,29 @@
 DISTCLEANFILES = Makefile.in Makefile
 
 EXTRA_DIST = echo-form.html gnu.png upload.html echo.cpp session.cpp showgnu.cpp upload.cpp utf8-helloworld.cpp timer.cpp database.cpp
+
+examples: utf8-helloworld.fcgi echo.fcgi showgnu.fcgi timer.fcgi upload.fcgi session.fcgi database.fcgi
+
+utf8-helloworld.fcgi: utf8-helloworld.cpp
+	$(CXX) -o utf8-helloworld.fcgi utf8-helloworld.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
+
+echo.fcgi: echo.cpp
+	$(CXX) -o echo.fcgi echo.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
+
+showgnu.fcgi: showgnu.cpp
+	$(CXX) -o showgnu.fcgi showgnu.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
+
+timer.fcgi: timer.cpp
+	$(CXX) -o timer.fcgi timer.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) -lboost_system $(CXXFLAGS)
+
+upload.fcgi: upload.cpp
+	$(CXX) -o upload.fcgi upload.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
+
+session.fcgi: session.cpp
+	$(CXX) -o session.fcgi session.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
+
+database.fcgi: database.cpp
+	$(CXX) -o database.fcgi database.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
+
+clean:
+	rm *.fcgi

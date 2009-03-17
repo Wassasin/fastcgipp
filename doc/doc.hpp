@@ -70,6 +70,11 @@ cd fastcgi++-$(VERSION)\n
 make\n
 make install</tt>
 
+If you want to build the examples do...
+
+<tt>cd examples\n
+make examples</tt>
+
 A pkg-config file will be installed so you can compile against the libraries with
 
 <tt>g++ -o script.fcgi script.cpp `pkg-config --libs --cflags fastcgi++`</tt>
