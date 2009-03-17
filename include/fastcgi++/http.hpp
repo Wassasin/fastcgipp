@@ -107,7 +107,7 @@ namespace Fastcgipp
 			/*!
 			 * @param[in] data_ Unsigned 32bit integer representing the IPv4 address
 			 */
-			Address(unsigned int data_): data(data_) { }
+			explicit Address(unsigned int data_): data(data_) { }
 			//! Constructs from a value of 0.0.0.0 (0)
 			Address(): data(0) { }
 			//! Assign the IPv4 address from a string of characters
@@ -119,54 +119,18 @@ namespace Fastcgipp
 			 * @param[in] end Last character of the string + 1
 			 */
 			void assign(const char* start, const char* end);
+			inline bool operator==(const Address x) const { return data==x.data; }
+			inline bool operator>(const Address x) const { return data>x.data; }
+			inline bool operator<(const Address x) const { return data<x.data; }
+			inline bool operator<=(const Address x) const { return data<=x.data; }
+			inline bool operator>=(const Address x) const { return data>=x.data; }
+			inline Address operator&(const Address x) const { return Address(data&x.data); }
 		private:
-			friend inline bool operator==(Address x, Address y);
-			friend inline bool operator>(Address x, Address y);
-			friend inline bool operator<(Address x, Address y);
-			friend inline bool operator<=(Address x, Address y);
-			friend inline bool operator>=(Address x, Address y);
-			friend inline Address operator&(Address x, Address y);
 			template<class charT, class Traits> friend std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const Address& address);
 			template<class charT, class Traits> friend std::basic_istream<charT, Traits>& operator>>(std::basic_istream<charT, Traits>& is, Address& address);
 			//! Data representation of the IPv4 address
 			unsigned int data;
 		};
-
-		//! Compare two Address values
-		/*!
-		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned integer.
-		 */
-		inline bool operator==(Address x, Address y) { return x.data==y.data; }
-		//! Compare two Address values
-		/*!
-		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned integer.
-		 */
-		inline bool operator>(Address x, Address y) { return x.data>y.data; }
-		//! Compare two Address values
-		/*!
-		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned integer.
-		 */
-		inline bool operator<(Address x, Address y) { return x.data<y.data; }
-		//! Compare two Address values
-		/*!
-		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned integer.
-		 */
-		inline bool operator<=(Address x, Address y) { return x.data<=y.data; }
-		//! Compare two Address values
-		/*!
-		 * This comparator merely passes on the comparison to the internal 
-		 * unsigned integer.
-		 */
-		inline bool operator>=(Address x, Address y) { return x.data>=y.data; }
-		//! Bitwise AND two Address values
-		/*!
-		 * The bitwise AND operation is passed on to the internal unsigned 32 bit integer
-		 */
-		inline Address operator&(Address x, Address y) { return Address(x.data&y.data); }
 
 		//! Address stream insertion operation
 		/*!
