@@ -64,7 +64,8 @@ namespace Fastcgipp
 		 * passed by default to the constructor. The only time it would be another
 		 * value is if an external FastCGI server was defined.
 		 *
-		 * @param [in] fd File descriptor to listen on.
+		 * @param[in] fd File descriptor to listen on.
+		 * @param[in] sendMessage_ Function Transceiver should use to communicate with Manager.
 		 */
 		ManagerPar(int fd, const boost::function<void(Protocol::FullId, Message)>& sendMessage_);
 
