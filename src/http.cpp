@@ -328,17 +328,28 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 			charToString(value, valueSize, pathInfo);
 		else if(nameSize==14 && !memcmp(name, "REQUEST_METHOD", 14))
 		{
-			charToString(value, valueSize, _requestMethod);
-
-			if (_requestMethod == "HEAD") requestMethod = HTTP_METHOD_HEAD;
-			else if (_requestMethod == "GET") requestMethod = HTTP_METHOD_GET;
-			else if (_requestMethod == "POST") requestMethod = HTTP_METHOD_POST;
-			else if (_requestMethod == "PUT") requestMethod = HTTP_METHOD_PUT;
-			else if (_requestMethod == "DELETE") requestMethod = HTTP_METHOD_DELETE;
-			else if (_requestMethod == "TRACE") requestMethod = HTTP_METHOD_TRACE;
-			else if (_requestMethod == "OPTIONS") requestMethod = HTTP_METHOD_OPTIONS;
-			else if (_requestMethod == "CONNECT") requestMethod = HTTP_METHOD_CONNECT;
-			else requestMethod = HTTP_METHOD_ERROR;
+			requestMethod = HTTP_METHOD_ERROR;
+			switch(valueSize)
+			{
+			case 3:
+				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_GET], 3)) requestMethod = HTTP_METHOD_GET;
+				else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_PUT], 3)) requestMethod = HTTP_METHOD_PUT;
+				break;
+			case 4:
+				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_HEAD], 4)) requestMethod = HTTP_METHOD_HEAD;
+				else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_POST], 4)) requestMethod = HTTP_METHOD_POST;
+				break;
+			case 5:
+				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_TRACE], 5)) requestMethod = HTTP_METHOD_TRACE;
+				break;
+			case 6:
+				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_DELETE], 6)) requestMethod = HTTP_METHOD_DELETE;
+				break;
+			case 7:
+				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_OPTIONS], 7)) requestMethod = HTTP_METHOD_OPTIONS;
+				else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_OPTIONS], 7)) requestMethod = HTTP_METHOD_CONNECT;
+				break;
+			}
 		}
 		else if(nameSize==12 && !memcmp(name, "QUERY_STRING", 12) && valueSize)
 		{
@@ -470,3 +481,14 @@ template<class charT> const Fastcgipp::Http::SessionId& Fastcgipp::Http::Session
 }
 
 const char Fastcgipp::Http::base64Characters[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const char* Fastcgipp::Http::requestMethodLabels[]= {
+	"ERROR",
+	"HEAD",
+	"GET",
+	"POST",
+	"PUT",
+	"DELETE",
+	"TRACE",
+	"OPTIONS",
+	"CONNECT"
+};

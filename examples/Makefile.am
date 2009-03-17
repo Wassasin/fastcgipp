@@ -31,4 +31,4 @@ database.fcgi: database.cpp
 	$(CXX) -o database.fcgi database.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
 
 clean:
-	rm *.fcgi
+	rm -f *.fcgi
