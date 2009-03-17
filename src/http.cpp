@@ -288,103 +288,118 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 		size-=value-data+valueSize;
 		data=value+valueSize;
 
-		if(nameSize==9 && !memcmp(name, "HTTP_HOST", 9))
-			charToString(value, valueSize, host);
-		else if(nameSize==15 && !memcmp(name, "HTTP_USER_AGENT", 15))
-			charToString(value, valueSize, userAgent);
-		else if(nameSize==11 && !memcmp(name, "HTTP_ACCEPT", 11))
-			charToString(value, valueSize, acceptContentTypes);
-		else if(nameSize==20 && !memcmp(name, "HTTP_ACCEPT_LANGUAGE", 20))
-			charToString(value, valueSize, acceptLanguages);
-		else if(nameSize==19 && !memcmp(name, "HTTP_ACCEPT_CHARSET", 19))
-			charToString(value, valueSize, acceptCharsets);
-		else if(nameSize==12 && !memcmp(name, "HTTP_REFERER", 12) && valueSize)
+		switch(nameSize)
 		{
-			scoped_array<char> buffer(new char[valueSize]);
-			charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), referer);
-		}
-		else if(nameSize==12 && !memcmp(name, "CONTENT_TYPE", 12))
-		{
-			const char* end=(char*)memchr(value, ';', valueSize);
-			charToString(value, end?end-value:valueSize, contentType);
-			if(end)
+		case 9:
+			if(!memcmp(name, "HTTP_HOST", 9))
+				charToString(value, valueSize, host);
+			else if(!memcmp(name, "PATH_INFO", 9))
+				charToString(value, valueSize, pathInfo);
+			break;
+		case 11:
+			if(!memcmp(name, "HTTP_ACCEPT", 11))
+				charToString(value, valueSize, acceptContentTypes);
+			else if(!memcmp(name, "HTTP_COOKIE", 11))
+				charToString(value, valueSize, cookies);
+			else if(!memcmp(name, "SERVER_ADDR", 11))
+				serverAddress.assign(value, value+valueSize);
+			else if(!memcmp(name, "REMOTE_ADDR", 11))
+				remoteAddress.assign(value, value+valueSize);
+			else if(!memcmp(name, "SERVER_PORT", 11))
+				serverPort=atoi(value, value+valueSize);
+			else if(!memcmp(name, "REMOTE_PORT", 11))
+				remotePort=atoi(value, value+valueSize);
+			else if(!memcmp(name, "SCRIPT_NAME", 11))
+				charToString(value, valueSize, scriptName);
+			break;
+		case 12:
+			if(!memcmp(name, "HTTP_REFERER", 12) && valueSize)
 			{
-				const char* start=(char*)memchr(end, '=', valueSize-(end-data));
-				if(start)
+				scoped_array<char> buffer(new char[valueSize]);
+				charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), referer);
+			}
+			else if(!memcmp(name, "CONTENT_TYPE", 12))
+			{
+				const char* end=(char*)memchr(value, ';', valueSize);
+				charToString(value, end?end-value:valueSize, contentType);
+				if(end)
 				{
-					boundarySize=valueSize-(++start-value);
-					boundary.reset(new char[boundarySize]);
-					memcpy(boundary.get(), start, boundarySize);
+					const char* start=(char*)memchr(end, '=', valueSize-(end-data));
+					if(start)
+					{
+						boundarySize=valueSize-(++start-value);
+						boundary.reset(new char[boundarySize]);
+						memcpy(boundary.get(), start, boundarySize);
+					}
 				}
 			}
-		}
-		else if(nameSize==11 && !memcmp(name, "HTTP_COOKIE", 11))
-			charToString(value, valueSize, cookies);
-		else if(nameSize==13 && !memcmp(name, "DOCUMENT_ROOT", 13))
-			charToString(value, valueSize, root);
-		else if(nameSize==11 && !memcmp(name, "SCRIPT_NAME", 11))
-			charToString(value, valueSize, scriptName);
-		else if(nameSize==9 && !memcmp(name, "PATH_INFO", 9))
-			charToString(value, valueSize, pathInfo);
-		else if(nameSize==14 && !memcmp(name, "REQUEST_METHOD", 14))
-		{
-			requestMethod = HTTP_METHOD_ERROR;
-			switch(valueSize)
+			else if(!memcmp(name, "QUERY_STRING", 12) && valueSize)
 			{
-			case 3:
-				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_GET], 3)) requestMethod = HTTP_METHOD_GET;
-				else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_PUT], 3)) requestMethod = HTTP_METHOD_PUT;
-				break;
-			case 4:
-				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_HEAD], 4)) requestMethod = HTTP_METHOD_HEAD;
-				else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_POST], 4)) requestMethod = HTTP_METHOD_POST;
-				break;
-			case 5:
-				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_TRACE], 5)) requestMethod = HTTP_METHOD_TRACE;
-				break;
-			case 6:
-				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_DELETE], 6)) requestMethod = HTTP_METHOD_DELETE;
-				break;
-			case 7:
-				if(!memcmp(value, requestMethodLabels[HTTP_METHOD_OPTIONS], 7)) requestMethod = HTTP_METHOD_OPTIONS;
-				else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_OPTIONS], 7)) requestMethod = HTTP_METHOD_CONNECT;
-				break;
+				scoped_array<char> buffer(new char[valueSize]);
+				charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), queryString);
 			}
+			break;
+		case 13:
+			if(!memcmp(name, "DOCUMENT_ROOT", 13))
+				charToString(value, valueSize, root);
+			break;
+		case 14:
+			if(!memcmp(name, "REQUEST_METHOD", 14))
+			{
+				requestMethod = HTTP_METHOD_ERROR;
+				switch(valueSize)
+				{
+				case 3:
+					if(!memcmp(value, requestMethodLabels[HTTP_METHOD_GET], 3)) requestMethod = HTTP_METHOD_GET;
+					else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_PUT], 3)) requestMethod = HTTP_METHOD_PUT;
+					break;
+				case 4:
+					if(!memcmp(value, requestMethodLabels[HTTP_METHOD_HEAD], 4)) requestMethod = HTTP_METHOD_HEAD;
+					else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_POST], 4)) requestMethod = HTTP_METHOD_POST;
+					break;
+				case 5:
+					if(!memcmp(value, requestMethodLabels[HTTP_METHOD_TRACE], 5)) requestMethod = HTTP_METHOD_TRACE;
+					break;
+				case 6:
+					if(!memcmp(value, requestMethodLabels[HTTP_METHOD_DELETE], 6)) requestMethod = HTTP_METHOD_DELETE;
+					break;
+				case 7:
+					if(!memcmp(value, requestMethodLabels[HTTP_METHOD_OPTIONS], 7)) requestMethod = HTTP_METHOD_OPTIONS;
+					else if(!memcmp(value, requestMethodLabels[HTTP_METHOD_OPTIONS], 7)) requestMethod = HTTP_METHOD_CONNECT;
+					break;
+				}
+			}
+			else if(!memcmp(name, "CONTENT_LENGTH", 14))
+				contentLength=atoi(value, value+valueSize);
+			break;
+		case 15:
+			if(!memcmp(name, "HTTP_USER_AGENT", 15))
+				charToString(value, valueSize, userAgent);
+			else if(!memcmp(name, "HTTP_KEEP_ALIVE", 15))
+				keepAlive=atoi(value, value+valueSize);
+			break;
+		case 18:
+			if(!memcmp(name, "HTTP_IF_NONE_MATCH", 18))
+				etag=atoi(value, value+valueSize);
+			break;
+		case 19:
+			if(!memcmp(name, "HTTP_ACCEPT_CHARSET", 19))
+				charToString(value, valueSize, acceptCharsets);
+			break;
+		case 20:
+			if(!memcmp(name, "HTTP_ACCEPT_LANGUAGE", 20))
+				charToString(value, valueSize, acceptLanguages);
+			break;
+		case 22:
+			if(!memcmp(name, "HTTP_IF_MODIFIED_SINCE", 22))
+			{
+				stringstream dateStream;
+				dateStream.write(value, valueSize);
+				dateStream.imbue(locale(locale::classic(), new posix_time::time_input_facet("%a, %d %b %Y %H:%M:%S GMT")));
+				dateStream >> ifModifiedSince;
+			}
+			break;
 		}
-		else if(nameSize==12 && !memcmp(name, "QUERY_STRING", 12) && valueSize)
-		{
-			scoped_array<char> buffer(new char[valueSize]);
-			charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), queryString);
-		}
-		else if(nameSize==15 && !memcmp(name, "HTTP_KEEP_ALIVE", 15))
-			keepAlive=atoi(value, value+valueSize);
-		else if(nameSize==14 && !memcmp(name, "CONTENT_LENGTH", 14))
-			contentLength=atoi(value, value+valueSize);
-		else if(nameSize==11 && !memcmp(name, "SERVER_ADDR", 11))
-			serverAddress.assign(value, value+valueSize);
-		else if(nameSize==11 && !memcmp(name, "REMOTE_ADDR", 11))
-			remoteAddress.assign(value, value+valueSize);
-		else if(nameSize==11 && !memcmp(name, "SERVER_PORT", 11))
-			serverPort=atoi(value, value+valueSize);
-		else if(nameSize==11 && !memcmp(name, "REMOTE_PORT", 11))
-			remotePort=atoi(value, value+valueSize);
-		else if(nameSize==22 && !memcmp(name, "HTTP_IF_MODIFIED_SINCE", 22))
-		{
-			stringstream dateStream;
-			dateStream.write(value, valueSize);
-			dateStream.imbue(locale(locale::classic(), new posix_time::time_input_facet("%a, %d %b %Y %H:%M:%S GMT")));
-			dateStream >> ifModifiedSince;
-		}
-		else if(nameSize==18 && !memcmp(name, "HTTP_IF_NONE_MATCH", 18))
-			etag=atoi(value, value+valueSize);
-		/*
-		else
-		{
-			basic_string<charT> string;
-			charToString(name, nameSize, string);
-			charToString(value, valueSize, otherData[string]);
-		}
-		*/
 	}}
 }
 
