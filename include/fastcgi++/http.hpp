@@ -78,6 +78,8 @@ namespace Fastcgipp
 			HTTP_METHOD_OPTIONS,
 			HTTP_METHOD_CONNECT
 		};
+		extern const char* requestMethodLabels[];
+		template<class charT, class Traits> inline std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const RequestMethod requestMethod) { return os << requestMethodLabels[requestMethod]; }
 	
 		//! Efficiently stores IPv4 addresses
 		/*!
@@ -210,7 +212,6 @@ namespace Fastcgipp
 			//! Filename of script relative to the HTTP root directory
 			std::basic_string<charT> scriptName;
 			//! REQUEST_METHOD
-			std::string _requestMethod;
 			RequestMethod requestMethod;
 			//! Path Information
 			std::basic_string<charT> pathInfo;
