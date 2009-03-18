@@ -216,7 +216,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 			{
 				case PARAMS:
 				{
-					if(state!=PARAMS) return true;
+					if(state!=PARAMS) throw Exceptions::RecordsOutOfOrder();
 					if(header.getContentLength()==0) 
 					{
 						state=IN;
@@ -228,7 +228,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 
 				case IN:
 				{
-					if(state!=IN) return true;
+					if(state!=IN) throw Exceptions::RecordsOutOfOrder();
 					if(header.getContentLength()==0)
 					{
 						environment.clearPostBuffer();
@@ -264,8 +264,8 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 	}
 	catch(std::exception& e)
 	{
-		err << e.what();
-		err.flush();
+		out << "Status: 500 Internal Server Error\r\n\r\n";
+		err << '"' << e.what() << '"' << " from \"" << environment.pathInfo << '?' << environment.queryString << "\" with a " << environment.requestMethod << " request method.";
 		complete();
 		return true;
 	}

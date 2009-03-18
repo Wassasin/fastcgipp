@@ -208,6 +208,18 @@ namespace Fastcgipp
 			out.set(id_, transceiver_, Protocol::OUT);
 		}
 	};
+
+	//! Includes all exceptions used by the fastcgi++ library
+	namespace Exceptions
+	{
+		/** 
+		 * @brief Thrown if FastCGI records are received out of order.
+		 */
+		struct RecordsOutOfOrder: public std::exception
+		{
+			const char* what() const throw() { return "FastCGI records received out of order from server."; }
+		};
+	}
 }
 
 #endif
