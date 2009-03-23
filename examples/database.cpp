@@ -36,7 +36,7 @@ public:
 			case 1:
 				return timestamp;
 			case 2:
-				return sessionId;
+				return ASql::Data::Index(sessionId);
 			case 3:
 				return referral;
 			default:

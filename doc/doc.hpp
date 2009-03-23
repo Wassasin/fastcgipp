@@ -1539,7 +1539,7 @@ The default constructor for ASql::Data::Index makes an invalid object that shoul
 			case 1:
 				return timestamp;
 			case 2:
-				return sessionId;
+				return ASql::Data::Index(sessionId);
 			case 3:
 				return referral;
 			default:
@@ -1814,7 +1814,7 @@ struct Log: public ASql::Data::Set
 			case 1:
 				return timestamp;
 			case 2:
-				return sessionId;
+				return ASql::Data::Index(sessionId);
 			case 3:
 				return referral;
 			default:
