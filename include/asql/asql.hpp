@@ -409,16 +409,6 @@ char fixedChunk[16];
 		bool terminateBool;
 
 		Connection(const int maxThreads_): maxThreads(maxThreads_), threads(0) {}
-	public:
-		virtual ~Connection() { }
-		/** 
-		 * @brief Start a thread pool to handle queued asynchronous queries.
-		 */
-		virtual void start() =0;
-		/** 
-		 * @brief Terminate all queue handling threads.
-		 */
-		virtual void terminate() =0;
 	};
 
 	template<class T> class ConnectionPar: private Connection
@@ -451,7 +441,6 @@ char fixedChunk[16];
 		ConnectionPar(const int maxThreads_): Connection(maxThreads_) {}
 		inline void queue(T* const& statement, const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback);
 	public:
-		virtual ~ConnectionPar() { }
 		void start();
 		void terminate();
 	};	
@@ -464,66 +453,6 @@ char fixedChunk[16];
 	protected:
 		Data::Conversions paramsConversions;
 		Data::Conversions resultsConversions;
-	public:
-		/** 
-		 * @brief Execute %SQL statement.
-		 *
-		 *	Executes the built query with the passed parameter data storing the results in the passed results container.
-		 *	The number of rows affected or total matching rows can be retrieved by passing the proper pointer to rows.
-		 *	If SQL_CALC_FOUND_ROWS is included in a select statement then this value will represent the total matching rows
-		 *	regardless of a LIMIT clause. The last insert value on a auto-incremented column can also be retrieved with an
-		 *	appropriate pointer in insertId.
-		 *
-		 *	The Data::Set pointed to by parameters must have the same derived type as was passed upon construction of the
-		 *	statement. A null pointer, as in the constructor, indicates no parameter data. The results parameter should be
-		 *	a pointer to a Data::SetContainer templated to the same derived type passed upon construction of the statement
-		 *	for the result set. As well, a null pointer indicates no result data.
-		 * 
-		 * @param[in] parameters %Data set of SQL query parameter data.
-		 * @param[out] results %Data set container of SQL query result data.
-		 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value.
-		 * @param[out] rows Pointer to integer for writing the number of rows affected from last query.
-		 */
-		virtual void execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows) =0;
-
-		/** 
-		 * @brief Execute single result row SQL statement.
-		 *
-		 * Executes the built query with the passed parameter data storing the results in the passed results set.
-		 * This simple alternative exists for cases where the user is certain that only a single result row will be returned
-		 * and there will be no need for a container of sets.
-		 *
-		 *	The Data::Set pointed to by parameters must have the same derived type as was passed upon construction of the
-		 *	statement. A null pointer, as in the constructor, indicates no parameter data. The results parameter should be
-		 *	a Data::Set templated to the same derived type passed upon construction of the statement for the single result
-		 *	result row.
-		 * 
-		 * @param[in] parameters %Data set of %SQL query parameter data.
-		 * @param[out] results Set to store single result row in.
-		 *
-		 * @return True if result data was recieved, false otherwise.
-		 */
-		bool execute(Data::Set* const parameters, Data::Set& results);
-
-		/** 
-		 * @brief Asynchronously execute a %SQL statement.
-		 *
-		 * This function will queue the statement to be executed in a separate thread and return immediately. The information for
-		 * execute() applies here with a few minor differences. For one, shared pointers are passed to prevent data being destroyed
-		 * in one thread before it is finished with in another (segfault). So don't cheat, make sure they are shared pointer controlled
-		 * on your end as well.
-		 *
-		 * For two, a callback function is replied that matches up nicely with the one provided in
-		 * Fastcgipp::Request::callback. The data passed in the message is likely of a type Exceptions::CodedException.
-		 * 
-		 * @param[in] parameters %Data set of SQL query parameter data. If no data pass SQL_EMPTY_SET.
-		 * @param[out] results %Data set container of SQL query result data. If no data pass SQL_EMTPY_CONT.
-		 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value. If not needed pass SQL_EMPTY_INT
-		 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query. If not needed pass SQL_EMPTY_INT.
-		 * @param[in] callback Callback function taking an Error parameter.
-		 */
-		virtual void queue(const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback) =0;
-		virtual ~Statement() { }
 	};
 }
 
