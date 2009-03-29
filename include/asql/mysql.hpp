@@ -187,7 +187,7 @@ namespace ASql
 			 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value.
 			 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query.
 			 */
-			void execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0);
+			void execute(const Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0);
 
 			/** 
 			 * @brief Execute single result row %MySQL statement.
@@ -206,7 +206,7 @@ namespace ASql
 			 *
 			 * @return True if result data was recieved, false otherwise.
 			 */
-			bool execute(Data::Set* const parameters, Data::Set& results);
+			bool execute(const Data::Set* const parameters, Data::Set& results);
 
 			/** 
 			 * @brief Asynchronously execute a %MySQL statement.
@@ -225,7 +225,7 @@ namespace ASql
 			 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query. If not needed pass SQL_EMPTY_INT.
 			 * @param[in] callback Callback function taking a ASql::Error parameter.
 			 */
-			inline void queue(const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (ASql::Error)>& callback)
+			inline void queue(const boost::shared_ptr<const Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (ASql::Error)>& callback)
 			{
 				connection.queue(this, parameters, results, insertId, rows, callback);
 			}
@@ -294,7 +294,7 @@ namespace ASql
 			 * 
 			 * @param[in] parameters Parameters to use in query
 			 */
-			void executeParameters(Data::Set* const& parameters);
+			void executeParameters(const Data::Set* const& parameters);
 			
 			/** 
 			 * @brief Fetch a row of the results

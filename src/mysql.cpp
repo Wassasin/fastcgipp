@@ -82,11 +82,11 @@ void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& 
 	if(resultSet) buildBindings(stmt, *resultSet, resultsConversions, resultsBindings);
 }
 
-void ASql::MySQL::Statement::executeParameters(Data::Set* const& parameters)
+void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameters)
 {
 	if(parameters)
 	{
-		bindBindings(stmt, *parameters, paramsConversions, paramsBindings);
+		bindBindings(stmt, *const_cast<Data::Set*>(parameters), paramsConversions, paramsBindings);
 		for(Data::Conversions::iterator it=paramsConversions.begin(); it!=paramsConversions.end(); ++it)
 			it->second->convertParam();
 		if(mysql_stmt_bind_param(stmt, paramsBindings.get())!=0) throw Error(stmt);
@@ -112,7 +112,7 @@ bool ASql::MySQL::Statement::executeResult(Data::Set& row)
 	};
 }
 
-void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
+void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
 {
 	boost::lock_guard<boost::mutex> executeLock(executeMutex);
 
@@ -145,7 +145,7 @@ void ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::SetConta
 	mysql_stmt_reset(stmt);
 }
 
-bool ASql::MySQL::Statement::execute(Data::Set* const parameters, Data::Set& results)
+bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Set& results)
 {
 	boost::lock_guard<boost::mutex> executeLock(executeMutex);
 	executeParameters(parameters);
