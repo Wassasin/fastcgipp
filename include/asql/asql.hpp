@@ -429,7 +429,7 @@ char fixedString[16];
 		struct Query
 		{
 			T* statement;
-			boost::shared_ptr<Data::Set> parameters;
+			boost::shared_ptr<const Data::Set> parameters;
 			boost::shared_ptr<Data::SetContainerPar> results;
 			boost::shared_ptr<unsigned long long int> insertId;
 			boost::shared_ptr<unsigned long long int> rows;
@@ -448,7 +448,7 @@ char fixedString[16];
 
 	protected:
 		ConnectionPar(const int maxThreads_): Connection(maxThreads_) {}
-		inline void queue(T* const& statement, const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback);
+		inline void queue(T* const& statement, const boost::shared_ptr<const Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback);
 	public:
 		void start();
 		void terminate();
@@ -544,7 +544,7 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 	threadsChanged.notify_one();
 }
 
-template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, const boost::shared_ptr<Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback)
+template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, const boost::shared_ptr<const Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (Error)>& callback)
 {
 	boost::lock_guard<boost::mutex> queriesLock(queries);
 	queries.push(Query());
