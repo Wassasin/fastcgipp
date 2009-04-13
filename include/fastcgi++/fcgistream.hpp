@@ -78,7 +78,7 @@ namespace Fastcgipp
 		class Fcgibuf: public std::basic_streambuf<charT, traits>
 		{
 		public:
-			Fcgibuf(): dumpSize(0), dumpPtr(0) { setp(buffer, buffer+buffSize); }
+			Fcgibuf(): dumpPtr(0), dumpSize(0) { setp(buffer, buffer+buffSize); }
 			//! After construction constructor
 			/*!
 			 * Sets FastCGI related member data necessary for operation of the

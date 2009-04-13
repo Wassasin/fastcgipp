@@ -378,7 +378,7 @@ namespace Fastcgipp
 			SessionId();
 
 			SessionId(const SessionId& x): timestamp(x.timestamp) { std::memcpy(data, x.data, size); }
-			const SessionId& operator=(const SessionId& x) { std::memcpy(data, x.data, size); timestamp=x.timestamp; }
+			const SessionId& operator=(const SessionId& x) { std::memcpy(data, x.data, size); timestamp=x.timestamp; return *this; }
 
 			/** 
 			 * @brief Assign the ID data with a base64 encoded string

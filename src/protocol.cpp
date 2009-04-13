@@ -44,4 +44,4 @@ Fastcgipp::Protocol::ManagementReply<14, 2, 8> Fastcgipp::Protocol::maxConnsRepl
 Fastcgipp::Protocol::ManagementReply<13, 2, 1> Fastcgipp::Protocol::maxReqsReply("FCGI_MAX_REQS", "50");
 Fastcgipp::Protocol::ManagementReply<15, 1, 8> Fastcgipp::Protocol::mpxsConnsReply("FCGI_MPXS_CONNS", "1");
 
-char* Fastcgipp::Protocol::recordTypeLabels[] = { "INVALID", "BEGIN_REQUEST", "ABORT_REQUEST", "END_REQUEST", "PARAMS", "IN", "OUT", "ERR", "DATA", "GET_VALUES", "GET_VALUES_RESULT", "UNKNOWN_TYPE" };
+const char* Fastcgipp::Protocol::recordTypeLabels[] = { "INVALID", "BEGIN_REQUEST", "ABORT_REQUEST", "END_REQUEST", "PARAMS", "IN", "OUT", "ERR", "DATA", "GET_VALUES", "GET_VALUES_RESULT", "UNKNOWN_TYPE" };

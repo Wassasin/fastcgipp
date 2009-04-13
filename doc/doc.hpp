@@ -254,6 +254,7 @@ And we're basically done defining our response! All we need to do is return a bo
 				return true;
 			}
 		}
+		return true;
 	}
 \endcode
 
@@ -365,6 +366,7 @@ private:
 				return true;
 			}
 		}
+		return true;
 	}
 public:
 	Timer(): state(START) {}
@@ -1640,8 +1642,9 @@ Since we didn't use the full constructor on our connection object, we need to ac
 Now we initialize our insert and statements. We pass it any Log object (default constructed will do) so it can use the derived functions to build itself around it's structure. We pass a null pointer to the associated parameters/results spot if the statement doesn't actually have any. So obviously an insert will always pass a null pointer to the results set whereas a select would ofter have both parameters and results. See ASql::MySQL::Statement::init() for details.
 
 \code
-	insertStatement.init(insertStatementString, sizeof(insertStatementString), &Log(), 0);
-	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &Log());
+	Log log;
+	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
+	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
 \endcode
 
 By calling this function we initialize the thread/threads that will handle SQL queries.
@@ -1744,6 +1747,7 @@ Now let's get our of here. Return a true and the request is completed and destro
 			return true;
 		}
 	}
+	return true;
 }
 \endcode
 
@@ -1853,8 +1857,9 @@ ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 void Database::initSql()
 {
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
-	insertStatement.init(insertStatementString, sizeof(insertStatementString), &Log(), 0);
-	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &Log());
+	Log log;
+	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
+	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
 	sqlConnection.start();
 }
 
@@ -1917,6 +1922,7 @@ bool Database::response()
 			return true;
 		}
 	}
+	return true;
 }
 
 int main()

@@ -59,11 +59,11 @@ namespace ASql
 		 * @param[in] msg_ Pointer to string explaining error.
 		 * @param[in] erno_ Associated error number.
 		 */
-		Error(const char* msg_, const int erno_): msg(msg_), erno(erno_) {}
-		Error(): msg(0), erno(0) {}
+		Error(const char* msg_, const int erno_): erno(erno_), msg(msg_) {}
+		Error(): erno(0), msg(0) {}
 		const char* what() const throw() { return msg; }
 
-		Error(const Error& e): msg(e.msg), erno(e.erno) {}
+		Error(const Error& e): erno(e.erno), msg(e.msg)  {}
 	};
 
 	//! Defines data types and conversion techniques standard to the fastcgipp %SQL facilities.
@@ -262,7 +262,7 @@ namespace ASql
 			Index(const Index& x): type(x.type), data(x.data), size(x.size) {}
 			Index(): type(NOTHING), data(0), size(0) {}
 
-			const Index& operator=(const Index& x) { type=x.type; data=x.data; size=x.size; }
+			const Index& operator=(const Index& x) { type=x.type; data=x.data; size=x.size; return *this; }
 			bool operator==(const Index& x) { return type==x.type && data==x.data && size==x.size; }
 		};
 

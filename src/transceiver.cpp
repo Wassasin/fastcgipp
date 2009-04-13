@@ -41,7 +41,7 @@ int Fastcgipp::Transceiver::transmit()
 			}
 
 			buffer.freeRead(sent);
-			if(sent!=sendBlock.size)
+			if(sent!=(ssize_t)sendBlock.size)
 				break;
 		}
 		else
@@ -137,7 +137,7 @@ bool Fastcgipp::Transceiver::handler()
 	if(actual>0) messageBuffer.size+=actual;
 
 	// Did we recieve a full frame?
-	if(actual==needed)
+	if(actual==(ssize_t)needed)
 	{		
 		sendMessage(FullId(headerBuffer.getRequestId(), fd), messageBuffer);
 		messageBuffer.size=0;
@@ -190,7 +190,7 @@ void Fastcgipp::Transceiver::wake()
 }
 
 Fastcgipp::Transceiver::Transceiver(int fd_, boost::function<void(Protocol::FullId, Message)> sendMessage_)
-:sendMessage(sendMessage_), pollFds(2), socket(fd_), buffer(pollFds, fdBuffers)
+:buffer(pollFds, fdBuffers), sendMessage(sendMessage_), pollFds(2), socket(fd_)
 {
 	socket=fd_;
 	

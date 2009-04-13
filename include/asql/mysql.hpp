@@ -230,12 +230,12 @@ namespace ASql
 				connection.queue(this, parameters, results, insertId, rows, callback);
 			}
 		private:
+			Connection& connection;
+
 			/** 
 			 * @brief Pointer to actual %MySQL C API prepared statement object.
 			 */
 			MYSQL_STMT* stmt;
-
-			Connection& connection;
 
 			/** 
 			 * @brief Array of parameter bindings for use with the query.
@@ -348,7 +348,7 @@ namespace ASql
 			 * @param[in] bufferType_ &MySQL buffer type (MYSQL_TYPE_BLOB or MYSQL_TYPE_STRING).
 			 * @param[out] buffer_ Reference to associated %MySQL bind object buffer pointer.
 			 */
-			TypedConversion(const int& column_, MYSQL_STMT* const& statement_, const enum_field_types& bufferType_, void*& buffer_): column(column_), statement(statement_), length(0), bufferType(bufferType_), buffer(buffer_) {}
+			TypedConversion(const int& column_, MYSQL_STMT* const& statement_, const enum_field_types& bufferType_, void*& buffer_): bufferType(bufferType_), length(0), buffer(buffer_), column(column_), statement(statement_) {}
 		protected:
 			/** 
 			 * @brief Reference to associated %MySQL bind object buffer pointer.
