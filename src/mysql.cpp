@@ -278,6 +278,13 @@ void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::
 			{
 				bindings[i].buffer_length = element.size;
 				bindings[i].buffer_type = element.type==CHAR?MYSQL_TYPE_STRING:MYSQL_TYPE_BLOB;
+				break;
+			}
+
+			default:
+			{
+				// Invalid element type, this shouldn't happen
+				break;
 			}
 		}
 	}

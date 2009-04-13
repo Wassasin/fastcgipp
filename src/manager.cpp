@@ -3,7 +3,7 @@
 
 Fastcgipp::ManagerPar* Fastcgipp::ManagerPar::instance=0;
 
-Fastcgipp::ManagerPar::ManagerPar(int fd, const boost::function<void(Protocol::FullId, Message)>& sendMessage_): transceiver(fd, sendMessage_), asleep(false), terminateBool(false), stopBool(false) { setupSignals(); instance=this; }
+Fastcgipp::ManagerPar::ManagerPar(int fd, const boost::function<void(Protocol::FullId, Message)>& sendMessage_): transceiver(fd, sendMessage_), asleep(false), stopBool(false), terminateBool(false) { setupSignals(); instance=this; }
 
 void Fastcgipp::ManagerPar::terminate()
 {

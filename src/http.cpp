@@ -242,7 +242,7 @@ int Fastcgipp::Http::atoi(const char* start, const char* end)
 
 int Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destination, size_t size)
 {
-	int i=0;
+	unsigned int i=0;
 	char* start=destination;
 	while(1)
 	{
@@ -254,7 +254,7 @@ int Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destina
 				if(++i==size) break;
 				++source;
 				if((*source|0x20) >= 'a' && (*source|0x20) <= 'f')
-					*destination|=(*source|0x20)-0x57<<shift;
+					*destination|=((*source|0x20)-0x57)<<shift;
 				else if(*source >= '0' && *source <= '9')
 					*destination|=(*source&0x0f)<<shift;
 			}

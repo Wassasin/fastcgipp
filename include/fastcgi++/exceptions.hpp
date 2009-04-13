@@ -47,7 +47,7 @@ namespace Fastcgipp
 			 * @param[in] msg_ Pointer to string explaining error.
 			 * @param[in] erno_ Associated error number.
 			 */
-			CodedException(const char* msg_, const int erno_): msg(msg_), erno(erno_) {}
+			CodedException(const char* msg_, const int erno_): erno(erno_), msg(msg_) {}
 			const char* what() const throw() { return msg; }
 		};
 

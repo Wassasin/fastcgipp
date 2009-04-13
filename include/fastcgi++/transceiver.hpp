@@ -64,7 +64,7 @@ namespace Fastcgipp
 		//! Copies pointer and size, not data
 		Block(const Block& block): data(block.data), size(block.size) { }
 		//! Copies pointer and size, not data
-		const Block& operator=(const Block& block) { data=block.data; size=block.size; }
+		const Block& operator=(const Block& block) { data=block.data; size=block.size; return *this; }
 		//! Pointer to start of memory location
 		char* data;
 		//! Size in bytes of memory location
@@ -189,7 +189,7 @@ namespace Fastcgipp
 			 * @param[out] pollFds_ A reference to Transceiver::pollFds is needed for removing file descriptors when they are closed
 			 * @param[out] fdBuffers_ A reference to Transceiver::fdBuffer is needed for deleting buffers upon closing of the file descriptor
 			 */
-			Buffer(std::vector<pollfd>& pollFds_, std::map<int, fdBuffer>& fdBuffers_): pollFds(pollFds_), fdBuffers(fdBuffers_), chunks(1), pRead(chunks.begin()->data.get()), writeIt(chunks.begin()) { }
+			Buffer(std::vector<pollfd>& pollFds_, std::map<int, fdBuffer>& fdBuffers_): chunks(1), writeIt(chunks.begin()), pRead(chunks.begin()->data.get()), pollFds(pollFds_), fdBuffers(fdBuffers_)  { }
 
 			//! Request a write block in the buffer
 			/*!

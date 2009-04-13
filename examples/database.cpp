@@ -83,8 +83,9 @@ ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 void Database::initSql()
 {
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
-	insertStatement.init(insertStatementString, sizeof(insertStatementString), &Log(), 0);
-	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &Log());
+	Log log;
+	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
+	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
 	sqlConnection.start();
 }
 
@@ -147,6 +148,7 @@ bool Database::response()
 			return true;
 		}
 	}
+	return true;
 }
 
 int main()
