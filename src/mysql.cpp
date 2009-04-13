@@ -86,7 +86,7 @@ void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameter
 {
 	if(parameters)
 	{
-		bindBindings(stmt, *const_cast<Data::Set*>(parameters), paramsConversions, paramsBindings);
+		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions, paramsBindings);
 		for(Data::Conversions::iterator it=paramsConversions.begin(); it!=paramsConversions.end(); ++it)
 			it->second->convertParam();
 		if(mysql_stmt_bind_param(stmt, paramsBindings.get())!=0) throw Error(stmt);
@@ -97,7 +97,7 @@ void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameter
 
 bool ASql::MySQL::Statement::executeResult(Data::Set& row)
 {
-	bindBindings(stmt, row, resultsConversions, resultsBindings);
+	bindBindings(row, resultsConversions, resultsBindings);
 	if(mysql_stmt_bind_result(stmt, resultsBindings.get())!=0) throw Error(stmt);
 	switch (mysql_stmt_fetch(stmt))
 	{
@@ -125,7 +125,7 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 		while(1)
 		{{
 			Data::Set& row=res.manufacture();
-			bindBindings(stmt, row, resultsConversions, resultsBindings);
+			bindBindings(row, resultsConversions, resultsBindings);
 			if(!executeResult(row))
 			{
 				res.trim();
@@ -290,7 +290,7 @@ void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::
 	}
 }
 
-void ASql::MySQL::Statement::bindBindings(MYSQL_STMT* const& stmt, Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
+void ASql::MySQL::Statement::bindBindings(Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
 {
 	int bindSize=set.numberOfSqlElements();
 	for(int i=0; i<bindSize; ++i)
@@ -394,12 +394,13 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
 	wstring& output = *(wstring*)external;
 	output.resize(conversionBuffer.size());
 
-	if(conversionBuffer.size());
+	if(conversionBuffer.size())
 	{
 		wchar_t* it;
 		const char* tmp;
 		mbstate_t conversionState = mbstate_t();
-		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=codecvt_base::ok) throw ASql::Error(CodeConversionErrorMsg, -1);
+		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=codecvt_base::ok)
+			throw ASql::Error(CodeConversionErrorMsg, -1);
 		output.resize(it-&output[0]);
 		conversionBuffer.clear();
 	}

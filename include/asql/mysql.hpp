@@ -277,12 +277,11 @@ namespace ASql
 			 *	This function is called before any statement is executed for parameter data, and before a row is fetched for result
 			 *	data.
 			 * 
-			 * @param[in] stmt Reference to pointer to %MySQL C API statement.
 			 * @param[in/out] set Reference to a data set object.
 			 * @param[in] conversions Reference to an array to pass conversion data through.
 			 * @param[in] bindings Reference to a %MySQL bind array to write data to.
 			 */
-			static void bindBindings(MYSQL_STMT* const& stmt, Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings);
+			static void bindBindings(Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings);
 
 			/** 
 			 * @brief Mutex for execute function
