@@ -55,7 +55,7 @@ namespace ASql
 			 * @param[in] charset Null terminated string representation of desired connection character set (latin1, utf8, ...)
 			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
 			 */
-			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_)
+			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_), m_initialized(false)
 			{
 				connect(host, user, passwd, db, port, unix_socket, client_flag, charset);
 			}
@@ -65,7 +65,7 @@ namespace ASql
 			 * 
 			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
 			 */
-			Connection(const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_) {}
+			Connection(const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_), m_initialized(false) {}
 			~Connection();
 
 			/**
@@ -88,6 +88,8 @@ namespace ASql
 			 * @param rows A reference to a pointer to the integer to write the value to.
 			 */
 			void getFoundRows(unsigned long long* const& rows);
+
+			MYSQL* getConnection() { return &connection; }
 		private:
 			/** 
 			 * @brief Actual %MySQL C API connection object.
@@ -104,6 +106,8 @@ namespace ASql
 			 * @brief Bind object for storing the total number of results from a query.
 			 */
 			MYSQL_BIND foundRowsBinding;
+
+			bool m_initialized;
 		};
 
 		/** 
@@ -135,7 +139,7 @@ namespace ASql
 			 * @param[in] parameterSet Template object of parameter data set. Null means no parameters.
 			 * @param[in] resultSet Template object of result data set. Null means no results.
 			 */
-			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet): connection(connection_), stmt(mysql_stmt_init(&connection_.connection))
+			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet): connection(connection_), stmt(mysql_stmt_init(&connection_.connection)), m_initialized(false)
 			{
 				init(queryString, queryLength, parameterSet, resultSet);
 			}
@@ -144,8 +148,8 @@ namespace ASql
 			 * 
 			 * @param[in] connection_ %MySQL connection to run query through.
 			 */
-			Statement(Connection& connection_): connection(connection_), stmt(0) {}
-			~Statement() { mysql_stmt_close(stmt); }
+			Statement(Connection& connection_): connection(connection_), stmt(0), m_initialized(false) {}
+			~Statement() { if(m_initialized) mysql_stmt_close(stmt); }
 			
 			/** 
 			 *	@brief Initialize statement.
@@ -303,6 +307,8 @@ namespace ASql
 			 * @return true normally, false if no data
 			 */
 			bool executeResult(Data::Set& row);
+
+			bool m_initialized;
 		};
 
 		/** 
