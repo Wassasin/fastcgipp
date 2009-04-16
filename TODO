@@ -14,3 +14,4 @@ THINGS TO DO
    wchar_t is used as the Request template parameter. Possibly through iconv.
  * Standardize some exceptions for client data parsing errors and generate
    appropriate HTTP status responses upon catch.
+ * Provide helper function to parse cookies and the query string.

@@ -24,6 +24,12 @@
 
 void ASql::MySQL::Connection::connect(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset)
 {
+	if(m_initialized)
+	{
+		mysql_stmt_close(foundRowsStatement);
+		m_initialized = false;
+	}
+
 	if(!mysql_init(&connection))
 		throw Error(&connection);
 
@@ -42,12 +48,13 @@ void ASql::MySQL::Connection::connect(const char* host, const char* user, const 
 	std::memset(&foundRowsBinding, 0, sizeof(MYSQL_BIND));
 	foundRowsBinding.buffer_type = MYSQL_TYPE_LONGLONG;
 	foundRowsBinding.is_unsigned = 1;
+
+	m_initialized = true;
 }
 
 ASql::MySQL::Connection::~Connection()
 {
-	mysql_stmt_close(foundRowsStatement);
-	mysql_close(&connection);
+	if(m_initialized) mysql_close(&connection);
 }
 
 void ASql::MySQL::Connection::getFoundRows(unsigned long long* const& rows)
@@ -71,6 +78,12 @@ void ASql::MySQL::Connection::getFoundRows(unsigned long long* const& rows)
 
 void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet)
 {
+	if(m_initialized)
+	{
+		mysql_stmt_close(stmt);
+		m_initialized = false;
+	}
+	
 	stmt=mysql_stmt_init(&connection.connection);
 	if(!stmt)
 		throw Error(&connection.connection);
@@ -158,6 +171,8 @@ bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::Data::Set& set, ASql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
 {
 	using namespace Data;
+	
+	conversions.clear();
 
 	const int& bindSize=set.numberOfSqlElements();
 	bindings.reset(new MYSQL_BIND[bindSize]);
