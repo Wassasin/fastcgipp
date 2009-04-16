@@ -210,7 +210,7 @@ namespace Fastcgipp
 			 * @param[in] size Size of data in bytes
 			 */
 			void fill(const char* data, size_t size);
-			//! Parses raw http post data into the posts object
+			//! Parses "multipart/form-data" http post data into the posts object
 			/*!
 			 * This function will take arbitrarily divided chunks of raw http post
 			 * data and parse them into the posts container of Post objects. data should
@@ -221,6 +221,19 @@ namespace Fastcgipp
 			 * @param[in] size Size of data in bytes
 			 */
 			void fillPosts(const char* data, size_t size);
+
+            //! Parses "application/x-www-form-urlencoded" post data into the post object.
+            /*!
+             * This function parses x-www-form-urlencoded post data into the
+             * Environment::posts member. For each key/value pair parsed, the
+             * value will be placed in the value field of an Http::Post struct,
+             * and the key will be the index for the corresponding entry in the
+             * Environment::posts structure.
+             *
+			 * @param[in] data Pointer to the first byte of post data
+			 * @param[in] size Size of data in bytes
+             */
+			void fillPostsUrlEncoded(const char* data, size_t size);
 
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
@@ -307,7 +320,7 @@ namespace Fastcgipp
 		 * @param[out] destination Pointer to the section of memory to write the converted string to
 		 * @return Actual size of the new string
 		 */
-		int percentEscapedToRealBytes(const char* source, char* destination, size_t size);
+		template <class charT> int percentEscapedToRealBytes(const charT* source, charT* destination, size_t size);
 
 		/** 
 		 * @brief List of characters in order for Base64 encoding.
