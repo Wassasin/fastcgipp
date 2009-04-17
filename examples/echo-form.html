@@ -32,7 +32,7 @@
                         third: $("#three").val(),
                         fourth: $("#four").val()
                     }
-                    
+
                     $("#result").text("sending...");
 
                     $.ajax ({
@@ -44,7 +44,7 @@
                     });
                 });
             });
-            
+
             function success (data, textStatus) {
                 $("#result").html(data);
             }
