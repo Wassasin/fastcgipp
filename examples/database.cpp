@@ -23,7 +23,7 @@ void error_log(const char* msg)
 	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
 }
 
-struct Log: public ASql::Data::Set
+struct Log
 {
 public:
 	size_t numberOfSqlElements() const { return 4; }
@@ -51,7 +51,6 @@ public:
 	ASql::Data::WtextN referral;
 };
 
-
 class Database: public Fastcgipp::Request<wchar_t>
 {
 	static const char insertStatementString[];
@@ -63,11 +62,11 @@ class Database: public Fastcgipp::Request<wchar_t>
 
 	enum Status { START, FETCH } status;
 
-	typedef ASql::Data::SetContainer<std::vector<Log> > LogContainer;
+	typedef std::vector<Log> LogContainer;
 	
 	bool response();
 
-	boost::scoped_ptr<ASql::QueryPar> m_query;
+	boost::scoped_ptr<ASql::Query> m_query;
 public:
 	Database(): status(START) {}
 	static void initSql();
@@ -83,7 +82,7 @@ ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 void Database::initSql()
 {
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
-	Log log;
+	const ASql::Data::SetBuilder<Log> log;
 	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
 	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
 	sqlConnection.start();
@@ -95,7 +94,7 @@ bool Database::response()
 	{
 		case START:
 		{
-			m_query.reset(new ASql::QueryResultOnly<LogContainer>(ASql::QueryPar::RESULT_TYPE_CONTAINER, true));
+			m_query.reset(new ASql::QueryNoParametersMultipleResults<LogContainer>(true));
 			m_query->setCallback(boost::bind(callback, Fastcgipp::Message(1)));
 			selectStatement.queue(*m_query);
 			status=FETCH;
@@ -103,7 +102,7 @@ bool Database::response()
 		}
 		case FETCH:
 		{
-			LogContainer& selectSet(static_cast<ASql::QueryResultOnly<LogContainer>&>(*m_query).result());
+			LogContainer& selectSet(static_cast<ASql::QueryNoParametersMultipleResults<LogContainer>&>(*m_query).result());
 			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
 <html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
@@ -138,8 +137,8 @@ bool Database::response()
 	</body>\n\
 </html>";
 			
-			m_query.reset(new ASql::QueryParametersOnly<Log>);
-			Log& queryParameters(static_cast<ASql::QueryParametersOnly<Log>&>(*m_query).parameters());
+			m_query.reset(new ASql::QuerySingleParametersNoResults<Log>);
+			Log& queryParameters(static_cast<ASql::QuerySingleParametersNoResults<Log>&>(*m_query).parameters());
 			queryParameters.ipAddress = environment.remoteAddress;
 			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment.referer.size())
@@ -150,6 +149,7 @@ bool Database::response()
 			m_query->keepAlive();
 			insertStatement.queue(*m_query);
 
+			error_log("Finishing Request");
 			return true;
 		}
 	}

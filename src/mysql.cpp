@@ -178,6 +178,23 @@ end:
 	return retval;
 }
 
+void ASql::MySQL::Statement::execute(const Data::SetContainerPar& parameters, unsigned long long int* rows)
+{
+	boost::lock_guard<boost::mutex> executeLock(executeMutex);
+
+	if(rows) *rows = 0;
+	
+	for(const Data::Set* set(parameters.pull()); set!=0; set=parameters.pull())
+	{
+		if(*m_stop) break;
+		executeParameters(set);
+		if(*m_stop) break;
+		if(rows) *rows += mysql_stmt_affected_rows(stmt);
+	}
+	mysql_stmt_free_result(stmt);
+	mysql_stmt_reset(stmt);
+}
+
 void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::Data::Set& set, ASql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
 {
 	using namespace Data;
