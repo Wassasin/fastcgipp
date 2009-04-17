@@ -129,6 +129,7 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 {
 	boost::lock_guard<boost::mutex> executeLock(executeMutex);
 
+	if(*m_stop) goto end;
 	executeParameters(parameters);
 
 	if(results)
@@ -139,6 +140,7 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 		{{
 			Data::Set& row=res.manufacture();
 			bindBindings(row, resultsConversions, resultsBindings);
+			if(*m_stop) goto end;
 			if(!executeResult(row))
 			{
 				res.trim();
@@ -146,23 +148,31 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 			}
 		}}
 
+		if(*m_stop) goto end;
 		if(rows) connection.getFoundRows(rows);
 	}
 	else
 	{
+		if(*m_stop) goto end;
 		if(rows) *rows = mysql_stmt_affected_rows(stmt);
+		if(*m_stop) goto end;
 		if(insertId) *insertId = mysql_stmt_insert_id(stmt);
 	}
 
+end:
 	mysql_stmt_free_result(stmt);
 	mysql_stmt_reset(stmt);
 }
 
 bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Set& results)
 {
+	bool retval(false);
 	boost::lock_guard<boost::mutex> executeLock(executeMutex);
+	if(*m_stop) goto end;
 	executeParameters(parameters);
-	bool retval=executeResult(results);
+	if(*m_stop) goto end;
+	retval=executeResult(results);
+end:
 	mysql_stmt_free_result(stmt);
 	mysql_stmt_reset(stmt);
 	return retval;
