@@ -603,6 +603,7 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 		querySet.m_statement->m_stop = &T::s_false;
 
 		querySet.m_query.callback();
+		querySet.m_query.m_sharedData->m_busy = false;
 	}
 
 	{
@@ -614,6 +615,7 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 
 template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, QueryPar& query)
 {
+	query.m_sharedData->m_busy = true;
 	boost::lock_guard<boost::mutex> queriesLock(queries);
 	queries.push(QuerySet(query, statement));
 	wakeUp.notify_one();
