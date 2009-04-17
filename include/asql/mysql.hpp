@@ -212,6 +212,8 @@ namespace ASql
 			 */
 			bool execute(const Data::Set* const parameters, Data::Set& results);
 
+			void execute(const Data::SetContainerPar& parameters, unsigned long long int* rows=0);
+
 			/** 
 			 * @brief Asynchronously execute a %MySQL statement.
 			 *
@@ -225,7 +227,7 @@ namespace ASql
 			 * 
 			 * @param[in/out] Query object to manage the asynchronous execution of the query.
 			 */
-			inline void queue(QueryPar& query)
+			inline void queue(Query& query)
 			{
 				connection.queue(this, query);
 			}
