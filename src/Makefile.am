@@ -22,7 +22,7 @@ libfastcgipp_la_SOURCES = \
 	utf8_codecvt_facet.cpp
 
 if HAVE_MYSQL_H
-libfastcgipp_la_SOURCES += asqlbind.cpp
+libfastcgipp_la_SOURCES += asql.cpp
 endif
 
 if HAVE_MYSQL_H
