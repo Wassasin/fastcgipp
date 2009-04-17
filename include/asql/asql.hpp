@@ -361,6 +361,24 @@ char fixedString[16];
 		};
 	
 		/** 
+		 * @brief Container class for Set objects.
+		 *
+		 * This class defines container for types derived from the Set class that need
+		 * to be stored in shared pointers. It is intended for retrieving multi-row results
+		 * from SQL queries. In order function the passed container type must have the
+		 * following member functions: push_back(), back(), pop_back().
+		 *
+		 * All data in it will be dynamically allocated into a boost::shared_ptr
+		 *
+		 *	@tparam Container type. Must be sequential.
+		 */
+		template<class T> class SharedSetContainer: public SetContainerPar, public T
+		{
+			Set& manufacture() { T::push_back(boost::shared_ptr<typename T::value_type>(new typename T::value_type)); return *T::back(); }
+			void trim() { T::pop_back(); }
+		};
+	
+		/** 
 		 * @brief Handle data conversion from standard data types to internal SQL engine types.
 		 */
 		struct Conversion
