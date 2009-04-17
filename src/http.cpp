@@ -479,7 +479,7 @@ template void Fastcgipp::Http::Environment<char>::fillPostsUrlEncoded(const char
 template void Fastcgipp::Http::Environment<wchar_t>::fillPostsUrlEncoded(const char* data, size_t size);
 template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEncoded(const char* data, size_t size)
 {
-    // FIXME: add proper buffering to postBuffer and deleting of buffer
+    // FIXME: add proper buffering to postBuffer
     //
     enum {KEY, VALUE};
     Fastcgipp::Http::Post<charT> post;
