@@ -66,7 +66,7 @@ class Database: public Fastcgipp::Request<wchar_t>
 	
 	bool response();
 
-	boost::scoped_ptr<ASql::Query> m_query;
+	ASql::Query m_query;
 public:
 	Database(): status(START) {}
 	static void initSql();
@@ -94,15 +94,16 @@ bool Database::response()
 	{
 		case START:
 		{
-			m_query.reset(new ASql::QueryNoParametersMultipleResults<LogContainer>(true));
-			m_query->setCallback(boost::bind(callback, Fastcgipp::Message(1)));
-			selectStatement.queue(*m_query);
+			m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >();
+			m_query.setCallback(boost::bind(callback, Fastcgipp::Message(1)));
+			m_query.enableRows(true);
+			selectStatement.queue(m_query);
 			status=FETCH;
 			return false;
 		}
 		case FETCH:
 		{
-			LogContainer& selectSet(static_cast<ASql::QueryNoParametersMultipleResults<LogContainer>&>(*m_query).result());
+			LogContainer& selectSet(static_cast<ASql::Data::STLSetContainer<LogContainer>*>(m_query.results())->data);
 			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
 <html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
@@ -111,7 +112,7 @@ bool Database::response()
 		<title>fastcgi++: SQL Database example</title>\n\
 	</head>\n\
 	<body>\n\
-		<h2>Showing " << selectSet.size() << " results out of " << m_query->rows() << "</h2>\n\
+		<h2>Showing " << selectSet.size() << " results out of " << m_query.rows() << "</h2>\n\
 		<table>\n\
 			<tr>\n\
 				<td><b>IP Address</b></td>\n\
@@ -137,8 +138,8 @@ bool Database::response()
 	</body>\n\
 </html>";
 			
-			m_query.reset(new ASql::QuerySingleParametersNoResults<Log>);
-			Log& queryParameters(static_cast<ASql::QuerySingleParametersNoResults<Log>&>(*m_query).parameters());
+			m_query.reset();
+			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
 			queryParameters.ipAddress = environment.remoteAddress;
 			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment.referer.size())
@@ -146,10 +147,9 @@ bool Database::response()
 			else
 				queryParameters.referral.nullness = true;
 
-			m_query->keepAlive();
-			insertStatement.queue(*m_query);
+			m_query.keepAlive(true);
+			insertStatement.queue(m_query);
 
-			error_log("Finishing Request");
 			return true;
 		}
 	}

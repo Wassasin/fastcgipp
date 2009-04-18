@@ -32,6 +32,7 @@
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
+
 //! Defines classes and functions relating to SQL querying
 namespace ASql
 {
@@ -337,13 +338,11 @@ char fixedString[16];
 			virtual ~Set() {}
 		};
 
-		template<class T> class SetBuilder: public Set
+		template<class T> struct SetBuilder: public Set
 		{
-			T m_data;
-			virtual size_t numberOfSqlElements() const { return m_data.numberOfSqlElements(); }
-			virtual Index getSqlIndex(const size_t index) const { return m_data.getSqlIndex(index); }
-		public:
-			inline operator T&() { return m_data; }
+			T data;
+			virtual size_t numberOfSqlElements() const { return data.numberOfSqlElements(); }
+			virtual Index getSqlIndex(const size_t index) const { return data.getSqlIndex(index); }
 		};
 
 		template<class T> class SetRefBuilder: public Set
@@ -362,16 +361,16 @@ char fixedString[16];
 		/** 
 		 * @brief Base class to to SetContainer.
 		 */
-		struct SetContainerPar
+		struct SetContainer
 		{
 			virtual Set& manufacture() =0;
 			virtual void trim() =0;
-			virtual ~SetContainerPar() {}
+			virtual ~SetContainer() {}
 			virtual const Set* pull() const =0;
 		};
 
 		/** 
-		 * @brief Container class for Set objects.
+		 * @brief STL Container class for Set objects.
 		 *
 		 * This class defines a basic container for types derived from the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order
@@ -380,26 +379,26 @@ char fixedString[16];
 		 *
 		 *	@tparam Container type. Must be sequential.
 		 */
-		template<class T> class SetContainer: public SetContainerPar
+		template<class T> class STLSetContainer: public SetContainer
 		{
 			mutable SetRefBuilder<typename T::value_type> m_buffer;
 			mutable typename T::iterator m_itBuffer;
 
 			Set& manufacture()
 			{
-				m_container.push_back(typename T::value_type());
-				m_buffer.set(m_container.back());
+				data.push_back(typename T::value_type());
+				m_buffer.set(data.back());
 				return m_buffer;
 			}
-			void trim() { m_container.pop_back(); }
+			void trim() { data.pop_back(); }
 			const Set* pull() const
 			{
 				m_buffer.set(*m_itBuffer++);
 				return &m_buffer;
 			}
 		public:
-			T m_container;
-			SetContainer(): m_itBuffer(m_container.begin()) {}
+			T data;
+			STLSetContainer(): m_itBuffer(data.begin()) {}
 		};
 	
 		/** 
@@ -435,16 +434,20 @@ char fixedString[16];
 
 	class Query
 	{
-	protected:
-		Query(unsigned char flags);
-
+	private:
 		struct SharedData
 		{
-			enum Flags { FLAG_SINGLE_PARAMETER=1, FLAG_SINGLE_RESULT=1<<1, FLAG_BUSY=1<<2 };
-			inline SharedData(unsigned char flags);
-			~SharedData();
+			enum Flags { FLAG_SINGLE_PARAMETERS=1, FLAG_SINGLE_RESULTS=1<<1 };
+			SharedData(): m_parameters(0), m_results(0), m_insertId(0), m_rows(0), m_cancel(false), m_flags(FLAG_SINGLE_PARAMETERS) {}
+			~SharedData()
+			{
+				delete m_rows;
+				delete m_insertId;
+				destroyResults();
+				destroyParameters();
+			}
 			void* m_parameters;
-			void* m_result;
+			void* m_results;
 			unsigned long long int* m_insertId;
 			unsigned long long int* m_rows;
 			Error m_error;
@@ -452,6 +455,22 @@ char fixedString[16];
 			boost::mutex m_callbackMutex;
 			bool m_cancel;
 			unsigned char m_flags;
+
+			void destroyResults()
+			{
+				if(m_flags&FLAG_SINGLE_RESULTS)
+					delete static_cast<Data::Set*>(m_results);
+				else
+					delete static_cast<Data::SetContainer*>(m_results);
+			}
+
+			void destroyParameters()
+			{
+				if(m_flags&FLAG_SINGLE_PARAMETERS)
+					delete static_cast<Data::Set*>(m_parameters);
+				else
+					delete static_cast<Data::SetContainer*>(m_parameters);
+			}
 		};
 
 		boost::shared_ptr<SharedData> m_sharedData;
@@ -459,109 +478,79 @@ char fixedString[16];
 
 		enum Flags { FLAG_ORIGINAL=1, FLAG_KEEPALIVE=1<<1 };
 
-	public:
-		inline Query(const Query& x): m_sharedData(x.m_sharedData), m_flags(0) {}
-		inline ~Query() { if(m_flags == FLAG_ORIGINAL) cancel(); }
-		long int insertId() const { return m_sharedData->m_insertId?*(m_sharedData->m_insertId):-1; }
-		long int rows() const { return m_sharedData->m_rows?*(m_sharedData->m_rows):-1; }
-		void setCallback(boost::function<void()> callback) { m_sharedData->m_callback = callback; }
-		bool busy() const { return m_sharedData->m_flags & SharedData::FLAG_BUSY; }
-		void cancel() { boost::lock_guard<boost::mutex> lock(m_sharedData->m_callbackMutex); m_sharedData->m_cancel = true; }
-		Error error() const { return m_sharedData->m_error; }
-		void keepAlive() { m_flags|=FLAG_KEEPALIVE; }
-
-		void swap(Query& query)
+		void callback()
 		{
-			void* x = m_sharedData->m_parameters;
-			m_sharedData->m_parameters = query.m_sharedData->m_result;
-			query.m_sharedData->m_result = x;
+			boost::lock_guard<boost::mutex> lock(m_sharedData->m_callbackMutex);
+			if(!m_sharedData->m_cancel && !m_sharedData->m_callback.empty())
+				m_sharedData->m_callback();
 		}
 
-	private:
-		inline void callback();
 		template<class T> friend class ConnectionPar;
 
-	};
-
-	template<class PARAMETERS> class QuerySingleParametersNoResults: public Query
-	{
 	public:
-		QuerySingleParametersNoResults(bool fetchAffectedRows=false, bool fetchLastInsertId=false): Query(SharedData::FLAG_SINGLE_PARAMETER)
+		Query(): m_sharedData(new SharedData), m_flags(FLAG_ORIGINAL) { }
+		Query(const Query& x): m_sharedData(x.m_sharedData), m_flags(0) {}
+		~Query()
 		{
-			m_sharedData->m_parameters=new Data::SetBuilder<PARAMETERS>;
-			if(fetchLastInsertId) m_sharedData->m_insertId=new unsigned long long;
-			if(fetchAffectedRows) m_sharedData->m_rows=new unsigned long long;
+			if(m_flags == FLAG_ORIGINAL)
+			{
+				boost::lock_guard<boost::mutex> lock(m_sharedData->m_callbackMutex);
+				cancel(true);
+			}
 		}
-		PARAMETERS& parameters(){ return *static_cast<Data::SetBuilder<PARAMETERS>*>(m_sharedData->m_parameters); }
-	private:
-		QuerySingleParametersNoResults(const QuerySingleParametersNoResults& x);
-	};
+		unsigned int insertId() const { return m_sharedData->m_insertId?*(m_sharedData->m_insertId):0; }
+		unsigned int rows() const { return m_sharedData->m_rows?*(m_sharedData->m_rows):0; }
+		bool busy() const { return m_sharedData.use_count() != 1; }
+		Error error() const { return m_sharedData->m_error; }
 
-	template<class PARAMETERS> class QueryMultipleParametersNoResults: public Query
-	{
-	public:
-		QueryMultipleParametersNoResults(bool fetchAffectedRows=false): Query(0)
+		void setCallback(boost::function<void()> callback) { m_sharedData->m_callback = callback; }
+		void keepAlive(bool x) { if(x) m_flags|=FLAG_KEEPALIVE; else m_flags&=~FLAG_KEEPALIVE; }
+		void cancel(bool x) { m_sharedData->m_cancel = x; }
+		void enableRows(bool x)
 		{
-			m_sharedData->m_parameters=new Data::SetContainer<PARAMETERS>;
-			if(fetchAffectedRows) m_sharedData->m_rows=new unsigned long long;
+			if(x)
+			{
+				if(!m_sharedData->m_rows)
+					m_sharedData->m_rows = new unsigned long long;
+			}
+			else
+			{
+				delete m_sharedData->m_rows;
+				m_sharedData->m_rows = 0;
+			}
 		}
-		PARAMETERS& parameters(){ return static_cast<Data::SetContainer<PARAMETERS>*>(m_sharedData->m_parameters)->m_container; }
-	private:
-		QueryMultipleParametersNoResults(const QueryMultipleParametersNoResults& x);
-	};
+		void enableInsertId(bool x)
+		{
+			if(x)
+			{
+				if(!m_sharedData->m_insertId)
+					m_sharedData->m_insertId = new unsigned long long;
+			}
+			else
+			{
+				delete m_sharedData->m_insertId;
+				m_sharedData->m_insertId = 0;
+			}
+		}
 
-	template<class PARAMETERS, class RESULT> class QuerySingleParametersSingleResults: public Query
-	{
-	public:
-		QuerySingleParametersSingleResults(): Query(SharedData::FLAG_SINGLE_PARAMETER|SharedData::FLAG_SINGLE_RESULT)
-		{
-			m_sharedData->m_parameters=new Data::SetBuilder<PARAMETERS>;
-			m_sharedData->m_result=new Data::SetBuilder<RESULT>;
-		}
-		PARAMETERS& parameters(){ return *static_cast<Data::SetBuilder<PARAMETERS>*>(m_sharedData->m_parameters); }
-		RESULT& result(){ return *static_cast<Data::SetBuilder<RESULT>*>(m_sharedData->m_result); }
-	private:
-		QuerySingleParametersSingleResults(const QuerySingleParametersSingleResults& x);
-	};
+		void setResults(Data::Set* results) { m_sharedData->destroyResults(); m_sharedData->m_results=results; m_sharedData->m_flags|=SharedData::FLAG_SINGLE_RESULTS; }
+		void setResults(Data::SetContainer* results) { m_sharedData->destroyResults(); m_sharedData->m_results=results; m_sharedData->m_flags&=~SharedData::FLAG_SINGLE_RESULTS; }
+		void setParameters(Data::Set* parameters) { m_sharedData->destroyParameters(); m_sharedData->m_parameters=parameters; m_sharedData->m_flags|=SharedData::FLAG_SINGLE_PARAMETERS; }
+		void setParameters(Data::SetContainer* parameters) { m_sharedData->destroyParameters(); m_sharedData->m_parameters=parameters; m_sharedData->m_flags &= ~SharedData::FLAG_SINGLE_PARAMETERS; }
 
-	template<class PARAMETERS, class RESULT> class QuerySingleParametersMultipleResults: public Query
-	{
-	public:
-		QuerySingleParametersMultipleResults(bool fetchTotalRows=false): Query(SharedData::FLAG_SINGLE_PARAMETER)
-		{
-			m_sharedData->m_parameters=new Data::SetBuilder<PARAMETERS>;
-			m_sharedData->m_result=new Data::SetContainer<RESULT>;
-			if(fetchTotalRows) m_sharedData->m_rows=new unsigned long long;
-		}
-		PARAMETERS& parameters(){ return *static_cast<Data::SetBuilder<PARAMETERS>*>(m_sharedData->m_parameters); }
-		RESULT& result(){ return static_cast<Data::SetContainer<RESULT>*>(m_sharedData->m_result)->m_container; }
-	private:
-		QuerySingleParametersMultipleResults(const QuerySingleParametersMultipleResults& x);
-	};
+		template<class T> T* createResults() { setResults(new T); return static_cast<T*>(results()); }
+		template<class T> T* createParameters() { setParameters(new T); return static_cast<T*>(parameters()); }
 
-	template<class RESULT> class QueryNoParametersMultipleResults: public Query
-	{
-	public:
-		QueryNoParametersMultipleResults(bool fetchTotalRows=false): Query(SharedData::FLAG_SINGLE_PARAMETER)
-		{
-			m_sharedData->m_result=new Data::SetContainer<RESULT>;
-			if(fetchTotalRows) m_sharedData->m_rows=new unsigned long long;
-		}
-		RESULT& result(){	return static_cast<Data::SetContainer<RESULT>*>(m_sharedData->m_result)->m_container; }
-	private:
-		QueryNoParametersMultipleResults(const QueryNoParametersMultipleResults& x);
-	};
+		void relinquishResults() { m_sharedData->m_results=0; m_sharedData->m_flags &= ~SharedData::FLAG_SINGLE_RESULTS; }
+		void relinquishParameters() { m_sharedData->m_parameters=0; m_sharedData->m_flags |= SharedData::FLAG_SINGLE_PARAMETERS; }
 
-	template<class RESULT> class QueryNoParametersSingleResults: public Query
-	{
-	public:
-		QueryNoParametersSingleResults(): Query(SharedData::FLAG_SINGLE_PARAMETER|SharedData::FLAG_SINGLE_RESULT)
-		{
-			m_sharedData->m_result=new Data::SetBuilder<RESULT>;
-		}
-		RESULT& result(){ return *static_cast<Data::SetBuilder<RESULT>*>(m_sharedData->m_result); }
-	private:
-		QueryNoParametersSingleResults(const QueryNoParametersSingleResults& x);
+		void* results() { return m_sharedData->m_results; }
+		void* parameters() { return m_sharedData->m_parameters; }
+
+		void clearResults() { m_sharedData->destroyResults(); relinquishResults(); }
+		void clearParameters() { m_sharedData->destroyParameters(); relinquishParameters(); }
+
+		void reset() { clearResults(); clearParameters(); enableInsertId(false); enableRows(false); m_sharedData->m_error=Error(); setCallback(boost::function<void()>()); cancel(false); keepAlive(false); }
 	};
 
 	/** 
@@ -605,12 +594,23 @@ char fixedString[16];
 		 */
 		void intHandler();
 
+		class TakeStatement
+		{
+			boost::lock_guard<boost::mutex> m_lock;
+			const bool*& m_canceler;
+		public:
+			TakeStatement(const bool*& canceler, bool& dest, boost::mutex& mutex): m_lock(mutex), m_canceler(canceler) { canceler=&dest; }
+			~TakeStatement() { m_canceler=s_false; }			
+		};
+
 	protected:
 		ConnectionPar(const int maxThreads_): Connection(maxThreads_) {}
 		inline void queue(T* const& statement, Query& query);
 	public:
 		void start();
 		void terminate();
+
+		static const bool s_false;
 	};	
 
 	/** 
@@ -621,7 +621,6 @@ char fixedString[16];
 	protected:
 		Data::Conversions paramsConversions;
 		Data::Conversions resultsConversions;
-		static const bool s_false;
 	};
 }
 
@@ -688,26 +687,25 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 		querySet.m_statement->m_stop = &(querySet.m_query.m_sharedData->m_cancel);
 		try
 		{
-			if(querySet.m_query.m_sharedData->m_flags & Query::SharedData::FLAG_SINGLE_PARAMETER)
+			TakeStatement takeStatement(querySet.m_statement->m_stop, querySet.m_query.m_sharedData->m_cancel, querySet.m_statement->executeMutex);
+			if(querySet.m_query.m_sharedData->m_flags & Query::SharedData::FLAG_SINGLE_PARAMETERS)
 			{
-				if(querySet.m_query.m_sharedData->m_flags & Query::SharedData::FLAG_SINGLE_RESULT)
-					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.m_sharedData->m_parameters), *static_cast<Data::Set*>(querySet.m_query.m_sharedData->m_result));
+				if(querySet.m_query.m_sharedData->m_flags & Query::SharedData::FLAG_SINGLE_RESULTS)
+					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), *static_cast<Data::Set*>(querySet.m_query.results()));
 				else
-					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.m_sharedData->m_parameters), static_cast<Data::SetContainerPar*>(querySet.m_query.m_sharedData->m_result), querySet.m_query.m_sharedData->m_insertId, querySet.m_query.m_sharedData->m_rows);
+					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), static_cast<Data::SetContainer*>(querySet.m_query.results()), querySet.m_query.m_sharedData->m_insertId, querySet.m_query.m_sharedData->m_rows);
 			}
 			else
 			{
-				querySet.m_statement->execute(*static_cast<const Data::SetContainerPar*>(querySet.m_query.m_sharedData->m_parameters), querySet.m_query.m_sharedData->m_rows);
+				querySet.m_statement->execute(*static_cast<const Data::SetContainer*>(querySet.m_query.parameters()), querySet.m_query.m_sharedData->m_rows);
 			}
 		}
 		catch(const Error& e)
 		{
 			querySet.m_query.m_sharedData->m_error=e;
 		}
-		querySet.m_statement->m_stop = &T::s_false;
 
 		querySet.m_query.callback();
-		querySet.m_query.m_sharedData->m_flags ^= Query::SharedData::FLAG_BUSY;
 	}
 
 	{
@@ -719,19 +717,11 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 
 template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, Query& query)
 {
-	query.m_sharedData->m_flags |= Query::SharedData::FLAG_BUSY;
 	boost::lock_guard<boost::mutex> queriesLock(queries);
 	queries.push(QuerySet(query, statement));
 	wakeUp.notify_one();
 }
 
-void ASql::Query::callback()
-{
-	if(!m_sharedData->m_cancel && !m_sharedData->m_callback.empty())
-	{
-		boost::lock_guard<boost::mutex> lock(m_sharedData->m_callbackMutex);
-		m_sharedData->m_callback();
-	}
-}
+template<class T> const bool ASql::ConnectionPar<T>::s_false = false;
 
 #endif
