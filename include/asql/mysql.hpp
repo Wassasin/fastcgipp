@@ -139,7 +139,7 @@ namespace ASql
 			 * @param[in] parameterSet Template object of parameter data set. Null means no parameters.
 			 * @param[in] resultSet Template object of result data set. Null means no results.
 			 */
-			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet): connection(connection_), stmt(mysql_stmt_init(&connection_.connection)), m_initialized(false), m_stop(&s_false)
+			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet): connection(connection_), stmt(mysql_stmt_init(&connection_.connection)), m_initialized(false), m_stop(&ConnectionPar<Statement>::s_false)
 			{
 				init(queryString, queryLength, parameterSet, resultSet);
 			}
@@ -148,7 +148,7 @@ namespace ASql
 			 * 
 			 * @param[in] connection_ %MySQL connection to run query through.
 			 */
-			Statement(Connection& connection_): connection(connection_), stmt(0), m_initialized(false), m_stop(&s_false) {}
+			Statement(Connection& connection_): connection(connection_), stmt(0), m_initialized(false), m_stop(&ConnectionPar<Statement>::s_false) {}
 			~Statement() { if(m_initialized) mysql_stmt_close(stmt); }
 			
 			/** 
@@ -191,7 +191,7 @@ namespace ASql
 			 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value.
 			 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query.
 			 */
-			void execute(const Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0);
+			void execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0);
 
 			/** 
 			 * @brief Execute single result row %MySQL statement.
@@ -212,7 +212,7 @@ namespace ASql
 			 */
 			bool execute(const Data::Set* const parameters, Data::Set& results);
 
-			void execute(const Data::SetContainerPar& parameters, unsigned long long int* rows=0);
+			void execute(const Data::SetContainer& parameters, unsigned long long int* rows=0);
 
 			/** 
 			 * @brief Asynchronously execute a %MySQL statement.

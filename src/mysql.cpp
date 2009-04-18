@@ -125,16 +125,14 @@ bool ASql::MySQL::Statement::executeResult(Data::Set& row)
 	};
 }
 
-void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::SetContainerPar* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
+void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
 {
-	boost::lock_guard<boost::mutex> executeLock(executeMutex);
-
 	if(*m_stop) goto end;
 	executeParameters(parameters);
 
 	if(results)
 	{
-		Data::SetContainerPar& res=*results;
+		Data::SetContainer& res=*results;
 
 		while(1)
 		{{
@@ -167,7 +165,6 @@ end:
 bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Set& results)
 {
 	bool retval(false);
-	boost::lock_guard<boost::mutex> executeLock(executeMutex);
 	if(*m_stop) goto end;
 	executeParameters(parameters);
 	if(*m_stop) goto end;
@@ -178,10 +175,8 @@ end:
 	return retval;
 }
 
-void ASql::MySQL::Statement::execute(const Data::SetContainerPar& parameters, unsigned long long int* rows)
+void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsigned long long int* rows)
 {
-	boost::lock_guard<boost::mutex> executeLock(executeMutex);
-
 	if(rows) *rows = 0;
 	
 	for(const Data::Set* set(parameters.pull()); set!=0; set=parameters.pull())
