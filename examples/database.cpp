@@ -1,11 +1,12 @@
 #include <fstream>
 #include <vector>
+
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
-#include <fastcgi++/asqlbind.hpp>
 
 
 void error_log(const char* msg)
@@ -22,7 +23,7 @@ void error_log(const char* msg)
 	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
 }
 
-struct Log: public ASql::Data::Set
+struct Log
 {
 public:
 	size_t numberOfSqlElements() const { return 4; }
@@ -50,7 +51,6 @@ public:
 	ASql::Data::WtextN referral;
 };
 
-
 class Database: public Fastcgipp::Request<wchar_t>
 {
 	static const char insertStatementString[];
@@ -62,14 +62,13 @@ class Database: public Fastcgipp::Request<wchar_t>
 
 	enum Status { START, FETCH } status;
 
-	typedef ASql::Data::SetContainer<std::vector<Log> > LogContainer;
+	typedef std::vector<Log> LogContainer;
 	
-	boost::shared_ptr<LogContainer> selectSet;
-	boost::shared_ptr<long long unsigned> rows;
-
 	bool response();
+
+	boost::scoped_ptr<ASql::Query> m_query;
 public:
-	Database(): status(START), selectSet(new LogContainer), rows(new long long unsigned(0)) {}
+	Database(): status(START) {}
 	static void initSql();
 };
 
@@ -83,7 +82,7 @@ ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 void Database::initSql()
 {
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
-	Log log;
+	const ASql::Data::SetBuilder<Log> log;
 	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
 	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
 	sqlConnection.start();
@@ -95,12 +94,15 @@ bool Database::response()
 	{
 		case START:
 		{
-			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, Fastcgipp::asqlbind(callback));
+			m_query.reset(new ASql::QueryNoParametersMultipleResults<LogContainer>(true));
+			m_query->setCallback(boost::bind(callback, Fastcgipp::Message(1)));
+			selectStatement.queue(*m_query);
 			status=FETCH;
 			return false;
 		}
 		case FETCH:
 		{
+			LogContainer& selectSet(static_cast<ASql::QueryNoParametersMultipleResults<LogContainer>&>(*m_query).result());
 			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
 <html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
@@ -109,7 +111,7 @@ bool Database::response()
 		<title>fastcgi++: SQL Database example</title>\n\
 	</head>\n\
 	<body>\n\
-		<h2>Showing " << selectSet->size() << " results out of " << *rows << "</h2>\n\
+		<h2>Showing " << selectSet.size() << " results out of " << m_query->rows() << "</h2>\n\
 		<table>\n\
 			<tr>\n\
 				<td><b>IP Address</b></td>\n\
@@ -118,7 +120,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(selectSet.begin()); it!=selectSet.end(); ++it)
 			{
 				out << "\
 			<tr>\n\
@@ -135,16 +137,19 @@ bool Database::response()
 	</body>\n\
 </html>";
 			
-			boost::shared_ptr<Log> queryParameters(new Log);
-			queryParameters->ipAddress = environment.remoteAddress;
-			queryParameters->timestamp = boost::posix_time::second_clock::universal_time();
+			m_query.reset(new ASql::QuerySingleParametersNoResults<Log>);
+			Log& queryParameters(static_cast<ASql::QuerySingleParametersNoResults<Log>&>(*m_query).parameters());
+			queryParameters.ipAddress = environment.remoteAddress;
+			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment.referer.size())
-				queryParameters->referral = environment.referer;
+				queryParameters.referral = environment.referer;
 			else
-				queryParameters->referral.nullness = true;
+				queryParameters.referral.nullness = true;
 
-			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, Fastcgipp::asqlbind(callback));
+			m_query->keepAlive();
+			insertStatement.queue(*m_query);
 
+			error_log("Finishing Request");
 			return true;
 		}
 	}

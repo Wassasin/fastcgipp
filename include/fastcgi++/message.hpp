@@ -37,6 +37,8 @@ namespace Fastcgipp
 	 */
 	struct Message
 	{
+		Message(const int type_): type(type_) {}
+		Message(): type(0) {}
 		//! Type of message. A 0 means FastCGI record. Anything else is open.
 		int type;
 		//! Size of the data section.

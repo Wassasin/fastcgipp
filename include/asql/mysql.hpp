@@ -55,7 +55,7 @@ namespace ASql
 			 * @param[in] charset Null terminated string representation of desired connection character set (latin1, utf8, ...)
 			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
 			 */
-			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_)
+			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_), m_initialized(false)
 			{
 				connect(host, user, passwd, db, port, unix_socket, client_flag, charset);
 			}
@@ -65,7 +65,7 @@ namespace ASql
 			 * 
 			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
 			 */
-			Connection(const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_) {}
+			Connection(const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_), m_initialized(false) {}
 			~Connection();
 
 			/**
@@ -88,6 +88,8 @@ namespace ASql
 			 * @param rows A reference to a pointer to the integer to write the value to.
 			 */
 			void getFoundRows(unsigned long long* const& rows);
+
+			MYSQL* getConnection() { return &connection; }
 		private:
 			/** 
 			 * @brief Actual %MySQL C API connection object.
@@ -104,6 +106,8 @@ namespace ASql
 			 * @brief Bind object for storing the total number of results from a query.
 			 */
 			MYSQL_BIND foundRowsBinding;
+
+			bool m_initialized;
 		};
 
 		/** 
@@ -135,7 +139,7 @@ namespace ASql
 			 * @param[in] parameterSet Template object of parameter data set. Null means no parameters.
 			 * @param[in] resultSet Template object of result data set. Null means no results.
 			 */
-			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet): connection(connection_), stmt(mysql_stmt_init(&connection_.connection))
+			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet): connection(connection_), stmt(mysql_stmt_init(&connection_.connection)), m_initialized(false), m_stop(&s_false)
 			{
 				init(queryString, queryLength, parameterSet, resultSet);
 			}
@@ -144,8 +148,8 @@ namespace ASql
 			 * 
 			 * @param[in] connection_ %MySQL connection to run query through.
 			 */
-			Statement(Connection& connection_): connection(connection_), stmt(0) {}
-			~Statement() { mysql_stmt_close(stmt); }
+			Statement(Connection& connection_): connection(connection_), stmt(0), m_initialized(false), m_stop(&s_false) {}
+			~Statement() { if(m_initialized) mysql_stmt_close(stmt); }
 			
 			/** 
 			 *	@brief Initialize statement.
@@ -208,6 +212,8 @@ namespace ASql
 			 */
 			bool execute(const Data::Set* const parameters, Data::Set& results);
 
+			void execute(const Data::SetContainerPar& parameters, unsigned long long int* rows=0);
+
 			/** 
 			 * @brief Asynchronously execute a %MySQL statement.
 			 *
@@ -219,15 +225,11 @@ namespace ASql
 			 * For two, a callback function is supplied to be called when the query is complete. The data passed is a ASql::Error
 			 * data structure.
 			 * 
-			 * @param[in] parameters %Data set of %MySQL query parameter data. If no data pass SQL_EMPTY_SET.
-			 * @param[out] results %Data set container of %MySQL query result data. If no data pass SQL_EMTPY_CONT.
-			 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value. If not needed pass SQL_EMPTY_INT
-			 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query. If not needed pass SQL_EMPTY_INT.
-			 * @param[in] callback Callback function taking a ASql::Error parameter.
+			 * @param[in/out] Query object to manage the asynchronous execution of the query.
 			 */
-			inline void queue(const boost::shared_ptr<const Data::Set>& parameters, const boost::shared_ptr<Data::SetContainerPar>& results, const boost::shared_ptr<unsigned long long int>& insertId, const boost::shared_ptr<unsigned long long int>& rows, const boost::function<void (ASql::Error)>& callback)
+			inline void queue(Query& query)
 			{
-				connection.queue(this, parameters, results, insertId, rows, callback);
+				connection.queue(this, query);
 			}
 		private:
 			Connection& connection;
@@ -303,6 +305,12 @@ namespace ASql
 			 * @return true normally, false if no data
 			 */
 			bool executeResult(Data::Set& row);
+
+			bool m_initialized;
+
+			const bool* m_stop;
+
+			friend class ConnectionPar<Statement>;
 		};
 
 		/** 
