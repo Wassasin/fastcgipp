@@ -498,8 +498,6 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
     postBufferSize = 0;
     size_t bufPtr = 0;
 
-std::cout << "'" << buffer.get() << "'\n";
-
 	charToString (buffer.get(), bufferSize, queryString);
 
     // split up the buffer by the "&" tokenizer to the key/value pairs
@@ -545,7 +543,6 @@ std::cout << "'" << buffer.get() << "'\n";
             posts[std::basic_string<charT>(key.get())] = post;
 
             bufPtr += (kv_pairs[i].length() + 1) * sizeof(charT); // Move the pointer forward to the next record.
-//std::cout << buffer.get() + bufPtr << std::endl;
         }
     }
 }
