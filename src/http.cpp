@@ -479,6 +479,7 @@ template void Fastcgipp::Http::Environment<char>::fillPostsUrlEncoded(const char
 template void Fastcgipp::Http::Environment<wchar_t>::fillPostsUrlEncoded(const char* data, size_t size);
 template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEncoded(const char* data, size_t size)
 {
+
     // FIXME: add proper buffering to postBuffer
     //
     enum {KEY, VALUE};
@@ -492,10 +493,12 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
     boost::scoped_array<char> buffer(new char[bufferSize]);
     if(postBufferSize) memcpy (buffer.get(), postBuffer.get(), postBufferSize);
     memcpy (buffer.get() + postBufferSize, data, size);
-    buffer[bufferSize - 1] = '\0';
+    buffer[bufferSize] = '\0';
     postBuffer.reset();
     postBufferSize = 0;
     size_t bufPtr = 0;
+
+std::cout << "'" << buffer.get() << "'\n";
 
 	charToString (buffer.get(), bufferSize, queryString);
 
@@ -542,7 +545,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
             posts[std::basic_string<charT>(key.get())] = post;
 
             bufPtr += (kv_pairs[i].length() + 1) * sizeof(charT); // Move the pointer forward to the next record.
-            std::cout << buffer.get() + bufPtr << std::endl;
+//std::cout << buffer.get() + bufPtr << std::endl;
         }
     }
 }
