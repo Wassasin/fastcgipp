@@ -153,7 +153,31 @@ namespace Fastcgipp
 		 * @param data %Block of POST data.
 		 * @param size Size in bytes of data.
 		 */
-		virtual void processPostData(const char* data, size_t size) { environment.fillPosts(data, size); }
+		virtual void processPostData(const char* data, size_t size)
+        {
+            if(typeid(environment.contentType) == typeid(std::basic_string<char>))
+            {
+                if(!memcmp(environment.contentType.c_str(), "application/x-www-form-urlencoded", environment.contentType.length()))
+                {
+                    environment.fillPostsUrlEncoded(data, size);
+                }
+                else if(!memcmp(environment.contentType.c_str(), "multipart/form-data", environment.contentType.length()))
+                {
+                    environment.fillPosts(data, size);
+                }
+            }
+            else if(typeid(environment.contentType) == typeid(std::basic_string<wchar_t>))
+            {
+                if(!memcmp(environment.contentType.c_str(), L"application/x-www-form-urlencoded", environment.contentType.length()))
+                {
+                    environment.fillPostsUrlEncoded(data, size);
+                }
+                else if(!memcmp(environment.contentType.c_str(), L"multipart/form-data", environment.contentType.length()))
+                {
+                    environment.fillPosts(data, size);
+                }
+            }
+        }
 	private:
 		//! Queue type for pending messages
 		/*!

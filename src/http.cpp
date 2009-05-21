@@ -20,6 +20,9 @@
 
 
 #include <algorithm>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 #include <fastcgi++/http.hpp>
 
@@ -240,10 +243,12 @@ int Fastcgipp::Http::atoi(const char* start, const char* end)
 	return neg?-result:result;
 }
 
-int Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destination, size_t size)
+template int Fastcgipp::Http::percentEscapedToRealBytes<char>(const char* source, char* destination, size_t size);
+template int Fastcgipp::Http::percentEscapedToRealBytes<wchar_t>(const wchar_t* source, wchar_t* destination, size_t size);
+template<class charT> int Fastcgipp::Http::percentEscapedToRealBytes(const charT* source, charT* destination, size_t size)
 {
 	unsigned int i=0;
-	char* start=destination;
+	charT* start=destination;
 	while(1)
 	{
 		if(*source=='%')
@@ -468,6 +473,78 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPosts(const 
 		postBufferSize=bufferSize;
 		size=0;
 	}}
+}
+
+template void Fastcgipp::Http::Environment<char>::fillPostsUrlEncoded(const char* data, size_t size);
+template void Fastcgipp::Http::Environment<wchar_t>::fillPostsUrlEncoded(const char* data, size_t size);
+template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEncoded(const char* data, size_t size)
+{
+
+    // FIXME: add proper buffering to postBuffer
+    //
+    enum {KEY, VALUE};
+    Fastcgipp::Http::Post<charT> post;
+    post.type = Fastcgipp::Http::Post<charT>::form;
+    std::vector<std::basic_string<charT> > kv_pairs; // The list of kv pairs
+    std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
+    std::basic_string<charT> queryString;
+
+    size_t bufferSize = postBufferSize + size;
+    boost::scoped_array<char> buffer(new char[bufferSize]);
+    if(postBufferSize) memcpy (buffer.get(), postBuffer.get(), postBufferSize);
+    memcpy (buffer.get() + postBufferSize, data, size);
+    buffer[bufferSize] = '\0';
+    postBuffer.reset();
+    postBufferSize = 0;
+    size_t bufPtr = 0;
+
+	charToString (buffer.get(), bufferSize, queryString);
+
+    // split up the buffer by the "&" tokenizer to the key/value pairs
+    boost::algorithm::split (kv_pairs, queryString, boost::is_any_of ("&"));
+
+    // For each key/value pair, split it by the "=" tokenizer to get the key and
+    // value. The result should be exactly two tokens (the key and the value).
+    for (int i = 0; i < kv_pairs.size(); i++)
+    {
+        boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
+        // Check the number of tokes. Anything but 2 is bad.
+        if (kv_pair.size() != 2)
+        {
+            // More than 2 tokens, or First record of more-than-one records.
+            // Definitely a malformed request.
+            if ((kv_pair.size() > 2) ||
+                ((i == 0) && (kv_pairs.size() > 1)))
+            {
+                return;
+                //throw ();
+            }
+            // Last record. Could be incomplete or malformed. Will also catch
+            // case of one record only
+            else if (kv_pairs.size() - 1 == i)
+            {
+                char *rest = NULL;
+                memcpy(rest, buffer.get() + bufPtr, bufferSize - bufPtr);
+                // stick the leftover in postBuffer
+                postBuffer.reset(rest);
+                postBufferSize = bufferSize - bufPtr;
+                return;
+            }
+        }
+        else // Fine.
+        {
+            boost::scoped_array<charT> key(new charT[kv_pair[KEY].length() * sizeof(charT)]);
+            boost::scoped_array<charT> value(new charT[kv_pair[VALUE].length() * sizeof(charT)]);
+
+            key[percentEscapedToRealBytes(kv_pair[KEY].c_str(), key.get(), kv_pair[KEY].length())] = '\0';
+            value[percentEscapedToRealBytes(kv_pair[VALUE].c_str(), value.get(), kv_pair[VALUE].length())] = '\0';
+
+            post.value = std::basic_string<charT>(value.get());
+            posts[std::basic_string<charT>(key.get())] = post;
+
+            bufPtr += (kv_pairs[i].length() + 1) * sizeof(charT); // Move the pointer forward to the next record.
+        }
+    }
 }
 
 bool Fastcgipp::Http::SessionId::seeded=false;
