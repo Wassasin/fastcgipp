@@ -1,4 +1,4 @@
-export VERSION="2.0alpha-`git --no-pager log -1 | head -n 1 | cut -f 2 -d ' ' | cut -c -8`"
+export VERSION="2.0beta-`git --no-pager log -1 | head -n 1 | cut -f 2 -d ' ' | cut -c -8`"
 export DATE="`date -u +'%b %d, %Y'`"
 
 sed "s/_VERSION_/$VERSION/" README.in > README.tmp
