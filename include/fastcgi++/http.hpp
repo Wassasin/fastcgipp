@@ -125,6 +125,7 @@ namespace Fastcgipp
 			inline bool operator<=(const Address x) const { return data<=x.data; }
 			inline bool operator>=(const Address x) const { return data>=x.data; }
 			inline Address operator&(const Address x) const { return Address(data&x.data); }
+
 		private:
 			template<class charT, class Traits> friend std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const Address& address);
 			template<class charT, class Traits> friend std::basic_istream<charT, Traits>& operator>>(std::basic_istream<charT, Traits>& is, Address& address);
@@ -197,6 +198,7 @@ namespace Fastcgipp
 			boost::posix_time::ptime ifModifiedSince;
 
 			typedef std::map<std::basic_string<charT>, Post<charT> > Posts;
+			typedef typename Posts::const_iterator PostsConstIter;
 			//! STL container associating Post objects with their name
 			Posts posts;
 
@@ -237,6 +239,45 @@ namespace Fastcgipp
 
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
+
+            //! Check if a post variable named "key" exists in the posts member
+            /*! @param[in] key The name of the variable to look up.
+             *  @return True if a variable named key was found, false otherwise.
+             * */
+            bool postVariableExists(const std::basic_string<charT>& key);
+
+            //! Attempt to retrieve the value associated with a post variable and cast it to value's type.
+            /*! @param[in] key The name of the variable to look up.
+             *  @param[out] value The value associated with key. Will attempt
+             *  to cast the data associated with key (stored internally as a
+             *  string) to value's type.
+             *  @return True if a variable named key was found and the
+             *  associated data was compatible with value's type (i.e. the cast
+             *  succeeded). False otherwise.
+             * */
+            template<class V> bool postVariableRetrieve(const std::basic_string<charT>& key, V& value)
+            {
+                PostsConstIter it;
+
+                if ((it = this->posts.find (key)) == this->posts.end () ||
+                     it->second.type != Post<charT>::form)
+                {
+                    return false;
+                }
+                else
+                {
+                    try
+                    {
+                        V tmp = boost::lexical_cast<V>(it->second.value);
+                        value = tmp;
+                        return true;
+                    }
+                    catch(boost::bad_lexical_cast &)
+                    {
+                        return false;
+                    }
+                }
+            }
 
 		private:
 			//! Raw string of characters representing the post boundary
