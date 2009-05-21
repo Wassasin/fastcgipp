@@ -1502,7 +1502,7 @@ void error_log(const char* msg)
 At this point we need to define the data structures that will contain our results and parameters for our queries. In this example the insert and select queries will both deal with the same set of fields so we only need to create one structure. To make a data structure usable with the SQL facilities it must be derived from ASql::Data::Set. The derivation will require the defining of at minimum two functions, most three. By defining these function we turn the structure into a sort of container in the eyes of the SQL facilities.
 
 \code
-struct Log: public ASql::Data::Set
+struct Log
 {
 \endcode
 
@@ -1581,31 +1581,29 @@ Now we need a status indication variable for the request;
 	enum Status { START, FETCH } status;
 \endcode
 
-These next two items are for our SELECT query.
-
-The first is a special container for holding objects derived from ASql::Data::Set. We can pick out base container type as long as it follows the rules outlined by ASql::Data::SetContainer. Basically it needs to be a sequential container so in this case we'll go with an std::vector. For out purposes the thing is an std::vector. Just two private functions added for interfacing with the ASql facilities.
-
-The second is a plain integer for holding the number of total matching rows. If we were doing an insert or update we would use this to tell use the total number of affecter rows. In this example we will use a SQL_CALC_FOUND_ROWS in the query so the value will be total matches before the LIMIT is applied.
-
-Objects passed to asynchronous queries must be dynamically allocated into a shared pointer. This is to prevent data from going out of scope/being destroyed before the query is done with it. Also, if the query finishes and the request has already been completed and destroyed, the shared pointer counter will run out and the data destroyed upon query completion.
+We need a container type to use for out Log objects.
 
 \code
-	typedef ASql::Data::SetContainer<std::vector<Log> > LogContainer;
-	boost::shared_ptr<LogContainer > selectSet;
-	boost::shared_ptr<long long unsigned> rows;
+	typedef std::vector<Log> LogContainer;
 \endcode
 
 Now we declare our response function as usual.
 
 \code
 	bool response();
+\endcode
+
+This object handles all data associated with the actual queries. It provides a mechanism from controlling the scope of all data required to execute the SQL statements. Be sure to read the documentation associated with the class.
+
+\code
+	ASql::Query m_query;
 public:
 \endcode
 
-The constructor sets our status indicator properly and initializes our two shared pointers.
+The constructor sets our status indicator.
 
 \code
-	Database(): status(START), selectSet(new LogContainer), rows(new long long unsigned(0)) {}
+	Database(): status(START) {}
 \endcode
 
 Here we'll declare a static function to handle initialization of static data.
@@ -1615,7 +1613,7 @@ Here we'll declare a static function to handle initialization of static data.
 };
 \endcode
 
-Now we need to do some basic initialization of our static data. The string are straightforward. The order of question marks must match exactly to the index order of the data structure they will be read from. In this case Log. For the connection and statement objects we'll call their basic constructors.
+Now we need to do some basic initialization of our static data. The strings are straightforward. The order of question marks must match exactly to the index order of the data structure they will be read from. In this case Log. For the connection and statement objects we'll call their basic constructors.
 
 \code
 const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
@@ -1639,10 +1637,10 @@ Since we didn't use the full constructor on our connection object, we need to ac
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
 \endcode
 
-Now we initialize our insert and statements. We pass it any Log object (default constructed will do) so it can use the derived functions to build itself around it's structure. We pass a null pointer to the associated parameters/results spot if the statement doesn't actually have any. So obviously an insert will always pass a null pointer to the results set whereas a select would ofter have both parameters and results. See ASql::MySQL::Statement::init() for details.
+Now we initialize our insert and statements. We pass it any Log object (default constructed will do) build into a SQL::Data::Set object so it can use the derived functions to build itself around it's structure. The ASql::Data::SetBuilder class is used to turn our Log class into a Data::Set derivation. We pass a null pointer to the associated parameters/results spot if the statement doesn't actually have any. So obviously an insert will always pass a null pointer to the results set whereas a select would ofter have both parameters and results. See ASql::MySQL::Statement::init() for details.
 
 \code
-	Log log;
+	const ASql::Data::SetBuilder<Log> log;
 	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
 	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
 \endcode
@@ -1661,14 +1659,17 @@ bool Database::response()
 {
 	switch(status)
 	{
-\endcode
-
-If we're here the request is brand new so let's get the query started. Queueing a query is pretty easy, we pass all the necessary data. The macros EMPTY_SQL_SET, EMPTY_SQL_CONT and EMPTY_SQL_INT are provided to fill in arguments that aren't used. See ASql::MySQL::Statement::queue() for details.
-
-\code
 		case START:
 		{
-			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, Fastcgipp::asqlbind(callback));
+\endcode
+
+Now we set up our ASql::Query object for use with the statement and run it. Again, be sure to read the doc for the class.
+
+\code
+			m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >();
+			m_query.setCallback(boost::bind(callback, Fastcgipp::Message(1)));
+			m_query.enableRows(true);
+			selectStatement.queue(m_query);
 \endcode
 
 Now we set our status to indicate we are fetching the data from the SQL source. As usual return false to indicate that the request is not yet complete, just relinquishing the computer.
@@ -1679,11 +1680,12 @@ status=FETCH;
 		}
 \endcode
 
-So now our request is complete, let's send'er to the client. The following should be pretty straight forward if you've done the other tutorials.
+So now our statement is complete, let's send'er to the client. The following should be pretty straight forward if you've done the other tutorials. The creation of the selectSet reference might seem pretty cryptic, but just check the doc for ASql::Query::results().
 
 \code
 		case FETCH:
 		{
+			LogContainer& selectSet(static_cast<ASql::Data::STLSetContainer<LogContainer>*>(static_cast<ASql::Data::SetContainer*>(m_query.results()))->data);
 			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
 <html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
@@ -1692,7 +1694,7 @@ So now our request is complete, let's send'er to the client. The following shoul
 		<title>fastcgi++: SQL Database example</title>\n\
 	</head>\n\
 	<body>\n\
-		<h2>Showing " << selectSet->size() << " results out of " << *rows << "</h2>\n\
+		<h2>Showing " << selectSet.size() << " results out of " << m_query.rows() << "</h2>\n\
 		<table>\n\
 			<tr>\n\
 				<td><b>IP Address</b></td>\n\
@@ -1702,12 +1704,12 @@ So now our request is complete, let's send'er to the client. The following shoul
 			</tr>\n";
 \endcode
 
-Regarding the above, obviously selectSet->size() will give us the number of results post LIMIT whereas *rows will tell us the results pre LIMIT due to the use of SQL_CALC_FOUND_ROWS.
+Regarding the above, obviously selectSet.size() will give us the number of results post LIMIT whereas *rows will tell us the results pre LIMIT due to the use of SQL_CALC_FOUND_ROWS.
 
 Now we'll just iterate through our ASql::Data::SetContainer and show the results in a table.
 
 \code
-			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(selectSet.begin()); it!=selectSet->end(); ++it)
 			{
 				out << "\
 			<tr>\n\
@@ -1725,20 +1727,22 @@ Now we'll just iterate through our ASql::Data::SetContainer and show the results
 </html>";
 \endcode
 
-So now one last thing to do in the response: log this request. The beauty of our shared pointers is that we can queue the SQL insert statement up, return from here and have the request completed and destroyed before the SQL statement is even complete. We needn't worry about sefaulting.
+So now one last thing to do in the response is log this request. The beauty of our ASql::Query is that we can queue the SQL insert statement up, return from here and have the request completed and destroyed before the SQL statement is even complete. We needn't worry about sefaulting.
 
-So here we go, let's build a Log structure and insert it into the database. We're also going to make is so that if the referer is empty, we'll make the value NULL instead of empty. Keep in mind that the default constructor for sessionId was called and randomly generated one.
+So here we go, let's build a Log structure and insert it into the database. We're also going to make is so that if the referer is empty, we'll make the value NULL instead of empty. Keep in mind that the default constructor for sessionId was called and randomly generated one. AGAIN make sure to check the doc for ASql::Query if the queryParameters reference creation doesn't make sense to you.
 
 \code
-			boost::shared_ptr<Log> queryParameters(new Log);
-			queryParameters->ipAddress = environment.remoteAddress;
-			queryParameters->timestamp = boost::posix_time::second_clock::universal_time();
+			m_query.reset();
+			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
+			queryParameters.ipAddress = environment.remoteAddress;
+			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment.referer.size())
 				queryParameters->referral = environment.referer;
 			else
 				queryParameters->referral.nullness = true;
 
-			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, Fastcgipp::asqlbind(callback));
+			m_query.keepAlive(true);
+			insertStatement.queue(m_query);
 \endcode
 
 Now let's get our of here. Return a true and the request is completed and destroyed.
@@ -1762,6 +1766,7 @@ int main()
 {
 	try
 	{
+		Database::initSql();
 		Fastcgipp::Manager<SessionExample> fcgi;
 		fcgi.handler();
 	}
@@ -1778,12 +1783,14 @@ So be it... Jedi
 
 \code
 #include <fstream>
+#include <vector>
+
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/scoped_ptr.hpp>
 
 #include <asql/mysql.hpp>
 #include <fastcgi++/manager.hpp>
 #include <fastcgi++/request.hpp>
-#include <fastcgi++/asqlbind.hpp>
 
 
 void error_log(const char* msg)
@@ -1800,13 +1807,9 @@ void error_log(const char* msg)
 	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
 }
 
-struct Log: public ASql::Data::Set
+struct Log
 {
-	Fastcgipp::Http::Address ipAddress;
-	ASql::Data::Datetime timestamp;
-	Fastcgipp::Http::SessionId sessionId;
-	ASql::Data::WtextN referral;
-
+public:
 	size_t numberOfSqlElements() const { return 4; }
 
 	ASql::Data::Index getSqlIndex(const size_t index) const
@@ -1825,6 +1828,11 @@ struct Log: public ASql::Data::Set
 				return ASql::Data::Index();
 		}
 	}
+
+	Fastcgipp::Http::Address ipAddress;
+	ASql::Data::Datetime timestamp;
+	Fastcgipp::Http::SessionId sessionId;
+	ASql::Data::WtextN referral;
 };
 
 class Database: public Fastcgipp::Request<wchar_t>
@@ -1838,12 +1846,13 @@ class Database: public Fastcgipp::Request<wchar_t>
 
 	enum Status { START, FETCH } status;
 
-	boost::shared_ptr<LogContainer > selectSet;
-	boost::shared_ptr<long long unsigned> rows;
+	typedef std::vector<Log> LogContainer;
 
 	bool response();
+
+	ASql::Query m_query;
 public:
-	Database(): status(START), selectSet(new LogContainer), rows(new long long unsigned(0)) {}
+	Database(): status(START) {}
 	static void initSql();
 };
 
@@ -1857,7 +1866,7 @@ ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
 void Database::initSql()
 {
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
-	Log log;
+	const ASql::Data::SetBuilder<Log> log;
 	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
 	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
 	sqlConnection.start();
@@ -1869,12 +1878,16 @@ bool Database::response()
 	{
 		case START:
 		{
-			selectStatement.queue(EMPTY_SQL_SET, selectSet, EMPTY_SQL_INT, rows, Fastcgipp::asqlbind(callback));
+			m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >();
+			m_query.setCallback(boost::bind(callback, Fastcgipp::Message(1)));
+			m_query.enableRows(true);
+			selectStatement.queue(m_query);
 			status=FETCH;
 			return false;
 		}
 		case FETCH:
 		{
+			LogContainer& selectSet(static_cast<ASql::Data::STLSetContainer<LogContainer>*>(static_cast<ASql::Data::SetContainer*>(m_query.results()))->data);
 			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
 <html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
@@ -1883,7 +1896,7 @@ bool Database::response()
 		<title>fastcgi++: SQL Database example</title>\n\
 	</head>\n\
 	<body>\n\
-		<h2>Showing " << selectSet->size() << " results out of " << *rows << "</h2>\n\
+		<h2>Showing " << selectSet.size() << " results out of " << m_query.rows() << "</h2>\n\
 		<table>\n\
 			<tr>\n\
 				<td><b>IP Address</b></td>\n\
@@ -1892,7 +1905,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(selectSet.begin()); it!=selectSet.end(); ++it)
 			{
 				out << "\
 			<tr>\n\
@@ -1909,15 +1922,17 @@ bool Database::response()
 	</body>\n\
 </html>";
 			
-			boost::shared_ptr<Log> queryParameters(new Log);
-			queryParameters->ipAddress = environment.remoteAddress;
-			queryParameters->timestamp = boost::posix_time::second_clock::universal_time();
+			m_query.reset();
+			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
+			queryParameters.ipAddress = environment.remoteAddress;
+			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment.referer.size())
-				queryParameters->referral = environment.referer;
+				queryParameters.referral = environment.referer;
 			else
-				queryParameters->referral.nullness = true;
+				queryParameters.referral.nullness = true;
 
-			insertStatement.queue(queryParameters, EMPTY_SQL_CONT, EMPTY_SQL_INT, EMPTY_SQL_INT, Fastcgipp::asqlbind(callback));
+			m_query.keepAlive(true);
+			insertStatement.queue(m_query);
 
 			return true;
 		}

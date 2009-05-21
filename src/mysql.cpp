@@ -136,9 +136,9 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 
 		while(1)
 		{{
+			if(*m_stop) goto end;
 			Data::Set& row=res.manufacture();
 			bindBindings(row, resultsConversions, resultsBindings);
-			if(*m_stop) goto end;
 			if(!executeResult(row))
 			{
 				res.trim();
@@ -179,7 +179,7 @@ void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsig
 {
 	if(rows) *rows = 0;
 	
-	for(const Data::Set* set(parameters.pull()); set!=0; set=parameters.pull())
+	for(const Data::Set* set=parameters.pull(); set!=0; set=parameters.pull())
 	{
 		if(*m_stop) break;
 		executeParameters(set);
@@ -197,6 +197,7 @@ void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::
 	conversions.clear();
 
 	const int& bindSize=set.numberOfSqlElements();
+	if(!bindSize) return;
 	bindings.reset(new MYSQL_BIND[bindSize]);
 
 	std::memset(bindings.get(), 0, sizeof(MYSQL_BIND)*bindSize);
