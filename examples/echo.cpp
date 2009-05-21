@@ -97,7 +97,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 
 		//Fastcgipp::Http::Post is defined in fastcgi++/http.hpp
 		out << "<h1>Post Data</h1>";
-		if(environment.posts.size())
+		if(environment.posts.size()) {
 			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
@@ -119,6 +119,18 @@ class Echo: public Fastcgipp::Request<wchar_t>
 					out << "</pre>";
 				}
 			}
+
+            if (environment.postVariableExists(L"aquí está el campo")) // change this to "aquí está el campo" for char (drop the L).
+            {
+                out << "<p>Variable shaba Exists</p>";
+
+                float value = 0;
+                if (environment.postVariableRetrieve(L"aquí está el campo", value)) // change this to "aquí está el campo" for char (drop the L).
+                {
+                    out << "<p>And its value is '" << value << "'</p>";
+                }
+            }
+        }
 		else
 			out << "<p>No post data</p>";
 
