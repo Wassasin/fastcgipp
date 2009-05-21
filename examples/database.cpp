@@ -63,7 +63,7 @@ class Database: public Fastcgipp::Request<wchar_t>
 	enum Status { START, FETCH } status;
 
 	typedef std::vector<Log> LogContainer;
-	
+
 	bool response();
 
 	ASql::Query m_query;
@@ -103,7 +103,7 @@ bool Database::response()
 		}
 		case FETCH:
 		{
-			LogContainer& selectSet(static_cast<ASql::Data::STLSetContainer<LogContainer>*>(m_query.results())->data);
+			LogContainer& selectSet(static_cast<ASql::Data::STLSetContainer<LogContainer>*>(static_cast<ASql::Data::SetContainer*>(m_query.results()))->data);
 			out << "Content-Type: text/html; charset=utf-8\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
 <html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'>\n\
