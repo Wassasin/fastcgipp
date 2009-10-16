@@ -255,7 +255,7 @@ namespace Fastcgipp
              *  associated data was compatible with value's type (i.e. the cast
              *  succeeded). False otherwise.
              * */
-            template<class V> bool postVariableRetrieve(const std::basic_string<charT>& key, V& value) const
+            template<class V> bool postVariableRetrieve(const std::basic_string<charT>& key, V& value)
             {
                 PostsConstIter it;
 
@@ -268,7 +268,8 @@ namespace Fastcgipp
                 {
                     try
                     {
-                        value = boost::lexical_cast<V>(it->second.value);
+                        V tmp = boost::lexical_cast<V>(it->second.value);
+                        value = tmp;
                         return true;
                     }
                     catch(boost::bad_lexical_cast &)
@@ -276,60 +277,6 @@ namespace Fastcgipp
                         return false;
                     }
                 }
-            }
-
-            //! Attempts to retrieve sequence/array of values associated with a post variable and copy them into  the passed std::vector.
-            /*! @param[in] key The Array name name of the variable to look up.
-             *  @param[out] value A std::vector of the template type.
-             *  For this functio to work, the post keys should be named
-             *  something like "name[0]", "name[1]", "name[2]"... Only the
-             *  "name" part should be passed as the key to this method. See
-             *  example echo.cpp for usage
-             *  @return True if at least one variable named key with an array
-             *  index of 0 was found and the associated data was compatible
-             *  with value's type (i.e. the cast succeeded). False otherwise.
-             * */
-            template<class V> bool postVariableRetrieve(const std::basic_string<charT>& key, std::vector<V>& value) const
-            {
-                PostsConstIter it;
-                std::basic_string<charT> _key;
-                charT right_bracket[2];
-                charT left_bracket[2];
-                unsigned int i(0);
-
-                // Empty the incoming variable where the result will be stored.
-                value.clear();
-
-                // Blargh!
-                if(typeid(key) == typeid(std::basic_string<char>))
-                {
-                    memcpy(right_bracket, "]", sizeof(charT)*2); memcpy(left_bracket,  "[", sizeof(charT)*2);
-                }
-                else if(typeid(key) == typeid(std::basic_string<wchar_t>))
-                {
-                    memcpy(right_bracket, L"]", sizeof(charT)*2); memcpy(left_bracket,  L"[", sizeof(charT)*2);
-                }
-
-                // We can iterate through posts this way because it is a
-                // std::map and thus sorted alphabetically.
-                it = this->posts.begin();
-                while (it != this->posts.end()) {
-                    _key = key + left_bracket + boost::lexical_cast<std::basic_string<charT> >(i) + right_bracket;
-                    if (_key == it->first) {
-                        try {
-                            value.push_back (boost::lexical_cast<V>(it->second.value));
-                        }
-                        catch (boost::bad_lexical_cast &) {
-                            break;
-                        }
-                        // Only increment the array index if a variable key at
-                        // that index is found. Again, this only works because
-                        // a std::map is sorted alphabetically.
-                        i++;
-                    }
-                    it++;
-                }
-                return (value.size() == 0) ? false : true;
             }
 
 		private:

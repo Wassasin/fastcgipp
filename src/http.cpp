@@ -479,9 +479,9 @@ template void Fastcgipp::Http::Environment<char>::fillPostsUrlEncoded(const char
 template void Fastcgipp::Http::Environment<wchar_t>::fillPostsUrlEncoded(const char* data, size_t size);
 template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEncoded(const char* data, size_t size)
 {
-    // FIXME: Assumes entire post data will be sent in one shot for this
-    // encoding. I believe this to be true, but have not been able to confirm.
 
+    // FIXME: add proper buffering to postBuffer
+    //
     enum {KEY, VALUE};
     Fastcgipp::Http::Post<charT> post;
     post.type = Fastcgipp::Http::Post<charT>::form;
@@ -489,10 +489,16 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
     std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
     std::basic_string<charT> queryString;
 
-    boost::scoped_array<char> buffer(new char[size]);
-    memcpy (buffer.get(), data, size);
+    size_t bufferSize = postBufferSize + size;
+    boost::scoped_array<char> buffer(new char[bufferSize]);
+    if(postBufferSize) memcpy (buffer.get(), postBuffer.get(), postBufferSize);
+    memcpy (buffer.get() + postBufferSize, data, size);
+    buffer[bufferSize] = '\0';
+    postBuffer.reset();
+    postBufferSize = 0;
+    size_t bufPtr = 0;
 
-	charToString (buffer.get(), size, queryString);
+	charToString (buffer.get(), bufferSize, queryString);
 
     // split up the buffer by the "&" tokenizer to the key/value pairs
     boost::algorithm::split (kv_pairs, queryString, boost::is_any_of ("&"));
@@ -505,8 +511,25 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
         // Check the number of tokes. Anything but 2 is bad.
         if (kv_pair.size() != 2)
         {
-            return;
-            //throw ();
+            // More than 2 tokens, or First record of more-than-one records.
+            // Definitely a malformed request.
+            if ((kv_pair.size() > 2) ||
+                ((i == 0) && (kv_pairs.size() > 1)))
+            {
+                return;
+                //throw ();
+            }
+            // Last record. Could be incomplete or malformed. Will also catch
+            // case of one record only
+            else if (kv_pairs.size() - 1 == i)
+            {
+                char *rest = NULL;
+                memcpy(rest, buffer.get() + bufPtr, bufferSize - bufPtr);
+                // stick the leftover in postBuffer
+                postBuffer.reset(rest);
+                postBufferSize = bufferSize - bufPtr;
+                return;
+            }
         }
         else // Fine.
         {
@@ -518,6 +541,8 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
 
             post.value = std::basic_string<charT>(value.get());
             posts[std::basic_string<charT>(key.get())] = post;
+
+            bufPtr += (kv_pairs[i].length() + 1) * sizeof(charT); // Move the pointer forward to the next record.
         }
     }
 }
