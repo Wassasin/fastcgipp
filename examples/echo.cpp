@@ -96,7 +96,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
 
 		//Fastcgipp::Http::Post is defined in fastcgi++/http.hpp
-		out << "<h1>Post Data</h1>";
+		out << "<h1>Post Data Dump</h1>";
 		if(environment.posts.size()) {
 			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
 			{
@@ -120,14 +120,24 @@ class Echo: public Fastcgipp::Request<wchar_t>
 				}
 			}
 
-            if (environment.postVariableExists(L"aquí está el campo")) // change this to "aquí está el campo" for char (drop the L).
             {
-                out << "<p>Variable shaba Exists</p>";
-
-                float value = 0;
+                std::basic_string<wchar_t> value;
                 if (environment.postVariableRetrieve(L"aquí está el campo", value)) // change this to "aquí está el campo" for char (drop the L).
                 {
-                    out << "<p>And its value is '" << value << "'</p>";
+                    out << L"<p>Retrieving Variable \"aquí está el campo\". Its value is '" << value << "'</p>";
+                }
+            }
+
+            if (environment.postVariableExists(L"the_data[0]"))
+            {
+                std::vector<std::basic_string<wchar_t> > value;
+                if (environment.postVariableRetrieve(L"the_data", value))
+                {
+                    out << "<h2>Retrieving array Post data as a std::vector </h2>";
+                    for (int i = 0; i < value.size(); i++)
+                    {
+                        out << "<b>the_data[" << i << "]=" << value[i] << "</b><br />";
+                    }
                 }
             }
         }
