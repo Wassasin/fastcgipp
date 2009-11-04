@@ -122,16 +122,16 @@ class Echo: public Fastcgipp::Request<wchar_t>
 
             {
                 std::basic_string<wchar_t> value;
-                if (environment.postVariableRetrieve(L"aquí está el campo", value)) // change this to "aquí está el campo" for char (drop the L).
+                if (environment.requestVarGet(L"aquí está el campo", value)) // change this to "aquí está el campo" for char (drop the L).
                 {
                     out << L"<p>Retrieving Variable \"aquí está el campo\". Its value is '" << value << "'</p>";
                 }
             }
 
-            if (environment.postVariableExists(L"the_data[0]"))
+            if (environment.requestVarExists(L"the_data[0]"))
             {
                 std::vector<std::basic_string<wchar_t> > value;
-                if (environment.postVariableRetrieve(L"the_data", value))
+                if (environment.requestVarGet(L"the_data", value))
                 {
                     out << "<h2>Retrieving array Post data as a std::vector </h2>";
                     for (int i = 0; i < value.size(); i++)
