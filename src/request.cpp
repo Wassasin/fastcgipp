@@ -232,6 +232,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 					if(header.getContentLength()==0)
 					{
 						environment.clearPostBuffer();
+                        environment.doFillPostsUrlEncoded(environment.queryString);
 						state=OUT;
 						if(response())
 						{

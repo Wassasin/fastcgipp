@@ -227,15 +227,30 @@ namespace Fastcgipp
             //! Parses "application/x-www-form-urlencoded" post data into the post object.
             /*!
              * This function parses x-www-form-urlencoded post data into the
-             * Environment::posts member. For each key/value pair parsed, the
-             * value will be placed in the value field of an Http::Post struct,
-             * and the key will be the index for the corresponding entry in the
-             * Environment::posts structure.
+             * Environment::posts member. In truth, this method simply prepares
+             * the passed data and then calls doFillPostsUrlEncoded() to do the
+             * actual work. 
              *
 			 * @param[in] data Pointer to the first byte of post data
 			 * @param[in] size Size of data in bytes
              */
 			void fillPostsUrlEncoded(const char* data, size_t size);
+
+            //! Parses "application/x-www-form-urlencoded" post data into the post object.
+            /*!
+             * This function parses x-www-form-urlencoded post data into the
+             * Environment::posts member. For each key/value pair parsed, the
+             * value will be placed in the value field of an Http::Post struct,
+             * and the key will be the index for the corresponding entry in the
+             * Environment::posts structure. @note This method will try to
+             * parse any passesd data and stick it in the posts structure
+             * regardless of whether the data really came from a POST request or
+             * not. As a result, this method can be (and indeed is!) used to
+             * parse GET/PUT query data as well!
+             *
+			 * @param[in] queryString The query data.
+             */
+			void doFillPostsUrlEncoded(std::basic_string<charT> &queryString);
 
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
@@ -244,7 +259,7 @@ namespace Fastcgipp
             /*! @param[in] key The name of the variable to look up.
              *  @return True if a variable named key was found, false otherwise.
              * */
-            bool postVariableExists(const std::basic_string<charT>& key);
+            bool requestVarExists(const std::basic_string<charT>& key);
 
             //! Attempt to retrieve the value associated with a post variable and cast it to value's type.
             /*! @param[in] key The name of the variable to look up.
@@ -255,7 +270,7 @@ namespace Fastcgipp
              *  associated data was compatible with value's type (i.e. the cast
              *  succeeded). False otherwise.
              * */
-            template<class V> bool postVariableRetrieve(const std::basic_string<charT>& key, V& value) const
+            template<class V> bool requestVarGet(const std::basic_string<charT>& key, V& value) const
             {
                 PostsConstIter it;
 
@@ -289,7 +304,7 @@ namespace Fastcgipp
              *  index of 0 was found and the associated data was compatible
              *  with value's type (i.e. the cast succeeded). False otherwise.
              * */
-            template<class V> bool postVariableRetrieve(const std::basic_string<charT>& key, std::vector<V>& value) const
+            template<class V> bool requestVarGet(const std::basic_string<charT>& key, std::vector<V>& value) const
             {
                 PostsConstIter it;
                 std::basic_string<charT> _key;

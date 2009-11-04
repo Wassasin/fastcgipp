@@ -481,18 +481,26 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
 {
     // FIXME: Assumes entire post data will be sent in one shot for this
     // encoding. I believe this to be true, but have not been able to confirm.
+    std::basic_string<charT> queryString;
+    boost::scoped_array<char> buffer(new char[size]);
+    memcpy (buffer.get(), data, size);
+	charToString (buffer.get(), size, queryString);
+
+    doFillPostsUrlEncoded(queryString);
+}
+
+template void Fastcgipp::Http::Environment<char>::doFillPostsUrlEncoded(std::basic_string<char> &queryString);
+template void Fastcgipp::Http::Environment<wchar_t>::doFillPostsUrlEncoded(std::basic_string<wchar_t> &queryString);
+template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEncoded(std::basic_string<charT> &queryString)
+{
+    // FIXME: Assumes entire post data will be sent in one shot for this
+    // encoding. I believe this to be true, but have not been able to confirm.
 
     enum {KEY, VALUE};
     Fastcgipp::Http::Post<charT> post;
     post.type = Fastcgipp::Http::Post<charT>::form;
     std::vector<std::basic_string<charT> > kv_pairs; // The list of kv pairs
     std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
-    std::basic_string<charT> queryString;
-
-    boost::scoped_array<char> buffer(new char[size]);
-    memcpy (buffer.get(), data, size);
-
-	charToString (buffer.get(), size, queryString);
 
     // split up the buffer by the "&" tokenizer to the key/value pairs
     boost::algorithm::split (kv_pairs, queryString, boost::is_any_of ("&"));
@@ -547,9 +555,9 @@ template<class charT> const Fastcgipp::Http::SessionId& Fastcgipp::Http::Session
 	return *this;
 }
 
-template bool Fastcgipp::Http::Environment<char>::postVariableExists(const std::basic_string<char>& key);
-template bool Fastcgipp::Http::Environment<wchar_t>::postVariableExists(const std::basic_string<wchar_t>& key);
-template<class charT> bool Fastcgipp::Http::Environment<charT>::postVariableExists(const std::basic_string<charT>& key)
+template bool Fastcgipp::Http::Environment<char>::requestVarExists(const std::basic_string<char>& key);
+template bool Fastcgipp::Http::Environment<wchar_t>::requestVarExists(const std::basic_string<wchar_t>& key);
+template<class charT> bool Fastcgipp::Http::Environment<charT>::requestVarExists(const std::basic_string<charT>& key)
 {
     PostsConstIter it;
 
