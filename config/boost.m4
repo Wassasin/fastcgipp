@@ -887,3 +887,11 @@ dnl as it would interfere with the next link command.
 rm -f core conftest.err conftest_ipa8_conftest.oo \
       conftest$ac_exeext m4_ifval([$1], [conftest.$ac_ext])[]dnl
 ])# _BOOST_AC_LINK_IFELSE
+
+
+# BOOST_ALGORITHM_STRING()
+# ---------------
+# Look for Boost.Algorithm.String.
+AC_DEFUN([BOOST_ALGORITHM_STRING],
+[BOOST_FIND_HEADER([boost/algorithm/string/split.hpp])
+BOOST_FIND_HEADER([boost/algorithm/string/classification.hpp])])
