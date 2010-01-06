@@ -255,27 +255,33 @@ namespace Fastcgipp
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
 
-            //! Check if a post variable named "key" exists in the posts member
+            //! Check if a post variable named "key" exists in the posts member.
             /*! @param[in] key The name of the variable to look up.
-             *  @return True if a variable named key was found, false otherwise.
+             *  @return True if a variable named key was found and is of type
+             *  Post::Type::file OR Post::Type::form, false otherwise.
              * */
             bool requestVarExists(const std::basic_string<charT>& key);
 
-            //! Attempt to retrieve the value associated with a post variable and cast it to value's type.
-            /*! @param[in] key The name of the variable to look up.
-             *  @param[out] value The value associated with key. Will attempt
-             *  to cast the data associated with key (stored internally as a
-             *  string) to value's type.
-             *  @return True if a variable named key was found and the
-             *  associated data was compatible with value's type (i.e. the cast
-             *  succeeded). False otherwise.
+            //! Retrieve the value of a post variable associated with the passed key.
+            /*! Attempts to retrieve the value associated with a post variable
+             * and cast it to value's type.
+             * @param[in] key The name of the variable to look up.
+             * @param[out] value The value associated with key. Will attempt to
+             * cast the data associated with key (stored internally as a
+             * string) to value's type.
+             * @return True if a variable named key was found and the
+             * associated data was compatible with value's type (i.e. the cast
+             * succeeded). False otherwise.
+             * @note This version of requestVarGet only returns the value of a
+             * post variable of type Post::Type::form. See the second
+             * specialization for Post::Type:file data.
              * */
             template<class V> bool requestVarGet(const std::basic_string<charT>& key, V& value) const
             {
                 PostsConstIter it;
 
-                if ((it = this->posts.find (key)) == this->posts.end () ||
-                     it->second.type != Post<charT>::form)
+                if((it = this->posts.find(key)) == this->posts.end() ||
+                    it->second.type != Post<charT>::form)
                 {
                     return false;
                 }
@@ -293,16 +299,22 @@ namespace Fastcgipp
                 }
             }
 
-            //! Attempts to retrieve sequence/array of values associated with a post variable and copy them into  the passed std::vector.
-            /*! @param[in] key The Array name name of the variable to look up.
-             *  @param[out] value A std::vector of the template type.
-             *  For this functio to work, the post keys should be named
-             *  something like "name[0]", "name[1]", "name[2]"... Only the
-             *  "name" part should be passed as the key to this method. See
-             *  example echo.cpp for usage
-             *  @return True if at least one variable named key with an array
-             *  index of 0 was found and the associated data was compatible
-             *  with value's type (i.e. the cast succeeded). False otherwise.
+            //! Retrieve the value of a post variable associated with the passed key.
+            /*! This (first) specialization of requestVarGet attempts to
+             * retrieve sequence/array of values associated with a post
+             * variable and copy them into  the passed std::vector.
+             * @param[in] key The Array name name of the variable to look up.
+             * @param[out] value A std::vector of the template type.  For this
+             * functio to work, the post keys should be named something like
+             * "name[0]", "name[1]", "name[2]"... Only the "name" part should
+             * be passed as the key to this method. See example echo.cpp for
+             * usage
+             * @return True if at least one variable named key with an array
+             * index of 0 was found and the associated data was compatible with
+             * value's type (i.e. the cast succeeded). False otherwise.
+             * @note This version of requestVarGet only returns the value of a
+             * post variable of type Post::Type::form. See the second
+             * specialization for Post::Type:file data.
              * */
             template<class V> bool requestVarGet(const std::basic_string<charT>& key, std::vector<V>& value) const
             {
@@ -330,7 +342,7 @@ namespace Fastcgipp
                 it = this->posts.begin();
                 while (it != this->posts.end()) {
                     _key = key + left_bracket + boost::lexical_cast<std::basic_string<charT> >(i) + right_bracket;
-                    if (_key == it->first) {
+                    if (_key == it->first && it->second.type == Post<charT>::form) {
                         try {
                             value.push_back (boost::lexical_cast<V>(it->second.value));
                         }
@@ -345,6 +357,33 @@ namespace Fastcgipp
                     it++;
                 }
                 return (value.size() == 0) ? false : true;
+            }
+
+            //! Retrieve the value of a post variable associated with the passed key.
+            /*! This (second) specialization of requestVarGet attempts to
+             * retrieve the value associated with a post variable of type
+             * Post::Type::file.
+             * @param[in] key The name of the variable to look up.
+             * @param[out] a boost::shared_array that will hold that raw file
+             * data. Reference counting for should be handled correctly by the
+             * shared_array.
+             * @return True if a variable named key was found and was of type
+             * Post::Type::file.  False otherwise.
+             * */
+            bool requestVarGet(const std::basic_string<charT>& key, boost::shared_array<char>& value) const
+            {
+                PostsConstIter it;
+
+                if((it = this->posts.find(key)) == this->posts.end() ||
+                    it->second.type != Post<charT>::file)
+                {
+                    return false;
+                }
+                else
+                {
+                    value = it->second.data;
+                    return true;
+                }
             }
 
 		private:
