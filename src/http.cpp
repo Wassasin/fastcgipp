@@ -561,7 +561,7 @@ template<class charT> bool Fastcgipp::Http::Environment<charT>::requestVarExists
 {
     PostsConstIter it;
 
-    if ((it = this->posts.find (key)) == this->posts.end ())
+    if((it = this->posts.find(key)) == this->posts.end())
     {
         return false;
     }
