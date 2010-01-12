@@ -316,6 +316,8 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 				remotePort=atoi(value, value+valueSize);
 			else if(!memcmp(name, "SCRIPT_NAME", 11))
 				charToString(value, valueSize, scriptName);
+			else if(!memcmp(name, "REQUEST_URI", 11))
+				charToString(value, valueSize, requestUri);
 			break;
 		case 12:
 			if(!memcmp(name, "HTTP_REFERER", 12) && valueSize)

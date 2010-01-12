@@ -178,6 +178,8 @@ namespace Fastcgipp
 			std::basic_string<charT> scriptName;
 			//! REQUEST_METHOD
 			RequestMethod requestMethod;
+			//! REQUEST_URI
+			std::basic_string<charT> requestUri;
 			//! Path Information
 			std::basic_string<charT> pathInfo;
 			//! The etag the client assumes this document should have
