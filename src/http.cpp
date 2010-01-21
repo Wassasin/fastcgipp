@@ -501,16 +501,16 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
     enum {KEY, VALUE};
     Fastcgipp::Http::Post<charT> post;
     post.type = Fastcgipp::Http::Post<charT>::form;
-    std::vector<std::basic_string<charT> > kv_pairs; // The list of kv pairs
-    std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
 
     // split up the buffer by the "&" tokenizer to the key/value pairs
+    std::vector<std::basic_string<charT> > kv_pairs;
     boost::algorithm::split (kv_pairs, queryString, boost::is_any_of ("&"));
 
     // For each key/value pair, split it by the "=" tokenizer to get the key and
     // value. The result should be exactly two tokens (the key and the value).
     for (int i = 0; i < kv_pairs.size(); i++)
     {
+        std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
         boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
         // Check the number of tokes. Anything but 2 is bad.
         if (kv_pair.size() != 2)
@@ -520,8 +520,8 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
         }
         else // Fine.
         {
-            boost::scoped_array<charT> key(new charT[kv_pair[KEY].length() * sizeof(charT)]);
-            boost::scoped_array<charT> value(new charT[kv_pair[VALUE].length() * sizeof(charT)]);
+            boost::scoped_array<charT> key(new charT[(kv_pair[KEY].length() + 1) * sizeof(charT)]);
+            boost::scoped_array<charT> value(new charT[(kv_pair[VALUE].length() + 1) * sizeof(charT)]);
 
             key[percentEscapedToRealBytes(kv_pair[KEY].c_str(), key.get(), kv_pair[KEY].length())] = '\0';
             value[percentEscapedToRealBytes(kv_pair[VALUE].c_str(), value.get(), kv_pair[VALUE].length())] = '\0';
