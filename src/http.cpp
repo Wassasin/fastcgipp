@@ -23,6 +23,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <fastcgi++/http.hpp>
 
@@ -247,6 +248,8 @@ template int Fastcgipp::Http::percentEscapedToRealBytes<char>(const char* source
 template int Fastcgipp::Http::percentEscapedToRealBytes<wchar_t>(const wchar_t* source, wchar_t* destination, size_t size);
 template<class charT> int Fastcgipp::Http::percentEscapedToRealBytes(const charT* source, charT* destination, size_t size)
 {
+    if (size < 1) return 0;
+
 	unsigned int i=0;
 	charT* start=destination;
 	while(1)
@@ -510,6 +513,11 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
     // value. The result should be exactly two tokens (the key and the value).
     for (int i = 0; i < kv_pairs.size(); i++)
     {
+        // According to this http://www.w3schools.com/TAGS/ref_urlencode.asp
+        // spaces in request parameters can be replaced with + instead of being
+        // URL encoded. Catch it here.
+        boost::trim_if (kv_pairs[i], boost::is_any_of ("+"));
+
         std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
         boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
         // Check the number of tokes. Anything but 2 is bad.
