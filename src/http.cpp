@@ -23,6 +23,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <fastcgi++/http.hpp>
 
@@ -247,6 +248,8 @@ template int Fastcgipp::Http::percentEscapedToRealBytes<char>(const char* source
 template int Fastcgipp::Http::percentEscapedToRealBytes<wchar_t>(const wchar_t* source, wchar_t* destination, size_t size);
 template<class charT> int Fastcgipp::Http::percentEscapedToRealBytes(const charT* source, charT* destination, size_t size)
 {
+    if (size < 1) return 0;
+
 	unsigned int i=0;
 	charT* start=destination;
 	while(1)
@@ -316,6 +319,8 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 				remotePort=atoi(value, value+valueSize);
 			else if(!memcmp(name, "SCRIPT_NAME", 11))
 				charToString(value, valueSize, scriptName);
+			else if(!memcmp(name, "REQUEST_URI", 11))
+				charToString(value, valueSize, requestUri);
 			break;
 		case 12:
 			if(!memcmp(name, "HTTP_REFERER", 12) && valueSize)
@@ -479,70 +484,58 @@ template void Fastcgipp::Http::Environment<char>::fillPostsUrlEncoded(const char
 template void Fastcgipp::Http::Environment<wchar_t>::fillPostsUrlEncoded(const char* data, size_t size);
 template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEncoded(const char* data, size_t size)
 {
+    // FIXME: Assumes entire post data will be sent in one shot for this
+    // encoding. I believe this to be true, but have not been able to confirm.
+    std::basic_string<charT> queryString;
+    boost::scoped_array<char> buffer(new char[size]);
+    memcpy (buffer.get(), data, size);
+	charToString (buffer.get(), size, queryString);
 
-    // FIXME: add proper buffering to postBuffer
-    //
+    doFillPostsUrlEncoded(queryString);
+}
+
+template void Fastcgipp::Http::Environment<char>::doFillPostsUrlEncoded(std::basic_string<char> &queryString);
+template void Fastcgipp::Http::Environment<wchar_t>::doFillPostsUrlEncoded(std::basic_string<wchar_t> &queryString);
+template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEncoded(std::basic_string<charT> &queryString)
+{
+    // FIXME: Assumes entire post data will be sent in one shot for this
+    // encoding. I believe this to be true, but have not been able to confirm.
+
     enum {KEY, VALUE};
     Fastcgipp::Http::Post<charT> post;
     post.type = Fastcgipp::Http::Post<charT>::form;
-    std::vector<std::basic_string<charT> > kv_pairs; // The list of kv pairs
-    std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
-    std::basic_string<charT> queryString;
-
-    size_t bufferSize = postBufferSize + size;
-    boost::scoped_array<char> buffer(new char[bufferSize]);
-    if(postBufferSize) memcpy (buffer.get(), postBuffer.get(), postBufferSize);
-    memcpy (buffer.get() + postBufferSize, data, size);
-    buffer[bufferSize] = '\0';
-    postBuffer.reset();
-    postBufferSize = 0;
-    size_t bufPtr = 0;
-
-	charToString (buffer.get(), bufferSize, queryString);
 
     // split up the buffer by the "&" tokenizer to the key/value pairs
+    std::vector<std::basic_string<charT> > kv_pairs;
     boost::algorithm::split (kv_pairs, queryString, boost::is_any_of ("&"));
 
     // For each key/value pair, split it by the "=" tokenizer to get the key and
     // value. The result should be exactly two tokens (the key and the value).
     for (int i = 0; i < kv_pairs.size(); i++)
     {
+        // According to this http://www.w3schools.com/TAGS/ref_urlencode.asp
+        // spaces in request parameters can be replaced with + instead of being
+        // URL encoded. Catch it here.
+        boost::trim_if (kv_pairs[i], boost::is_any_of ("+"));
+
+        std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
         boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
         // Check the number of tokes. Anything but 2 is bad.
         if (kv_pair.size() != 2)
         {
-            // More than 2 tokens, or First record of more-than-one records.
-            // Definitely a malformed request.
-            if ((kv_pair.size() > 2) ||
-                ((i == 0) && (kv_pairs.size() > 1)))
-            {
-                return;
-                //throw ();
-            }
-            // Last record. Could be incomplete or malformed. Will also catch
-            // case of one record only
-            else if (kv_pairs.size() - 1 == i)
-            {
-                char *rest = NULL;
-                memcpy(rest, buffer.get() + bufPtr, bufferSize - bufPtr);
-                // stick the leftover in postBuffer
-                postBuffer.reset(rest);
-                postBufferSize = bufferSize - bufPtr;
-                return;
-            }
+            return;
+            //throw ();
         }
         else // Fine.
         {
-            boost::scoped_array<charT> key(new charT[kv_pair[KEY].length() * sizeof(charT)]);
-            boost::scoped_array<charT> value(new charT[kv_pair[VALUE].length() * sizeof(charT)]);
+            boost::scoped_array<charT> key(new charT[(kv_pair[KEY].length() + 1) * sizeof(charT)]);
+            boost::scoped_array<charT> value(new charT[(kv_pair[VALUE].length() + 1) * sizeof(charT)]);
 
             key[percentEscapedToRealBytes(kv_pair[KEY].c_str(), key.get(), kv_pair[KEY].length())] = '\0';
             value[percentEscapedToRealBytes(kv_pair[VALUE].c_str(), value.get(), kv_pair[VALUE].length())] = '\0';
 
             post.value = std::basic_string<charT>(value.get());
             posts[std::basic_string<charT>(key.get())] = post;
-
-            bufPtr += (kv_pairs[i].length() + 1) * sizeof(charT); // Move the pointer forward to the next record.
         }
     }
 }
@@ -572,13 +565,13 @@ template<class charT> const Fastcgipp::Http::SessionId& Fastcgipp::Http::Session
 	return *this;
 }
 
-template bool Fastcgipp::Http::Environment<char>::postVariableExists(const std::basic_string<char>& key);
-template bool Fastcgipp::Http::Environment<wchar_t>::postVariableExists(const std::basic_string<wchar_t>& key);
-template<class charT> bool Fastcgipp::Http::Environment<charT>::postVariableExists(const std::basic_string<charT>& key)
+template bool Fastcgipp::Http::Environment<char>::requestVarExists(const std::basic_string<char>& key);
+template bool Fastcgipp::Http::Environment<wchar_t>::requestVarExists(const std::basic_string<wchar_t>& key);
+template<class charT> bool Fastcgipp::Http::Environment<charT>::requestVarExists(const std::basic_string<charT>& key)
 {
     PostsConstIter it;
 
-    if ((it = this->posts.find (key)) == this->posts.end ())
+    if((it = this->posts.find(key)) == this->posts.end())
     {
         return false;
     }
