@@ -39,6 +39,9 @@ void ASql::MySQL::Connection::connect(const char* host, const char* user, const 
 	if(mysql_set_character_set(&connection, charset))
 		throw Error(&connection);
 	
+	if(mysql_autocommit(&connection, 0))
+		throw Error(&connection);
+	
 	if(!(foundRowsStatement = mysql_stmt_init(&connection)))
 		throw Error(&connection);
 
@@ -125,7 +128,7 @@ bool ASql::MySQL::Statement::executeResult(Data::Set& row)
 	};
 }
 
-void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId, unsigned long long int* const rows)
+void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId, unsigned long long int* const rows, bool docommit)
 {
 	if(*m_stop) goto end;
 	executeParameters(parameters);
@@ -136,13 +139,17 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 
 		while(1)
 		{{
-			if(*m_stop) goto end;
 			Data::Set& row=res.manufacture();
 			bindBindings(row, resultsConversions, resultsBindings);
 			if(!executeResult(row))
 			{
 				res.trim();
 				break;
+			}
+			if(*m_stop)
+			{
+				res.trim();
+				goto end;
 			}
 		}}
 
@@ -158,11 +165,15 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 	}
 
 end:
+	if(*m_stop)
+		rollback();
+	else if(docommit)
+		commit();
 	mysql_stmt_free_result(stmt);
 	mysql_stmt_reset(stmt);
 }
 
-bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Set& results)
+bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Set& results, bool docommit)
 {
 	bool retval(false);
 	if(*m_stop) goto end;
@@ -170,12 +181,16 @@ bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 	if(*m_stop) goto end;
 	retval=executeResult(results);
 end:
+	if(*m_stop)
+		rollback();
+	else if(docommit)
+		commit();
 	mysql_stmt_free_result(stmt);
 	mysql_stmt_reset(stmt);
 	return retval;
 }
 
-void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsigned long long int* rows)
+void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsigned long long int* rows, bool docommit)
 {
 	if(rows) *rows = 0;
 	
@@ -186,6 +201,10 @@ void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsig
 		if(*m_stop) break;
 		if(rows) *rows += mysql_stmt_affected_rows(stmt);
 	}
+	if(*m_stop)
+		rollback();
+	else if(docommit)
+		commit();
 	mysql_stmt_free_result(stmt);
 	mysql_stmt_reset(stmt);
 }

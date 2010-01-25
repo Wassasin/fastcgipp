@@ -32,7 +32,6 @@
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
-
 //! Defines classes and functions relating to SQL querying
 namespace ASql
 {
@@ -264,6 +263,18 @@ namespace ASql
 		/** 
 		 * @brief Base data set class for communicating parameters and results with SQL queries.
 		 *
+		 * Note that in most cases you are better off using one the following templated wrapper classes 
+		 * to associate you data set with ASql. This eliminates the overhead of virtual functions from
+		 * your data type if it is used in a computationally intensive situation.
+		 * - SetBuilder
+		 * - SetRefBuilder
+		 * - SetPtrBuilder
+		 * - SetSharedPtrBuilder
+		 *
+		 * If you use this technique you MUST still define the numberOfSqlElements() and getSqlIndex() in
+		 * your dataset as below but do not derive from Set. The function will be called from the templates
+		 * instead of virtually.
+		 *
 		 * By deriving from this class any data structure can gain the capability to be binded to
 		 * the parameters or results of an SQL query. This is accomplished polymorphically through two
 		 * virtual member functions that allow the object to be treated as a container and it's member
@@ -272,7 +283,7 @@ namespace ASql
 struct TestSet: public ASql::Data::Set
 {
 	size_t numberOfSqlElements() const { return 7; }
-	ASql::Data::Index getInternalSqlIndex(size_t index) const
+	ASql::Data::Index getSqlIndex(size_t index) const
 	{
 		switch(index)
 		{
@@ -294,14 +305,15 @@ struct TestSet: public ASql::Data::Set
 				return ASql::Data::Index();
 		}
 	}
+}
 
-	ASql::Data::DoubleN fraction;
-	ASql::Data::DateN aDate;
-	ASql::Data::Time aTime;
-	ASql::Data::DatetimeN timestamp;
-	ASql::Data::WtextN someText;
-	ASql::Data::BlobN someData;
-	char fixedString[16];
+ASql::Data::DoubleN fraction;
+ASql::Data::DateN aDate;
+ASql::Data::Time aTime;
+ASql::Data::DatetimeN timestamp;
+ASql::Data::WtextN someText;
+ASql::Data::BlobN someData;
+char fixedString[16];
 };
 @endcode
 		 * Note that the indexing order must match the result column/parameter order of the
@@ -340,113 +352,187 @@ struct TestSet: public ASql::Data::Set
 		};
 
 		/** 
-		 * @brief Creates a Set derivation.
+		 * @brief Wraps a Set object around an new auto-allocated dataset of type T
 		 *
-		 * If you do now wish to burden you class definitions with vtables you can use this template to build
-		 * a Set derivation from a class that isn't derived from Set yet has numberOfSqlElement() and getSqlIndex()
-		 * defined.
-		 *
-		 * @tparam T Class type to build upon. Must define numberOfSqlElement() and getSqlIndex() described in Set
-		 * but does not need to be derived from Set.
+		 * @tparam T object type to create. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		 * per the instruction in Data::Set.
 		 */
-		template<class T> struct SetBuilder: public Set
+		template<class T> class SetBuilder: public Set
 		{
+		public:
+			/** 
+			 * @brief Dataset object of type T that the Set is wrapped around. This is your object.
+			 */
 			T data;
+		private:
+			/** 
+			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
+			 */
 			virtual size_t numberOfSqlElements() const { return data.numberOfSqlElements(); }
+			/** 
+			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
+			 */
 			virtual Index getSqlIndex(const size_t index) const { return data.getSqlIndex(index); }
 		};
 
 		/** 
-		 * @brief Creates a Set derivation based on a reference.
+		 * @brief Wraps a Set object around an new auto-allocated individual object of type T
 		 *
-		 * If you do now wish to burden you class definitions with vtables you can use this template to build
-		 * a Set derivation from a reference to a object that isn't derived from Set yet has numberOfSqlElement()
-		 * and getSqlIndex() defined.
+		 * @tparam T object type to create.
+		 */
+		template<class T> class IndySetBuilder: public Set
+		{
+		public:
+			/** 
+			 * @brief Object of type T that the Set is wrapped around. This is your object.
+			 */
+			T data;
+		private:
+			/** 
+			 * @brief Returns 1 as it is an individual container
+			 */
+			virtual size_t numberOfSqlElements() const { return 1; }
+			/** 
+			 * @brief Just returns an index to data.
+			 */
+			virtual Index getSqlIndex(const size_t index) const { return data; }
+		};
+
+		/** 
+		 * @brief Wraps a Set object around a reference to a dataset of type T
 		 *
-		 * @tparam T Class type to build upon. Must define numberOfSqlElement() and getSqlIndex() described in Set
-		 * but does not need to be derived from Set.
+		 * @tparam T object type to reference to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		 * per the instruction in Data::Set.
 		 */
 		template<class T> class SetRefBuilder: public Set
 		{
+			/** 
+			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
+			 */
 			virtual size_t numberOfSqlElements() const { return m_data.numberOfSqlElements(); }
+			/** 
+			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
+			 */
 			virtual Index getSqlIndex(const size_t index) const { return m_data.getSqlIndex(index); }
+			/** 
+			 * @brief Reference to the dataset
+			 */
 			const T& m_data;
 		public:
+			/** 
+			 * @param x Reference to the dataset of type T to reference to.
+			 */
 			inline SetRefBuilder(const T& x): m_data(x) {}
 		};
 
 		/** 
-		 * @brief Creates a Set derivation based on a pointer.
+		 * @brief Wraps a Set object around a pointer to a dataset of type T
 		 *
-		 * If you do now wish to burden you class definitions with vtables you can use this template to build
-		 * a Set derivation from a pointer to a object that isn't derived from Set yet has numberOfSqlElement()
-		 * and getSqlIndex() defined. One would use this instead of SetRefBuilder in a scenario that requires
-		 * the pointed object to be changed.
+		 * This has the one advantage over SetRefBuilder in that the dataset pointed to can be changed with destroying/rebuilding
+		 * wrapper object.
 		 *
-		 * @tparam T Class type to build upon. Must define numberOfSqlElement() and getSqlIndex() described in Set
-		 * but does not need to be derived from Set.
+		 * @tparam T object type to point to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		 * per the instruction in Data::Set.
 		 */
 		template<class T> class SetPtrBuilder: public Set
 		{
+			/** 
+			 * @brief Pointer to the dataset
+			 */
 			const T* m_data;
+			/** 
+			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
+			 */
 			virtual size_t numberOfSqlElements() const { return m_data->numberOfSqlElements(); }
+			/** 
+			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
+			 */
 			virtual Index getSqlIndex(const size_t index) const { return m_data->getSqlIndex(index); }
 		public:
+			/** 
+			 * @brief Default constructor set's the pointer to null
+			 */
 			inline SetPtrBuilder(): m_data(0) {}
+			/** 
+			 * @brief Set the pointer to the address of the object referenced to by x
+			 */
 			inline SetPtrBuilder(const T& x): m_data(&x) {}
 			inline SetPtrBuilder(SetPtrBuilder& x): m_data(x.m_data) {}
-			//! Set the internal pointer
-			/**
-			 * @param[in] data Object to point to.
+			/** 
+			 * @brief Set the pointer to the address of the object referenced to by x
 			 */
 			inline void set(const T& data) { m_data=&data; }
-			//! Clear the internal pointer
+			/** 
+			 * @brief Set the pointer to null
+			 */
 			inline void clear() { m_data=0; }
-			//! Returns false if the internal pointer is cleared or null
+			/** 
+			 * @brief Return true if the pointer is not null
+			 */
 			operator bool() const { return m_data; }
 		};
 
 		/** 
-		 * @brief Creates a Set derivation based on a shared pointer.
+		 * @brief Wraps a Set object around a shared pointer to a dataset of type T
 		 *
-		 * If you do now wish to burden you class definitions with vtables you can use this template to build
-		 * a Set derivation from a shared pointer to a object that isn't derived from Set yet has numberOfSqlElement()
-		 * and getSqlIndex() defined. Among other things, one would use this instead of SetPtrBuilding in say
-		 * multi-threaded applications where scope is uncertain.
+		 * This has the one advantage over SetRefBuilder in that the dataset pointed to can be changed with destroying/rebuilding
+		 * wrapper object and SetPtrBuilder in that the pointer can be shared.
 		 *
-		 * @tparam T Class type to build upon. Must define numberOfSqlElement() and getSqlIndex() described in Set
-		 * but does not need to be derived from Set.
+		 * @tparam T object type to point to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		 * per the instruction in Data::Set.
 		 */
 		template<class T> class SetSharedPtrBuilder: public Set
 		{
-		public:
+			/** 
+			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
+			 */
 			virtual size_t numberOfSqlElements() const { return data->numberOfSqlElements(); }
+			/** 
+			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
+			 */
+		public:
 			virtual Index getSqlIndex(const size_t index) const { return data->getSqlIndex(index); }
 			inline SetSharedPtrBuilder() {}
 			inline SetSharedPtrBuilder(const boost::shared_ptr<T>& x): data(x) {}
 			inline SetSharedPtrBuilder(SetSharedPtrBuilder& x): data(x.data) {}
+			/** 
+			 * @brief Shared pointer to the dataset
+			 */
 			boost::shared_ptr<T> data;
 		};
 
-		//! Adaptor for containers of Set objects.
+		/** 
+		 * @brief Base class for containers of Data::Set objects to be used for result/parameter data in SQL queries.
+		 */
 		struct SetContainer
 		{
+			/** 
+			 * @brief Appends a row to the container and returns a reference to it.
+			 */
 			virtual Set& manufacture() =0;
+			/** 
+			 * @brief Pop a row off the end of the container.
+			 */
 			virtual void trim() =0;
 			virtual ~SetContainer() {}
+			/** 
+			 * @brief Get a row from the front and move on to the next row.
+			 * 
+			 * @return This function should return a pointer to the row or null if at the end.
+			 */
 			virtual const Set* pull() const =0;
 		};
 
 		/** 
-		 * @brief SetContainer wrapper class for STL containers.
+		 * @brief Wraps a SetContainer object around a new auto-allocated STL container of type T
 		 *
-		 * This class defines a basic container for types that have Set::getSqlIndex()
-		 * and Set::numberOfSqlElements() defined yet need not be derived from Set.
+		 * This class defines a basic container for types that can be wrapped by the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order to
-		 *	function the passed container type must have the following member functions:
-		 *	push_back(), back(), pop_back().
+		 *	function the passed container type must have the following member functions
+		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
+		 *	instructions there.
 		 *
-		 *	@tparam T Container type. Must be sequential.
+		 *	@tparam Container type. Must be sequential.
 		 */
 		template<class T> class STLSetContainer: public SetContainer
 		{
@@ -466,21 +552,23 @@ struct TestSet: public ASql::Data::Set
 				return &m_buffer;
 			}
 		public:
+			 /** 
+			 * @brief STL container object of type T that the SetContainer is wrapped around. This is your object.
+			 */
 			T data;
 			STLSetContainer(): m_itBuffer(data.begin()) {}
 		};
 	
 		/** 
-		 * @brief SetContainer wrapper class for referenced STL containers.
+		 * @brief Wraps a SetContainer object around a reference to an STL container of type T
 		 *
-		 * This class defines a basic container for types that have Set::getSqlIndex()
-		 * and Set::numberOfSqlElements() defined yet need not be derived from Set.
+		 * This class defines a basic container for types that can be wrapped by the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order to
-		 *	function the passed container type must have the following member functions:
-		 *	push_back(), back(), pop_back(). One would use this instead of STLSetContainer
-		 *	when the container already exists as a separate object.
+		 *	function the passed container type must have the following member functions
+		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
+		 *	instructions there.
 		 *
-		 *	@tparam T Container type. Must be sequential.
+		 *	@tparam Container type. Must be sequential.
 		 */
 		template<class T> class STLSetRefContainer: public SetContainer
 		{
@@ -501,20 +589,22 @@ struct TestSet: public ASql::Data::Set
 				return &m_buffer;
 			}
 		public:
+			/** 
+			 * @param x Reference to the STL container of type T to reference to.
+			 */
 			STLSetRefContainer(T& x): data(x), m_itBuffer(data.begin()) {}
 		};
 	
 		/** 
-		 * @brief SetContainer wrapper class for shared STL containers.
+		 * @brief Wraps a SetContainer object around a shared pointer to an STL container of type T
 		 *
-		 * This class defines a basic container for types that have Set::getSqlIndex()
-		 * and Set::numberOfSqlElements() defined yet need not be derived from Set.
+		 * This class defines a basic container for types that can be wrapped by the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order to
-		 *	function the passed container type must have the following member functions:
-		 *	push_back(), back(), pop_back(). One would use this instead of STLRefContainer
-		 *	when the container object needs consistent scope. Say for multi threading applications.
+		 *	function the passed container type must have the following member functions
+		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
+		 *	instructions there.
 		 *
-		 *	@tparam T Container type. Must be sequential.
+		 *	@tparam Container type. Must be sequential.
 		 */
 		template<class T> class STLSharedSetContainer: public SetContainer
 		{
@@ -534,6 +624,9 @@ struct TestSet: public ASql::Data::Set
 				return &m_buffer;
 			}
 		public:
+			/** 
+			 * @brief Shared pointer to the STL container
+			 */
 			boost::shared_ptr<T> data;
 			STLSharedSetContainer(const boost::shared_ptr<T>& x): data(x) {}
 			STLSharedSetContainer(): m_itBuffer(data->begin()) {}
@@ -570,22 +663,41 @@ struct TestSet: public ASql::Data::Set
 		typedef std::map<int, boost::shared_ptr<Conversion> > Conversions;
 	}
 
-	//! Stores all query results and parameters
-	/**
-	 * This class is intended as a thread safe mechanism of storing parameter and results data for a queued
-	 * SQL query. It can also be used to cancel queries. The query object should have destruction control over
-	 * the result set and parameter set to prevent thread related seg-faults.
+	/** 
+	 * @brief Class for storing query data to be passed and retrieved from statements.
+	 * 
+	 * This will contain all data associated with an individual query. With it one can retrieve results, set arguments,
+	 * and set various query parameters that can be checked/set with the public access functions.
 	 *
-	 * The original query object (not created from a copy constructor) can and by default will cancel the query
-	 * when it goes out of scope.
+	 * Most of the data is stored in a shared data structure that is referenced by copies of a Query object. The only non-shared
+	 * data stored in the class is the m_flags object which set's two possible flags. If the query is built from the default constructor,
+	 * the FLAG_ORIGINAL flag is set. This serves the purpose of keeping track of which query object actually owns the original data. With
+	 * this, one can have the query cancelled in it's handler thread if the original query object goes out of scope in it's own thread.
+	 * If one wishes to avoid this behaviour they can have the FLAG_KEEPALIVE flag set with the keepAlive() function.
 	 */
 	class Query
 	{
 	private:
+		/** 
+		 * @brief Sub-structure to store shared data for the query
+		 */
 		struct SharedData
 		{
+			/** 
+			 * @brief Contains the possible flags a query can have set.
+			 */
+			/** 
+			 * @brief Only constructor
+			 *
+			 * The default constructor zeros all data and sets the shared flags to FLAG_SINGLE_PARAMETERS.
+			 */
 			enum Flags { FLAG_SINGLE_PARAMETERS=1, FLAG_SINGLE_RESULTS=1<<1, FLAG_NO_MANAGE_RESULTS=1<<2, FLAG_NO_MANAGE_PARAMETERS=1<<3 };
 			SharedData(): m_parameters(0), m_results(0), m_insertId(0), m_rows(0), m_cancel(false), m_flags(FLAG_SINGLE_PARAMETERS) {}
+			/** 
+			 * @brief Destroys the shared data.
+			 *
+			 * This should obviously only get called when at last all associated Query objects go out of scope.
+			 */
 			~SharedData()
 			{
 				delete m_rows;
@@ -593,16 +705,67 @@ struct TestSet: public ASql::Data::Set
 				destroyResults();
 				destroyParameters();
 			}
+			/** 
+			 * @brief Pointer to the data object containing the parameters to be passed to the statement.
+			 *
+			 * This is a void pointer so that it may contain a single row of parameters (Data::Set) or multiple rows of parameters
+			 * (Data::SetContainer). Multiple rows of parameters is in effect just executing the query multiple times in a single
+			 * transaction.
+			 */
 			void* m_parameters;
+			/** 
+			 * @brief Pointer to the data object that should store the results returned from the statement.
+			 *
+			 * This is a void pointer so that it may contain a single row of results (Data::Set) or multiple rows of results
+			 * (Data::SetContainer).
+			 */
 			void* m_results;
+			/** 
+			 * @brief Used to return a potential last auto increment insert id.
+			 */
 			unsigned long long int* m_insertId;
+			/** 
+			 * @brief Used to return the number of rows available/affected by the query.
+			 */
 			unsigned long long int* m_rows;
+			/** 
+			 * @brief Contains the error (if any) returned by the query.
+			 */
 			Error m_error;
+			/** 
+			 * @brief A callback function to be called when the query completes.
+			 */
 			boost::function<void()> m_callback;
 			boost::mutex m_callbackMutex;
+			/** 
+			 * @brief If set true the query should cancel when the opportunity arises.
+			 */
 			bool m_cancel;
+			/** 
+			 * @brief flags for the shared data
+			 *
+			 * FLAG_NO_MANAGE_RESULTS: This means that result data should not be freed when
+			 * the shared data structure goes out of scope. One would use this if that are done
+			 * with the query object but want control over the scope of the results.
+			 *
+			 * FLAG_SINGLE_RESULTS: This means that the data pointed to be m_results is a Data::Set
+			 * and not a Data::SetContainer.
+			 *
+			 * FLAG_NO_MANAGE_PARAMETERS: This means that parameter data should not be freed when
+			 * the shared data structure goes out of scope. One would use this if that are done
+			 * with the query object but want control over the scope of the parameters.
+			 *
+			 * FLAG_SINGLE_RESULTS: This means that the data pointed to be m_parameters is a Data::Set
+			 * and not a Data::SetContainer.
+			 */
 			unsigned char m_flags;
 
+			/** 
+			 * @brief Safely destroys(or doesn't) the result data set.
+			 *
+			 * This will destroy the result set if FLAG_NO_MANAGE_RESULTS is not set and set the
+			 * m_results pointer to null.
+			 */
 			void destroyResults()
 			{
 				if(m_flags&FLAG_NO_MANAGE_RESULTS) return;
@@ -612,6 +775,12 @@ struct TestSet: public ASql::Data::Set
 					delete static_cast<Data::SetContainer*>(m_results);
 			}
 
+			/** 
+			 * @brief Safely destroys(or doesn't) the parameter data set.
+			 *
+			 * This will destroy the parameter set if FLAG_NO_MANAGE_PARAMETERS is not set and set the
+			 * m_parameters pointer to null.
+			 */
 			void destroyParameters()
 			{
 				if(m_flags&FLAG_NO_MANAGE_PARAMETERS) return;
@@ -622,163 +791,246 @@ struct TestSet: public ASql::Data::Set
 			}
 		};
 
+		/** 
+		 * @brief Shared pointer to query data.
+		 */
 		boost::shared_ptr<SharedData> m_sharedData;
+		/** 
+		 * @brief Flags for individual query object.
+		 * 
+		 * FLAG_ORIGINAL: Set only if this query object was constructed with the default constructor. Never set if constructed from the
+		 * copy constructor.
+		 *
+		 *	FLAG_KEEPALIVE: Set if the query should not be cancelled if the original object goes out of scope before the query is complete.
+		 */
 		unsigned char m_flags;
 
 		enum Flags { FLAG_ORIGINAL=1, FLAG_KEEPALIVE=1<<1 };
 
+		/** 
+		 * @brief Lock and call the callback function of it exists.
+		 */
 		void callback()
 		{
 			boost::lock_guard<boost::mutex> lock(m_sharedData->m_callbackMutex);
 			if(!m_sharedData->m_callback.empty())
 				m_sharedData->m_callback();
 		}
+		
 
 		template<class T> friend class ConnectionPar;
 
 	public:
+		/** 
+		 * @brief Calling the default constructor will set FLAG_ORIGINAL and create new shared data.
+		 */
 		Query(): m_sharedData(new SharedData), m_flags(FLAG_ORIGINAL) { }
+		/** 
+		 * @brief Calling the copy constructor will not set FLAG_ORIGINAL or create new shared data.
+		 * 
+		 * @param x May be a copy or original Query object.
+		 */
 		Query(const Query& x): m_sharedData(x.m_sharedData), m_flags(0) {}
+		/** 
+		 * @brief If the original object, cancel() is called.
+		 */
 		~Query()
 		{
 			if(m_flags == FLAG_ORIGINAL)
-				cancel(true);
+				cancel();
 		}
-		//! Retrieve the auto incremented insert ID of the query.
+		/** 
+		 * @brief Returns the insert ID returned from the query or 0 if nothing.
+		 */
 		unsigned int insertId() const { return m_sharedData->m_insertId?*(m_sharedData->m_insertId):0; }
-		//! Retrieve the total row count of the query.
+		/** 
+		 * @brief Returns the rows affected/available from the query or 0 if nothing.
+		 * 
+		 * Note that if using for the number of rows from a query this will represent the number of rows
+		 * available before a LIMIT.
+		 */
 		unsigned int rows() const { return m_sharedData->m_rows?*(m_sharedData->m_rows):0; }
-		//! Test if the query is still being processed.
-		/**
-		 * @return True if the query is still working.
+		/** 
+		 * @brief Returns true if copies of this query still exist (query is still working in another thread).
 		 */
 		bool busy() const { return m_sharedData.use_count() != 1; }
-		//! Retrieve the Error object associated with the query.
-		/**
-		 * If no error occurred then the erno of the object is 0.
+		/** 
+		 * @brief Return the error object associated with the query.
+		 *
+		 * Note this will be a default Error object if there was no error.
 		 */
 		Error error() const { return m_sharedData->m_error; }
 
-		//! Set a function to be called when the query is finished.
+		/** 
+		 * @brief Set the callback function to be called at the end of the query.
+		 *
+		 * Note that this will be called even if there is an error or the query can cancelled.
+		 */
 		void setCallback(boost::function<void()> callback=boost::function<void()>())
 		{
 			boost::lock_guard<boost::mutex> lock(m_sharedData->m_callbackMutex);
 			m_sharedData->m_callback = callback;
 		}
-		//! If set true, the query will not be cancelled when the original object goes out of scope.
-		void keepAlive(bool x) { if(x) m_flags|=FLAG_KEEPALIVE; else m_flags&=~FLAG_KEEPALIVE; }
-		//! Tell the query to cancel operation.
-		void cancel(bool x) { m_sharedData->m_cancel = x; }
-		//! Enabled fetching of total rows.
-		void enableRows(bool x)
+		/** 
+		 * @brief Return true if a callback is associated with this query
+		 */
+		bool isCallback() { return !m_sharedData->m_callback.empty(); }
+		/** 
+		 * @brief Get the callback function
+		 */
+		boost::function<void()> getCallback()
 		{
-			if(x)
-			{
-				if(!m_sharedData->m_rows)
-					m_sharedData->m_rows = new unsigned long long;
-			}
-			else
-			{
-				delete m_sharedData->m_rows;
-				m_sharedData->m_rows = 0;
-			}
+			return m_sharedData->m_callback;
 		}
-		//! Enabled fetching of last auto increment insert ID
-		void enableInsertId(bool x)
+		/** 
+		 * @brief Set true if you want the query to not be cancelled when the original object is destroyed.
+		 *
+		 * Note that the default is to cancel and this must be called from the original query.
+		 */
+		void keepAlive(bool x) { if(x) m_flags|=FLAG_KEEPALIVE; else m_flags&=~FLAG_KEEPALIVE; }
+		/** 
+		 * @brief Call this function to cancel the query.
+		 *
+		 * This will cancel the query at the earliest opportunity. Calling a cancel will rollback any changes
+		 * in the associated transaction.
+		 */
+		void cancel() { m_sharedData->m_cancel = true; }
+		/** 
+		 * @brief Call for some reason if you want to clear a cancel request
+		 */
+		void clearCancel() { m_sharedData->m_cancel = false; }
+		/** 
+		 * @brief Call this function to enable the retrieval of a row count (affected/available rows)
+		 */
+		void enableRows()
 		{
-			if(x)
-			{
-				if(!m_sharedData->m_insertId)
-					m_sharedData->m_insertId = new unsigned long long;
-			}
-			else
-			{
-				delete m_sharedData->m_insertId;
-				m_sharedData->m_insertId = 0;
-			}
+			if(!m_sharedData->m_rows)
+				m_sharedData->m_rows = new unsigned long long;
+		}
+		/** 
+		 * @brief Call this function to enable the retrieval of an auto-increment insert ID
+		 */
+		void enableInsertId()
+		{
+			if(!m_sharedData->m_insertId)
+				m_sharedData->m_insertId = new unsigned long long;
 		}
 
-		//! Set a single row result set.
-		/**
-		 * This is used for single row result sets. The passed object should be dynamically allocated and
-		 * the query object should control it's deletion.
+		/** 
+		 * @brief Set's the shared data to point to the passed single row result set.
 		 *
-		 * The strength of this class lies in the fact that if it goes out of scope, the associated data is kept around until
-		 * the query actually finishes.
-		 *
-		 * If you do not want the query object to handle the deletion of the object you must call manageResults()
+		 * Note that the Query class assumes responsibility for destroying the result set unless explicitly told not to
+		 * with manageResults().
 		 */
 		void setResults(Data::Set* results) { m_sharedData->destroyResults(); m_sharedData->m_results=results; m_sharedData->m_flags|=SharedData::FLAG_SINGLE_RESULTS; }
-		//! Set a multiple row result set.
-		/**
-		 * This is used for single row result sets. The passed object should be dynamically allocated and
-		 * the query object should control it's deletion.
+		/** 
+		 * @brief Set's the shared data to point to the passed multi-row result set.
 		 *
-		 * If you do not want the query object to handle the deletion of the object you must call manageResults()
+		 * Note that the Query class assumes responsibility for destroying the result set unless explicitly told not to
+		 * with manageResults().
 		 */
 		void setResults(Data::SetContainer* results) { m_sharedData->destroyResults(); m_sharedData->m_results=results; m_sharedData->m_flags&=~SharedData::FLAG_SINGLE_RESULTS; }
-		//! Set a single row parameter set.
-		/**
-		 * This is used for single row parameter sets. The passed object should be dynamically allocated and
-		 * the query object should control it's deletion.
+		/** 
+		 * @brief Set's the shared data to point to the passed single row parameter set.
 		 *
-		 * If you do not want the query object to handle the deletion of the object you must call manageParameters()
+		 * Note that the Query class assumes responsibility for destroying the parameter set unless explicitly told not to
+		 * with manageParameters().
 		 */
 		void setParameters(Data::Set* parameters) { m_sharedData->destroyParameters(); m_sharedData->m_parameters=parameters; m_sharedData->m_flags|=SharedData::FLAG_SINGLE_PARAMETERS; }
-		//! Set a multi-row parameter set.
-		/**
-		 * This is used for multiple row parameter sets. The passed object should be dynamically allocated and
-		 * the query object should control it's deletion.
+		/** 
+		 * @brief Set's the shared data to point to the passed multi-row parameter set.
 		 *
-		 * If you do not want the query object to handle the deletion of the object you must call manageParameters()
+		 * Note that the Query class assumes responsibility for destroying the parameter set unless explicitly told not to
+		 * with manageParameters().
 		 */
 		void setParameters(Data::SetContainer* parameters) { m_sharedData->destroyParameters(); m_sharedData->m_parameters=parameters; m_sharedData->m_flags &= ~SharedData::FLAG_SINGLE_PARAMETERS; }
-		//! Pass false if you do not want Query to handle deallocation of the results.
+		/** 
+		 * @brief Set whether or not the Query object should manage destruction of the result data.
+		 *
+		 * True means that it will destroy the result data when it sees fit. False leaves that responsibility to you (the memory will leak
+		 * if you don't explicitly delete it at some point. This obviously defaults to true.
+		 *
+		 * Be very careful with this. Often times relinquishResults() will be a better option for what you might be trying to do.
+		 */
 		void manageResults(bool manage) { if(manage) m_sharedData->m_flags&=~SharedData::FLAG_NO_MANAGE_RESULTS; else m_sharedData->m_flags|=SharedData::FLAG_NO_MANAGE_RESULTS; }
-		//! Pass false if you do not want Query to handle deallocation of the parameters.
+		/** 
+		 * @brief Set whether or not the Query object should manage destruction of the parameter data.
+		 *
+		 * True means that it will destroy the parameter data when it sees fit. False leaves that responsibility to you (the memory will leak
+		 * if you don't explicitly delete it at some point. This obviously defaults to true.
+		 *
+		 * Be very careful with this. Often times relinquishParameters() will be a better option for what you might be trying to do.
+		 */
 		void manageParameters(bool manage) { if(manage) m_sharedData->m_flags&=~SharedData::FLAG_NO_MANAGE_PARAMETERS; else m_sharedData->m_flags|=SharedData::FLAG_NO_MANAGE_PARAMETERS; }
 
-		//! Quick helper function to ease the creation of result sets.
-		/**
-		 * This function simply calls setResults(new T) and then returns a statically casted pointer
-		 * to them.
+		/** 
+		 * @brief Little inline helper function to create result sets of a specific type.
+		 * 
+		 * It will return a pointer to the newly created object and set it as the Query objects result set.
+		 * 
+		 * @tparam T Type to create. Must be derived from either Data::Set or Data::SetContainer. Suggest using one of the
+		 * template wrapper types defined in Data.
 		 */
 		template<class T> T* createResults() { setResults(new T); return static_cast<T*>(results()); }
-		//! Quick helper function to ease the creation of parameter sets.
-		/**
-		 * This function simply calls setParameters(new T) and then returns a statically casted pointer
-		 * to them.
+		/** 
+		 * @brief Little inline helper function to create parameter sets of a specific type.
+		 * 
+		 * It will return a pointer to the newly created object and set it as the Query objects parameter set.
+		 * 
+		 * @tparam T Type to create. Must be derived from either Data::Set or Data::SetContainer. Suggest using one of the
+		 * template wrapper types defined in Data.
 		 */
 		template<class T> T* createParameters() { setParameters(new T); return static_cast<T*>(parameters()); }
 
-		//! Release the result set from the query objects control but don't actually deallocate it.
+		/** 
+		 * @brief Relinquishes control over the result set.
+		 *
+		 * Calling this will disassociate the query object (and it's copies) from the result set but won't delete it. Use this if you are done with
+		 * your query object but want to keep your result set around. The end result in the query object (and it's copies) is to
+		 * have no result set associated with it.
+
+		 */
 		void relinquishResults() { m_sharedData->m_results=0; m_sharedData->m_flags &= ~SharedData::FLAG_SINGLE_RESULTS; }
-		//! Release the parameter set from the query objects control but don't actually deallocate it.
+		/** 
+		 * @brief Relinquishes control over the parameter set.
+		 *
+		 * Calling this will disassociate the query object (and it's copies) from the parameter set but won't delete it. Use this if you are done with
+		 * your query object but want to keep your parameter set around. The end result in the query object (and it's copies) is to
+		 * have no parameter set associated with it.
+		 */
 		void relinquishParameters() { m_sharedData->m_parameters=0; m_sharedData->m_flags |= SharedData::FLAG_SINGLE_PARAMETERS; }
 
-		//! Get a pointer to the result set.
-		/**
-		 * This will return a void* pointer to the result set. You need to cast it to whatever it actually is.
-		 * Be extra careful when dealing with multiple inheritance scenarios. Always cast the pointer to either a
-		 * Data::SetContainer or Data::Set (depending on what it is) before casting it to your type.
+		/** 
+		 * @brief Return a void pointer to the result set.
+		 * 
+		 * Usually you would keep the original typed pointer around but if you lost it for some reason you can use this and cast it.
 		 */
 		void* results() { return m_sharedData->m_results; }
-		//! Get a pointer to the parameter set.
-		/**
-		 * This will return a void* pointer to the parameter set. You need to cast it to whatever it actually is.
-		 * Be extra careful when dealing with multiple inheritance scenarios. Always cast the pointer to either a
-		 * Data::SetContainer or Data::Set (depending on what it is) before casting it to your type.
+		/** 
+		 * @brief Return a void pointer to the parameter set.
+		 * 
+		 * Usually you would keep the original typed pointer around but if you lost it for some reason you can use this and cast it.
 		 */
 		void* parameters() { return m_sharedData->m_parameters; }
 
-		//! Deallocate the result set.
+		/** 
+		 * @brief Destroy the result set (if suppose to) and relinquish.
+		 */
 		void clearResults() { m_sharedData->destroyResults(); relinquishResults(); }
-		//! Deallocate the parameter set.
+		/** 
+		 * @brief Destroy the parameter set (if suppose to) relinquish.
+		 */
 		void clearParameters() { m_sharedData->destroyParameters(); relinquishParameters(); }
 
-		//! Reset the query object to new state. For recycling objects without re-construction.
-		void reset() { m_sharedData.reset(new SharedData); cancel(false); keepAlive(false); }
+		/** 
+		 * @brief Reset the query object as though you are making it anew from the default constructor.
+		 *
+		 * This is effectively like destroying the query object and creating a brand new one with the same name. Note that
+		 * FLAG_ORIGINAL will be set after doing this.
+		 */
+		void reset() { m_sharedData.reset(new SharedData); m_flags=FLAG_ORIGINAL; keepAlive(false); }
 
+		// Someday maybe
 		/*void swap()
 		{
 			unsigned char flags(m_sharedData->m_flags);
@@ -786,6 +1038,73 @@ struct TestSet: public ASql::Data::Set
 			m_sharedData->m_results = m_sharedData->m_parameters;
 			m_sharedData->m_parameters = results;
 		}*/
+	};
+
+	/** 
+	 * @brief Build a series of queries into a transaction.
+	 *
+	 * By using this class to execute a series of queries you let the ASql engine handle insuring they
+	 * are executed sequentially. Should an error or cancellation crop up in one query all changes made
+	 * by preceding queries in the transaction will be rolled back and proceeding queries in the transaction
+	 * will be dumped from the queue.
+	 *
+	 * Note that if an error or cancellation occurs in a query that has no callback function, proceeding queries
+	 * in the transaction will be checked for callback functions and the first one found will be called.
+	 *
+	 * Note that the statement obviously MUST all be from the same connection.
+	 */
+	template<class T> class Transaction
+	{
+	public:
+		/** 
+		 * @brief Ties query objects to their statements.
+		 */
+		struct Item
+		{
+			Item(Query query, T* statement): m_query(query), m_statement(statement) {}
+			Item(const Item& x): m_query(x.m_query), m_statement(x.m_statement) {}
+			Query m_query;
+			T* m_statement;
+		};
+	private:
+		std::vector<Item> m_items;
+	public:
+		typedef typename std::vector<Item>::iterator iterator;
+		/** 
+		 * @brief Add a query to the transaction.
+		 *
+		 * This adds the query to the back of the line.
+		 * 
+		 * @param query Query to add.
+		 * @param statement Associated statement.
+		 */
+		inline void push(Query& query, T& statement) { m_items.push_back(Item(query, &statement)); }
+		/** 
+		 * @brief Remove all queries from the transaction.
+		 */
+		inline void clear() { m_items.clear(); }
+		/** 
+		 * @brief Return a starting iterator.
+		 */
+		inline iterator begin() { return m_items.begin(); }
+		/** 
+		 * @brief Return a end iterator.
+		 */
+		inline iterator end() { return m_items.end(); }
+		/** 
+		 * @brief Return true if the transaction is empty.
+		 */
+		inline bool empty() { return m_items.size()==0; }
+
+		/** 
+		 * @brief Cancel all queries in the transaction.
+		 */
+		void cancel();
+
+		/** 
+		 * @brief Initiate the transaction.
+		 */
+		void start() { m_items.front().m_statement->connection.queue(*this); }
 	};
 
 	/** 
@@ -810,14 +1129,19 @@ struct TestSet: public ASql::Data::Set
 		Connection(const int maxThreads_): maxThreads(maxThreads_), threads(0) {}
 	};
 
+	/** 
+	 * @brief Defines some functions and data types shared between ASql engines
+	 */
 	template<class T> class ConnectionPar: private Connection
 	{
 	private:
 		struct QuerySet
 		{
-			QuerySet(Query& query, T* const& statement): m_query(query), m_statement(statement) {}
+			QuerySet(Query& query, T* const& statement, const bool commit): m_query(query), m_statement(statement), m_commit(commit) {}
+			QuerySet() {}
 			Query m_query;
-			T* const m_statement;
+			bool m_commit;
+			T* m_statement;
 		};
 		/** 
 		 * @brief Thread safe queue of queries.
@@ -829,6 +1153,9 @@ struct TestSet: public ASql::Data::Set
 		 */
 		void intHandler();
 
+		/** 
+		 * @brief Locks the mutex on a statement and set's the canceller to the queries canceller
+		 */
 		class TakeStatement
 		{
 			boost::lock_guard<boost::mutex> m_lock;
@@ -842,10 +1169,18 @@ struct TestSet: public ASql::Data::Set
 		ConnectionPar(const int maxThreads_): Connection(maxThreads_) {}
 		inline void queue(T* const& statement, Query& query);
 	public:
-		//! Start the query handling threads.
+		/** 
+		 * @brief Start all threads of the handler
+		 */
 		void start();
-		//! Terminator the query handling threads.
+		/** 
+		 * @brief Terminate all thread of the handler
+		 */
 		void terminate();
+		/** 
+		 * @brief Queue up a transaction for completion
+		 */
+		void queue(Transaction<T>& transaction);
 
 		static const bool s_false;
 	};	
@@ -900,24 +1235,40 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 	boost::unique_lock<boost::mutex> terminateLock(terminateMutex, boost::defer_lock_t());
 	boost::unique_lock<boost::mutex> queriesLock(queries, boost::defer_lock_t());
 
+	Queries intQueries;
+
 	while(1)
 	{
 		terminateLock.lock();
 		if(terminateBool)
 			break;
 		terminateLock.unlock();
+		
+		QuerySet querySet;
 
-		queriesLock.lock();
-		if(!queries.size())
-		{
-			wakeUp.wait(queriesLock);
+		if(intQueries.empty())
+		{		
+			queriesLock.lock();
+			if(!queries.size())
+			{
+				wakeUp.wait(queriesLock);
+				queriesLock.unlock();
+				continue;
+			}
+			querySet=queries.front();
+			while(!queries.front().m_commit)
+			{
+				queries.pop();
+				intQueries.push(queries.front());
+			}
+			queries.pop();
 			queriesLock.unlock();
-			continue;
 		}
-
-		QuerySet querySet(queries.front());
-		queries.pop();
-		queriesLock.unlock();
+		else
+		{
+			querySet=intQueries.front();
+			intQueries.pop();
+		}
 
 		Error error;
 
@@ -929,20 +1280,36 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 			{
 				if(querySet.m_query.m_sharedData->m_flags & Query::SharedData::FLAG_SINGLE_RESULTS)
 				{
-					if(!querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), *static_cast<Data::Set*>(querySet.m_query.results()))) querySet.m_query.clearResults();
+					if(!querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), *static_cast<Data::Set*>(querySet.m_query.results()), false)) querySet.m_query.clearResults();
 				}
 				else
-					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), static_cast<Data::SetContainer*>(querySet.m_query.results()), querySet.m_query.m_sharedData->m_insertId, querySet.m_query.m_sharedData->m_rows);
+					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), static_cast<Data::SetContainer*>(querySet.m_query.results()), querySet.m_query.m_sharedData->m_insertId, querySet.m_query.m_sharedData->m_rows, false);
 			}
 			else
 			{
-				querySet.m_statement->execute(*static_cast<const Data::SetContainer*>(querySet.m_query.parameters()), querySet.m_query.m_sharedData->m_rows);
+				querySet.m_statement->execute(*static_cast<const Data::SetContainer*>(querySet.m_query.parameters()), querySet.m_query.m_sharedData->m_rows, false);
 			}
+
+			if(querySet.m_commit)
+				querySet.m_statement->commit();
 		}
 		catch(const Error& e)
 		{
 			querySet.m_query.m_sharedData->m_error=e;
-			std::cerr << e.msg << '\n';
+
+			querySet.m_statement->rollback();
+
+			queriesLock.lock();
+			QuerySet tmpQuerySet=querySet;
+			while(!intQueries.empty())
+			{
+				tmpQuerySet=intQueries.front();
+				intQueries.pop();
+				if(!querySet.m_query.isCallback() && tmpQuerySet.m_query.isCallback())
+					querySet.m_query.setCallback(tmpQuerySet.m_query.getCallback());
+
+			}
+			queriesLock.unlock();
 		}
 
 		querySet.m_query.callback();
@@ -952,17 +1319,34 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 		boost::lock_guard<boost::mutex> threadsLock(threadsMutex);
 		--threads;
 	}
-	threadsChanged.notify_one();
+threadsChanged.notify_one();
 }
 
 
 template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, Query& query)
 {
 	boost::lock_guard<boost::mutex> queriesLock(queries);
-	queries.push(QuerySet(query, statement));
+	queries.push(QuerySet(query, statement, true));
 	wakeUp.notify_one();
 }
 
 template<class T> const bool ASql::ConnectionPar<T>::s_false = false;
+
+template<class T> void ASql::ConnectionPar<T>::queue(Transaction<T>& transaction)
+{
+	boost::lock_guard<boost::mutex> queriesLock(queries);
+
+	for(typename Transaction<T>::iterator it=transaction.begin(); it!=transaction.end(); ++it)
+		queries.push(QuerySet(it->m_query, it->m_statement, false));
+	queries.back().m_commit = true;
+
+	wakeUp.notify_one();
+}
+
+template<class T> void ASql::Transaction<T>::cancel()
+{
+	for(iterator it=begin(); it!=end(); ++it)
+		it->m_query.cancel();
+}
 
 #endif

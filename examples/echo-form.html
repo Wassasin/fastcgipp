@@ -27,11 +27,10 @@
                 // conten-type defaults to "application/x-www-form-urlencoded"
                 $("#button").click(function(){
                     var data = {
-                        "the_data[0]": $("#one").val(),
-                        "the_data[1]": $("#two").val(),
-                        "the_data[2]": $("#three").val(),
-                        "the_data[3]": $("#four").val(),
-                        more_data: "more_data"
+                        first: $("#one").val(),
+                        second: $("#two").val(),
+                        third: $("#three").val(),
+                        fourth: $("#four").val()
                     }
 
                     $("#result").text("sending...");
@@ -39,9 +38,7 @@
                     $.ajax ({
                         url: './echo.fcgi',
                         type: "POST",
-                        data: data,
-                        // or
-                        //data: 'the_data[0]=first&the_data[1]=second&the_data[2]=third&the_data[3]=fourth',
+                        data: data, //this is the POST data
                         success: success,
                         error: error,
                     });
