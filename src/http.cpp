@@ -540,7 +540,6 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
             boost::trim (post.value);
             boost::trim (tmp);
             posts[tmp] = post;
-            //posts[std::basic_string<charT>(key.get())] = post;
         }
     }
 }
