@@ -516,7 +516,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
         // According to this http://www.w3schools.com/TAGS/ref_urlencode.asp
         // spaces in request parameters can be replaced with + instead of being
         // URL encoded. Catch it here.
-        boost::trim_if (kv_pairs[i], boost::is_any_of ("+"));
+        boost::algorithm::replace_all(kv_pairs[i], "+", " ");
 
         std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
         boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
@@ -535,7 +535,12 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
             value[percentEscapedToRealBytes(kv_pair[VALUE].c_str(), value.get(), kv_pair[VALUE].length())] = '\0';
 
             post.value = std::basic_string<charT>(value.get());
-            posts[std::basic_string<charT>(key.get())] = post;
+            // trim white spaces at the beginning and end of the key and value
+            std::basic_string<charT> tmp(std::basic_string<charT>(key.get()));
+            boost::trim (post.value);
+            boost::trim (tmp);
+            posts[tmp] = post;
+            //posts[std::basic_string<charT>(key.get())] = post;
         }
     }
 }
