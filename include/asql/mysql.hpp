@@ -173,7 +173,7 @@ namespace ASql
 			void init(const char* const& queryString, const size_t& queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet);
 
 			/** 
-			 * @brief Execute %MySQL statement.
+			 * @brief Execute multi-row result %MySQL statement.
 			 *
 			 *	Executes the built query with the passed parameter data storing the results in the passed results container.
 			 *	The number of rows affected or total matching rows can be retrieved by passing the proper pointer to rows.
@@ -190,8 +190,9 @@ namespace ASql
 			 * @param[out] results %Data set container of %MySQL query result data.
 			 * @param[out] insertId Pointer to integer for writing of last auto-increment insert value.
 			 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query.
+			 * @param[in] docommit Set to true a transaction commit should be completed at the end of this query.
 			 */
-			void execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0);
+			void execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0, bool docommit=true);
 
 			/** 
 			 * @brief Execute single result row %MySQL statement.
@@ -207,12 +208,28 @@ namespace ASql
 			 * 
 			 * @param[in] parameters %Data set of %MySQL query parameter data.
 			 * @param[out] results Set to store single result row in.
+			 * @param[in] docommit Set to true a transaction commit should be completed at the end of this query.
 			 *
 			 * @return True if result data was recieved, false otherwise.
 			 */
-			bool execute(const Data::Set* const parameters, Data::Set& results);
+			bool execute(const Data::Set* const parameters, Data::Set& results, bool docommit=true);
 
-			void execute(const Data::SetContainer& parameters, unsigned long long int* rows=0);
+			/** 
+			 * @brief Execute result-less multi-row parameter %MySQL statement.
+			 * 
+			 * Executes the built query with the passed parameter data storing no results. This alternative exists to allow
+			 * users to execute multi-rows parameter queries which obviously will not return any data. (INSERT UPDATE DELETE)
+			 * and such.
+			 *
+			 *	The Data::SetContainer referenced to by parameters must have the same derived type as was passed upon construction of the
+			 *	statement. a Data::SetContainer templated to the same derived type passed upon construction of the statement for the single result
+			 *	result row.
+			 *
+			 * @param[in] parameters  %Data set of %MySQL query parameter data.
+			 * @param[out] rows Pointer to integer for writing the number of rows affected from last query.
+			 * @param[in] docommit Set to true a transaction commit should be completed at the end of this query.
+			 */
+			void execute(const Data::SetContainer& parameters, unsigned long long int* rows=0, bool docommit=true);
 
 			/** 
 			 * @brief Asynchronously execute a %MySQL statement.
@@ -231,6 +248,9 @@ namespace ASql
 			{
 				connection.queue(this, query);
 			}
+
+			inline void commit()	{ mysql_commit(connection.getConnection()); }
+			inline void rollback()	{ mysql_rollback(connection.getConnection()); }
 		private:
 			Connection& connection;
 
@@ -311,7 +331,10 @@ namespace ASql
 			const bool* m_stop;
 
 			friend class ConnectionPar<Statement>;
+			friend class Transaction<Statement>;
 		};
+
+		typedef ASql::Transaction<Statement> Transaction;
 
 		/** 
 		 * @brief Handle retrieval of variable length data chunks.
