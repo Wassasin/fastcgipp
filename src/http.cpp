@@ -489,7 +489,10 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
     std::basic_string<charT> queryString;
     boost::scoped_array<char> buffer(new char[size]);
     memcpy (buffer.get(), data, size);
-	charToString (buffer.get(), size, queryString);
+    charToString (buffer.get(), size, queryString);
+
+	//int i = percentEscapedToRealBytes(data, buffer.get(), size);
+	//charToString(buffer.get(), i, queryString);
 
     doFillPostsUrlEncoded(queryString);
 }
@@ -520,13 +523,8 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
 
         std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
         boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
-        // Check the number of tokes. Anything but 2 is bad.
-        if (kv_pair.size() != 2)
-        {
-            return;
-            //throw ();
-        }
-        else // Fine.
+        // Check the number of tokens. Anything but 2 is bad.
+        if (kv_pair.size() == 2)
         {
             boost::scoped_array<charT> key(new charT[(kv_pair[KEY].length() + 1) * sizeof(charT)]);
             boost::scoped_array<charT> value(new charT[(kv_pair[VALUE].length() + 1) * sizeof(charT)]);
@@ -540,6 +538,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
             boost::trim (post.value);
             boost::trim (tmp);
             posts[tmp] = post;
+            //posts[std::basic_string<charT>(key.get())] = post;
         }
     }
 }
