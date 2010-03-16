@@ -60,7 +60,11 @@ class Echo: public Fastcgipp::Request<wchar_t>
 {
 	bool response()
 	{
-		wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
+        if (environment.requestMethod != Fastcgipp::Http::HTTP_METHOD_POST) {
+            environment.doFillPostsUrlEncoded (environment.queryString);
+        }
+
+        wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
 
 		// Let's make our header, note the charset=utf-8. Remember that HTTP headers
 		// must be terminated with \r\n\r\n. NOT just \n\n.
@@ -104,7 +108,8 @@ class Echo: public Fastcgipp::Request<wchar_t>
 				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)
 				{
 					out << "<p><b>Type:</b> form data<br />";
-					out << "<b>Value:</b> " << it->second.value << "</p>";
+					out << "<b>Value:</b> " << it->second.value << "<br/>";
+					out << "<b>Length:</b> " << it->second.value.length() << "</p>";
 				}
 				
 				else
@@ -124,20 +129,17 @@ class Echo: public Fastcgipp::Request<wchar_t>
                 std::basic_string<wchar_t> value;
                 if (environment.requestVarGet(L"aquí está el campo", value)) // change this to "aquí está el campo" for char (drop the L).
                 {
-                    out << L"<p>Retrieving Variable \"aquí está el campo\". Its value is '" << value << "'</p>";
+                    out << L"<p>Retrieving Variable \"aquí está el campo\". Its value is '" << value << "'";
+                    out << " and it's length is " << value.length() << " </p>";
                 }
             }
 
-            if (environment.requestVarExists(L"the_data[0]"))
             {
-                std::vector<std::basic_string<wchar_t> > value;
-                if (environment.requestVarGet(L"the_data", value))
+                std::basic_string<wchar_t> value;
+                if (environment.requestVarGet(L"first", value)) // change this to "first" for char (drop the L).
                 {
-                    out << "<h2>Retrieving array Post data as a std::vector </h2>";
-                    for (int i = 0; i < value.size(); i++)
-                    {
-                        out << "<b>the_data[" << i << "]=" << value[i] << "</b><br />";
-                    }
+                    out << "<p>Retrieving Variable \"first\". Its value is '" << value << "'";
+                    out << " and it's length is " << value.length() << " </p>";
                 }
             }
         }
