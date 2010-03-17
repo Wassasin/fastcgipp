@@ -60,9 +60,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 {
 	bool response()
 	{
-        if (environment.requestMethod != Fastcgipp::Http::HTTP_METHOD_POST) {
-            environment.doFillPostsUrlEncoded (environment.queryString);
-        }
+        environment.parseQueryStringAsUrlEncoded();
 
         wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
 

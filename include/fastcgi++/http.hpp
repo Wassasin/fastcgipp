@@ -254,6 +254,16 @@ namespace Fastcgipp
              */
 			void doFillPostsUrlEncoded(std::basic_string<charT> &queryString);
 
+            //! Parse #queryString as if it were urlencoded.
+            /*! Parses #queryString assuming it is urlencoded, and puts the
+             * results in #posts so they can be accessed using #requestVarGet.
+             * Calls #doFillPostsUrlEncoded to do the real work.
+             * @param[in] always Wether to always parase queryString regardless
+             * of requestMethod, or only when requestMethod is @b not
+             * HTTP_METHOD_POST.
+             */ 
+            void parseQueryStringAsUrlEncoded(bool always=false);
+
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
 
