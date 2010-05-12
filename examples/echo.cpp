@@ -106,8 +106,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)
 				{
 					out << "<p><b>Type:</b> form data<br />";
-					out << "<b>Value:</b> " << it->second.value << "<br/>";
-					out << "<b>Length:</b> " << it->second.value.length() << "</p>";
+					out << "<b>Value:</b> " << it->second.value << "</p>";
 				}
 				
 				else
@@ -127,17 +126,20 @@ class Echo: public Fastcgipp::Request<wchar_t>
                 std::basic_string<wchar_t> value;
                 if (environment.requestVarGet(L"aquí está el campo", value)) // change this to "aquí está el campo" for char (drop the L).
                 {
-                    out << L"<p>Retrieving Variable \"aquí está el campo\". Its value is '" << value << "'";
-                    out << " and it's length is " << value.length() << " </p>";
+                    out << L"<p>Retrieving Variable \"aquí está el campo\". Its value is '" << value << "'</p>";
                 }
             }
 
+            if (environment.requestVarExists(L"the_data[0]"))
             {
-                std::basic_string<wchar_t> value;
-                if (environment.requestVarGet(L"first", value)) // change this to "first" for char (drop the L).
+                std::vector<std::basic_string<wchar_t> > value;
+                if (environment.requestVarGet(L"the_data", value))
                 {
-                    out << "<p>Retrieving Variable \"first\". Its value is '" << value << "'";
-                    out << " and it's length is " << value.length() << " </p>";
+                    out << "<h2>Retrieving array Post data as a std::vector </h2>";
+                    for (int i = 0; i < value.size(); i++)
+                    {
+                        out << "<b>the_data[" << i << "]=" << value[i] << "</b><br />";
+                    }
                 }
             }
         }
