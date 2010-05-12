@@ -484,6 +484,16 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertParam()
 	length = inputBuffer.size();
 }
 
+
+//Instance the ConnectionPar functions
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::start();
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::terminate();
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::intHandler();
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(ASql::MySQL::Statement* const& statement, Query& query);
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(Transaction<ASql::MySQL::Statement>& transaction);
+template void ASql::Transaction<ASql::MySQL::Statement>::cancel();
+
+
 ASql::MySQL::Error::Error(MYSQL* mysql): ASql::Error(mysql_error(mysql), mysql_errno(mysql)) { }
 ASql::MySQL::Error::Error(MYSQL_STMT* stmt): ASql::Error(mysql_stmt_error(stmt), mysql_stmt_errno(stmt)) { }
 
