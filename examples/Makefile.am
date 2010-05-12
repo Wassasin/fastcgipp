@@ -19,7 +19,7 @@ showgnu.fcgi: showgnu.cpp
 	$(CXX) -o showgnu.fcgi showgnu.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
 
 timer.fcgi: timer.cpp
-	$(CXX) -o timer.fcgi timer.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) -lboost_system $(CXXFLAGS)
+	$(CXX) -o timer.fcgi timer.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(BOOST_SYSTEM_LIBS) $(CXXFLAGS)
 
 upload.fcgi: upload.cpp
 	$(CXX) -o upload.fcgi upload.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)

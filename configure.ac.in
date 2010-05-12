@@ -13,9 +13,10 @@ BOOST_DATE_TIME
 BOOST_FUNCTION
 BOOST_SMART_PTR
 BOOST_THREADS
+BOOST_SYSTEM
 BOOST_ALGORITHM_STRING
 
-pkgConfigLibs="-lfastcgipp -lboost_thread"
+pkgConfigLibs="-lfastcgipp $BOOST_THREAD_LIBS $BOOST_DATE_TIME_LIBS"
 
 AC_CHECK_HEADER(mysql/mysql.h, hasMysql=yes)
 if test "$hasMysql" = yes
