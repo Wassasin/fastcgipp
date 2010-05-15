@@ -489,7 +489,8 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEnco
     std::basic_string<charT> queryString;
     boost::scoped_array<char> buffer(new char[size]);
     memcpy (buffer.get(), data, size);
-	charToString (buffer.get(), size, queryString);
+
+	charToString(buffer.get(), percentEscapedToRealBytes(data, buffer.get(), size), queryString);
 
     doFillPostsUrlEncoded(queryString);
 }
@@ -500,7 +501,6 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
 {
     // FIXME: Assumes entire post data will be sent in one shot for this
     // encoding. I believe this to be true, but have not been able to confirm.
-
     enum {KEY, VALUE};
     Fastcgipp::Http::Post<charT> post;
     post.type = Fastcgipp::Http::Post<charT>::form;
@@ -515,32 +515,33 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEn
     {
         // According to this http://www.w3schools.com/TAGS/ref_urlencode.asp
         // spaces in request parameters can be replaced with + instead of being
-        // URL encoded. Catch it here.
+        // URL encoded. Catch it here. But what happens if it really was a +?
         boost::algorithm::replace_all(kv_pairs[i], "+", " ");
 
         std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
         boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
-        // Check the number of tokes. Anything but 2 is bad.
-        if (kv_pair.size() != 2)
+        // Check the number of tokens. Anything but 2 is bad.
+        if (kv_pair.size() == 2)
         {
-            return;
-            //throw ();
+            boost::trim (kv_pair[KEY]);
+            boost::trim (kv_pair[VALUE]);
+            post.value = kv_pair[VALUE];
+            posts[kv_pair[KEY]] = post;
         }
-        else // Fine.
+        else
         {
-            boost::scoped_array<charT> key(new charT[(kv_pair[KEY].length() + 1) * sizeof(charT)]);
-            boost::scoped_array<charT> value(new charT[(kv_pair[VALUE].length() + 1) * sizeof(charT)]);
-
-            key[percentEscapedToRealBytes(kv_pair[KEY].c_str(), key.get(), kv_pair[KEY].length())] = '\0';
-            value[percentEscapedToRealBytes(kv_pair[VALUE].c_str(), value.get(), kv_pair[VALUE].length())] = '\0';
-
-            post.value = std::basic_string<charT>(value.get());
-            // trim white spaces at the beginning and end of the key and value
-            std::basic_string<charT> tmp(std::basic_string<charT>(key.get()));
-            boost::trim (post.value);
-            boost::trim (tmp);
-            posts[tmp] = post;
+            // Process the next one...
         }
+    }
+}
+
+template void Fastcgipp::Http::Environment<char>::parseQueryStringAsUrlEncoded (bool always);
+template void Fastcgipp::Http::Environment<wchar_t>::parseQueryStringAsUrlEncoded (bool always);
+template<class charT> void Fastcgipp::Http::Environment<charT>::parseQueryStringAsUrlEncoded (bool always)
+{
+    if (always || requestMethod != Fastcgipp::Http::HTTP_METHOD_POST)
+    {
+        doFillPostsUrlEncoded (queryString);
     }
 }
 
