@@ -60,7 +60,9 @@ class Echo: public Fastcgipp::Request<wchar_t>
 {
 	bool response()
 	{
-		wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
+        environment.parseQueryStringAsUrlEncoded();
+
+        wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
 
 		// Let's make our header, note the charset=utf-8. Remember that HTTP headers
 		// must be terminated with \r\n\r\n. NOT just \n\n.
