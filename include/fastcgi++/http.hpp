@@ -643,7 +643,7 @@ namespace Fastcgipp
 			 * 
 			 * @return Iterator pointing to the newly created session.
 			 */
-			iterator generate(const T& value_ = T()) { return insert(std::pair<SessionId, T>(SessionId(), value_)).first; }
+			iterator generate(const T& value_ = T());
 
 			boost::posix_time::ptime getExpiry(const_iterator it) const { return it->first.timestamp+keepAlive; }
 		};
@@ -731,6 +731,15 @@ template<class In, class Out> void Fastcgipp::Http::base64Encode(In start, In en
 		else *destination=base64Characters[ (buffer >> bitPos)&0x3f ];
 		bitPos -= 6;
 	}
+}
+
+template<class T> typename Fastcgipp::Http::Sessions<T>::iterator Fastcgipp::Http::Sessions<T>::generate(const T& value_)
+{
+	std::pair<iterator,bool> retVal;
+	retVal.second=false;
+	while(!retVal.second)
+		retVal=insert(std::pair<SessionId, T>(SessionId(), value_));
+	return retVal.first;
 }
 
 #endif
