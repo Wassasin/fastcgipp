@@ -564,8 +564,8 @@ template const Fastcgipp::Http::SessionId& Fastcgipp::Http::SessionId::operator=
 template const Fastcgipp::Http::SessionId& Fastcgipp::Http::SessionId::operator=<const wchar_t>(const wchar_t* data_);
 template<class charT> const Fastcgipp::Http::SessionId& Fastcgipp::Http::SessionId::operator=(charT* data_)
 {
-	if(base64Decode(data_, data_+size*4/3, data)!=data+size)
-		std::memset(data, 0, size);
+	std::memset(data, 0, size);
+	base64Decode(data_, data_+size*4/3, data);
 	timestamp = boost::posix_time::second_clock::universal_time();
 	return *this;
 }

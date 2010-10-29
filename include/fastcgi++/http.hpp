@@ -504,7 +504,8 @@ namespace Fastcgipp
 		/** 
 		 * @brief Convert a Base64 encoded container to a binary container.
 		 *
-		 * If destination is a fixed size container, it should have a size of at least (end-start)*3/4 not including null terminators if used.
+		 * If destination is a fixed size container, it should have a size of
+		 * at least (end-start)*3/4 not including null terminators if used.
 		 * 
 		 * @param[in] start Iterator to start of Base64 data.
 		 * @param[in] end Iterator to end of Base64 data.
@@ -513,7 +514,8 @@ namespace Fastcgipp
 		 * @tparam In Input iterator type. Should be dereferenced to type char.
 		 * @tparam Out Output iterator type. Should be dereferenced to type char.
 		 * 
-		 * @return Iterator to last position written. If the return value equals destination, an error occurred.
+		 * @return Iterator to last position written+1 (The normal end() iterator). If
+		 * the return value equals destination, an error occurred.
 		 */
 		template<class In, class Out> Out base64Decode(In start, In end, Out destination);
 
@@ -673,7 +675,7 @@ template<class In, class Out> Out Fastcgipp::Http::base64Decode(In start, In end
 		if(bitPos==-8)
 		{
 			bitPos=18;
-			padStart=-6;
+			padStart=-9;
 			buffer=0;
 			while(bitPos!=-6)
 			{
@@ -684,7 +686,7 @@ template<class In, class Out> Out Fastcgipp::Http::base64Decode(In start, In end
 				else if(value >= '0' && '9' >= value) value -= '0' - 52;
 				else if(value == '+') value = 62;
 				else if(value == '/') value = 63;
-				else if(value == '=') { padStart+=8; value=0; }
+				else if(value == '=') { padStart=bitPos; break; }
 				else return destination;
 
 				buffer |= value << bitPos;
@@ -693,13 +695,13 @@ template<class In, class Out> Out Fastcgipp::Http::base64Decode(In start, In end
 			bitPos=16;
 		}
 
-		if(padStart==bitPos)
-			return ++dest;
+		if(padStart>=bitPos)
+			return dest-(padStart-bitPos)/6;
 		*destination++ = (buffer >> bitPos) & 0xff;
 		bitPos-=8;
 	}
 
-	return dest;
+	return dest+1;
 }
 
 template<class In, class Out> void Fastcgipp::Http::base64Encode(In start, In end, Out destination)
