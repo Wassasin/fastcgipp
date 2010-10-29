@@ -38,6 +38,11 @@ AC_CHECK_HEADER(machine/endian.h,
 				[AC_DEFINE(HAVE_MACHINE_ENDIAN_H, 1,
 					 [Using "machine/endian.h"])],
 				[])
+## Some other *NIXs keep its "endianess" in arpa/nameser_compat.h
+AC_CHECK_HEADER(arpa/nameser_compat.h,
+				[AC_DEFINE(HAVE_ARPA_ENDIAN_H, 1,
+					 [Using "arpa/nameser_compat.h"])],
+				[])
 
 AC_OUTPUT([Makefile \
                    src/Makefile \

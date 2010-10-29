@@ -31,8 +31,10 @@
 #include <endian.h>
 #elif defined (HAVE_MACHINE_ENDIAN_H)
 #include <machine/endian.h>
+#elif defined (HAVE_ARPA_ENDIAN_H)
+#include <arpa/nameser_compat.h>
 #else
-#error Could not locate "endian.h"
+#error Could not locate a file that defines endianess
 #endif
 
 #include <stdint.h>
