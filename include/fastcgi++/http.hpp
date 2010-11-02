@@ -695,13 +695,18 @@ template<class In, class Out> Out Fastcgipp::Http::base64Decode(In start, In end
 			bitPos=16;
 		}
 
-		if(padStart>=bitPos)
-			return dest-(padStart-bitPos)/6;
-		*destination++ = (buffer >> bitPos) & 0xff;
+		*dest = (buffer >> bitPos) & 0xff;
 		bitPos-=8;
+		if(padStart>=bitPos)
+		{
+			if( (padStart-bitPos)/6 )
+				return dest;
+			else
+				return ++dest;
+		}
 	}
 
-	return dest+1;
+	return dest;
 }
 
 template<class In, class Out> void Fastcgipp::Http::base64Encode(In start, In end, Out destination)
