@@ -57,8 +57,12 @@ namespace Fastcgipp
 		{
 			//! Type of POST data piece
 			enum Type { file, form } type;
-			//! Value of POST data if type=form or the filename if type=file
+			//! Value of POST data if type=form
 			std::basic_string<charT> value;
+			//! Filename of POST data if type=file
+			std::basic_string<charT> filename;
+			//! Content Type if type=file
+			std::basic_string<charT> contentType;
 			//! Pointer to file data
 			boost::shared_array<char> data;
 			//! Size of data in bytes pointed to by data.
@@ -440,20 +444,6 @@ namespace Fastcgipp
 		 * @return Integer value represented by the string
 		 */
 		int atoi(const char* start, const char* end);
-
-		//! Finds the value associated with a name in an 'name="value"' string
-		/*!
-		 * Note that the quotation marks are removed from the value. If no value is found, 
-		 * then string is left unchanged.
-		 *
-		 * @param[in] name Pointer to a null terminated string containing the name
-		 * @param[in] start Pointer to the first byte of data to look in
-		 * @param[in] end Pointer to the last byte of data to look in + 1
-		 * @param[out] string Reference to the string the value should be stored in.
-		 *
-		 * @return Returns false if the name isn't found. True otherwise.
-		 */
-		template<class charT> bool parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string);
 
 		/** 
 		 * @brief Finds the value associated with a name in a 'name=value&name2=value2' string
