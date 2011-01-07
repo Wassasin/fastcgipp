@@ -416,9 +416,9 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 	}}
 }
 
-template void Fastcgipp::Http::Environment<char>::fillPosts(const char* data, size_t size);
-template void Fastcgipp::Http::Environment<wchar_t>::fillPosts(const char* data, size_t size);
-template<class charT> void Fastcgipp::Http::Environment<charT>::fillPosts(const char* data, size_t size)
+template void Fastcgipp::Http::Environment<char>::fillPostsMultipart(const char* data, size_t size);
+template void Fastcgipp::Http::Environment<wchar_t>::fillPostsMultipart(const char* data, size_t size);
+template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsMultipart(const char* data, size_t size)
 {
 	using namespace std;
 	while(1)

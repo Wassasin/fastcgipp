@@ -143,41 +143,6 @@ namespace Fastcgipp
 		 */
 		boost::function<void(Message)> callback;
 
-		/** 
-		 * @brief Override to parse/process POST data in a non-standard way
-		 *
-		 * Normally this function will take standard HTTP POST data and parse it into the Environment::posts
-		 * container. Should a situation arise where a different format of POST data it sent, override this
-		 * function to parse it in a compatible fashion.
-		 * 
-		 * @param data %Block of POST data.
-		 * @param size Size in bytes of data.
-		 */
-		virtual void processPostData(const char* data, size_t size)
-        {
-            if(typeid(environment.contentType) == typeid(std::basic_string<char>))
-            {
-                if(!memcmp(environment.contentType.c_str(), "application/x-www-form-urlencoded", environment.contentType.length()))
-                {
-                    environment.fillPostsUrlEncoded(data, size);
-                }
-                else if(!memcmp(environment.contentType.c_str(), "multipart/form-data", environment.contentType.length()))
-                {
-                    environment.fillPosts(data, size);
-                }
-            }
-            else if(typeid(environment.contentType) == typeid(std::basic_string<wchar_t>))
-            {
-                if(!memcmp(environment.contentType.c_str(), L"application/x-www-form-urlencoded", environment.contentType.length()))
-                {
-                    environment.fillPostsUrlEncoded(data, size);
-                }
-                else if(!memcmp(environment.contentType.c_str(), L"multipart/form-data", environment.contentType.length()))
-                {
-                    environment.fillPosts(data, size);
-                }
-            }
-        }
 	private:
 		//! Queue type for pending messages
 		/*!
@@ -242,6 +207,14 @@ namespace Fastcgipp
 		struct RecordsOutOfOrder: public std::exception
 		{
 			const char* what() const throw() { return "FastCGI records received out of order from server."; }
+		};
+
+		/** 
+		 * @brief Thrown if a incoming content type is unknown
+		 */
+		struct UnknownContentType: public std::exception
+		{
+			const char* what() const throw() { return "Client sent unknown content type."; }
 		};
 	}
 }

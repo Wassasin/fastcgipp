@@ -208,7 +208,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 			messages.pop();
 		}
 
-		if(!message.type)
+		if(message.type==0)
 		{
 			const Header& header=*(Header*)message.data.get();
 			const char* body=message.data.get()+sizeof(Header);
@@ -240,7 +240,22 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						}
 						break;
 					}
-					processPostData(body, header.getContentLength());
+
+					// Process POST data based on what our incoming content type is
+					{
+						const char multipart[] = "multipart/form-data";
+						const char urlEncoded[] = "application/x-www-form-urlencoded";
+
+						if(equal(multipart, multipart+sizeof(multipart), environment.contentType.begin()))
+							environment.fillPostsMultipart(body, header.getContentLength());
+
+						else if(equal(urlEncoded, urlEncoded+sizeof(urlEncoded), environment.contentType.begin()))
+							environment.fillPostsUrlEncoded(body, header.getContentLength());
+
+						else
+							throw Exceptions::UnknownContentType();
+					}
+
 					inHandler(header.getContentLength());
 					break;
 				}
@@ -248,11 +263,6 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 				case ABORT_REQUEST:
 				{
 					return true;
-				}
-
-				default:
-				{
-					break;
 				}
 			}
 		}
