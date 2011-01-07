@@ -480,7 +480,7 @@ namespace Fastcgipp
 		 * @param[out] destination Pointer to the section of memory to write the converted string to
 		 * @return Actual size of the new string
 		 */
-		template <class charT> int percentEscapedToRealBytes(const charT* source, charT* destination, size_t size);
+		template <class charT> size_t percentEscapedToRealBytes(const charT* source, charT* destination, size_t size);
 
 		/** 
 		 * @brief List of characters in order for Base64 encoding.
