@@ -244,11 +244,11 @@ int Fastcgipp::Http::atoi(const char* start, const char* end)
 	return neg?-result:result;
 }
 
-template int Fastcgipp::Http::percentEscapedToRealBytes<char>(const char* source, char* destination, size_t size);
-template int Fastcgipp::Http::percentEscapedToRealBytes<wchar_t>(const wchar_t* source, wchar_t* destination, size_t size);
-template<class charT> int Fastcgipp::Http::percentEscapedToRealBytes(const charT* source, charT* destination, size_t size)
+template size_t Fastcgipp::Http::percentEscapedToRealBytes<char>(const char* source, char* destination, size_t size);
+template size_t Fastcgipp::Http::percentEscapedToRealBytes<wchar_t>(const wchar_t* source, wchar_t* destination, size_t size);
+template<class charT> size_t Fastcgipp::Http::percentEscapedToRealBytes(const charT* source, charT* destination, size_t size)
 {
-    if (size < 1) return 0;
+	if (size < 1) return 0;
 
 	unsigned int i=0;
 	charT* start=destination;
@@ -268,13 +268,16 @@ template<class charT> int Fastcgipp::Http::percentEscapedToRealBytes(const charT
 			}
 			++source;
 			++destination;
-			if(++i==size) break;
+		}
+		else if(*source=='+')
+		{
+			*destination++=' ';
+			++source;
 		}
 		else
-		{
 			*destination++=*source++;
-			if(++i==size) break;
-		}
+
+		if(++i==size) break;
 	}
 	return destination-start;
 }
