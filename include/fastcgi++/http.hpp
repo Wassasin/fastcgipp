@@ -224,7 +224,7 @@ namespace Fastcgipp
 			 * @param[in] data Pointer to the first byte of post data
 			 * @param[in] size Size of data in bytes
 			 */
-			void fillPosts(const char* data, size_t size);
+			void fillPostsMultipart(const char* data, size_t size);
 
             //! Parses "application/x-www-form-urlencoded" post data into the post object.
             /*!
