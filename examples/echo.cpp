@@ -112,8 +112,9 @@ class Echo: public Fastcgipp::Request<wchar_t>
 				else
 				{
 					out << "<p><b>Type:</b> file<br />";
-					// When the post type is a file, the filename is stored in Post::value;
-					out << "<b>Filename:</b> " << it->second.value << "<br />";
+					// When the post type is a file, we have some additional information
+					out << "<b>Filename:</b> " << it->second.filename << "<br />";
+					out << "<b>Content Type:</b> " << it->second.contentType << "<br />";
 					out << "<b>Size:</b> " << it->second.size << "<br />";
 					out << "<b>Data:</b></p><pre>";
 					// We will use dump to send the raw data directly to the client

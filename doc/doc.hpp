@@ -744,10 +744,11 @@ If there isn't any POST data, we'll just say so
 					out << "<p><b>Type:</b> file<br />";
 \endcode
 
-When the post type is a file, the filename is stored in Post::value
+When the post type is a file, we have some additional information
 
 \code
-					out << "<b>Filename:</b> " << it->second.value << "<br />";
+					out << "<b>Filename:</b> " << it->second.filename << "<br />";
+					out << "<b>Content Type:</b> " << it->second.contentType << "<br />";
 					out << "<b>Size:</b> " << it->second.size << "<br />";
 					out << "<b>Data:</b></p><pre>";
 \endcode

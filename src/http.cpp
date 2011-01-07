@@ -148,41 +148,6 @@ template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp
 	return is;
 }
 
-template bool Fastcgipp::Http::parseXmlValue<char>(const char* const name, const char* start, const char* end, std::basic_string<char>& string);
-template bool Fastcgipp::Http::parseXmlValue<wchar_t>(const char* const name, const char* start, const char* end, std::basic_string<wchar_t>& string);
-template<class charT> bool Fastcgipp::Http::parseXmlValue(const char* const name, const char* start, const char* end, std::basic_string<charT>& string)
-{
-	using namespace std;
-
-	size_t searchStringSize=strlen(name)+2;
-	char* searchString=new char[searchStringSize+1];
-	memcpy(searchString, name, searchStringSize-2);
-	*(searchString+searchStringSize-2)='=';
-	*(searchString+searchStringSize-1)='"';
-	*(searchString+searchStringSize)='\0';
-
-	const char* valueStart=0;
-
-	for(; start<=end-searchStringSize; ++start)
-	{
-		if(valueStart && *start=='"') break;
-		if(!memcmp(searchString, start, searchStringSize))
-		{
-			valueStart=start+searchStringSize;
-			start+=searchStringSize-1;
-		}
-	}
-
-	delete [] searchString;
-
-	if(!valueStart)
-		return false;
-
-	if(start-valueStart) charToString(valueStart, start-valueStart, string);
-	else string.erase();
-	return true;
-}
-
 template bool  Fastcgipp::Http::parseValue<char>(const std::basic_string<char>& name, const std::basic_string<char>& data, std::basic_string<char>& value, char fieldSep);
 template bool  Fastcgipp::Http::parseValue<wchar_t>(const std::basic_string<wchar_t>& name, const std::basic_string<wchar_t>& data, std::basic_string<wchar_t>& value, wchar_t fieldSep);
 template<class charT> bool Fastcgipp::Http::parseValue(const std::basic_string<charT>& name, const std::basic_string<charT>& data, std::basic_string<charT>& value, charT fieldSep)
@@ -447,14 +412,101 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsMultipa
 		for(; bodyStart<=end-4; ++bodyStart)
 			if(!memcmp(bodyStart, "\r\n\r\n", 4)) break;
 		bodyStart+=4;
-		basic_string<charT> name;
 
-		if(parseXmlValue("name", start, bodyStart, name))
+
+		const char* contentTypeStart;
+		ssize_t contentTypeSize=-1;
+		const char* nameStart;
+		ssize_t nameSize=-1;
+		const char* filenameStart;
+		ssize_t filenameSize=-1;
+		// Fill out above values
 		{
+			const char cContentType[] = "Content-Type: ";
+			const char cContentDisposition[] = "Content-Disposition: ";
+			const char cFilename[] = "filename=\"";
+			const char cName[] = "name=\"";
+
+			enum ParseState { TITLE, CONTENT_DISPOSITION, FILENAME, NAME, CONTENT_TYPE, SKIP } parseState=TITLE;
+			for(const char* i=start; i<bodyStart; ++i)
+			{
+				switch(*i)
+				{
+					case '\n':
+					case '\r':
+					{
+						if(parseState==CONTENT_TYPE)
+							contentTypeSize=i-contentTypeStart;
+						parseState=TITLE;
+						break;
+					}
+
+					case '"':
+					{
+						if(parseState==FILENAME)
+						{
+							filenameSize=i-filenameStart;
+							parseState=CONTENT_DISPOSITION;
+						}
+						else if(parseState==NAME)
+						{
+							nameSize=i-nameStart;
+							parseState=CONTENT_DISPOSITION;
+						}
+						break;
+					}
+
+					default:
+					{
+						if(parseState==TITLE)
+						{
+							if(sizeof(cContentType)-1 <= bodyStart-i && !memcmp(cContentType, i, sizeof(cContentType)-1))
+							{
+								parseState=CONTENT_TYPE;
+								i += sizeof(cContentType)-1;
+								contentTypeStart=i;
+							}
+							else if(sizeof(cContentDisposition)-1 <= bodyStart-i && !memcmp(cContentDisposition, i, sizeof(cContentDisposition)-1))
+							{
+								parseState=CONTENT_DISPOSITION;
+								i += sizeof(cContentDisposition)-1;
+							}
+							else
+								parseState=SKIP;
+						}
+						else if(parseState==CONTENT_DISPOSITION)
+						{
+							if(sizeof(cFilename)-1 <= bodyStart-i && !memcmp(cFilename, i, sizeof(cFilename)-1))
+							{
+								parseState=FILENAME;
+								i += sizeof(cFilename)-1;
+								filenameStart=i;
+							}
+							else if(sizeof(cName)-1 <= bodyStart-i && !memcmp(cName, i, sizeof(cName)-1))
+							{
+								parseState=NAME;
+								i += sizeof(cName)-1;
+								nameStart=i;
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		
+		if(nameSize != -1)
+		{
+			basic_string<charT> name;
+			charToString(nameStart, nameSize, name);
+
 			Post<charT>& thePost=posts[name];
-			if(parseXmlValue("filename", start, bodyStart, thePost.value))
+			if(contentTypeSize != -1)
 			{
 				thePost.type=Post<charT>::file;
+				charToString(contentTypeStart, contentTypeSize, thePost.contentType);
+				if(filenameSize != -1) charToString(filenameStart, filenameSize, thePost.filename);
 				thePost.size=end-bodyStart;
 				if(thePost.size)
 				{
