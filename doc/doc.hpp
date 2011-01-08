@@ -704,8 +704,6 @@ Now we are ready to start outputting environment data. We'll start with the non-
 		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
 		out << "<b>Referer:</b> " << environment.referer << "<br />";
 		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
-		out << "<b>Query String:</b> " << environment.queryString << "<br />";
-		out << "<b>Cookies:</b> " << environment.cookies << "<br />";
 		out << "<b>Root:</b> " << environment.root << "<br />";
 		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
 		out << "<b>Request Method:</b> " << environment.requestMethod << "<br />";
@@ -719,7 +717,29 @@ Now we are ready to start outputting environment data. We'll start with the non-
 		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
 \endcode
 
-Next, we will make a little loop to output the post data. The post data is stored in the associative container environment.posts of type Fastcgipp::Http::Environment::Posts linking field names to Fastcgipp::Http::Post objects.
+Now let's take a look at the GET data. The GET data is stored in the associative container environment.gets which is of type std::map< std::basic_string< charT >, std::basic_string< charT > > links names to values.
+
+\code
+		out << "<h1>GET Data</h1>";
+		if(environment.gets.size())
+			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.gets.begin(); it!=environment.gets.end(); ++it)
+				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+		else
+			out << "<p>No GET data</p>";
+\endcode
+
+Now let's take a look at the cookie data. The cookie data is stored in the associative container environment.cookies which is of type std::map< std::basic_string< charT >, std::basic_string< charT > > links names to values.
+
+\code
+		out << "<h1>Cookie Data</h1>";
+		if(environment.cookies.size())
+			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.cookies.begin(); it!=environment.cookies.end(); ++it)
+				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+		else
+			out << "<p>No Cookie data</p>";
+\endcode
+
+Next, we will make a little loop to output the post. The post data is stored in the associative container environment.posts of type Fastcgipp::Http::Environment::Posts linking field names to Fastcgipp::Http::Post objects.
 
 \code
 		out << "<h1>Post Data</h1>";
@@ -798,7 +818,8 @@ int main()
 \code
 
 #include <fstream>
-#include "boost/date_time/posix_time/posix_time.hpp"
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <fastcgi++/request.hpp>
 #include <fastcgi++/manager.hpp>
 
@@ -821,8 +842,8 @@ class Echo: public Fastcgipp::Request<wchar_t>
 	bool response()
 	{
 		wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
-		out << "Set-Cookie: lang=" << langString << '\n';
 
+		out << "Set-Cookie: lang=" << langString << '\n';
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
 
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
@@ -836,8 +857,6 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
 		out << "<b>Referer:</b> " << environment.referer << "<br />";
 		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
-		out << "<b>Query String:</b> " << environment.queryString << "<br />";
-		out << "<b>Cookies:</b> " << environment.cookies << "<br />";
 		out << "<b>Root:</b> " << environment.root << "<br />";
 		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
 		out << "<b>Request Method:</b> " << environment.requestMethod << "<br />";
@@ -850,8 +869,23 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
 		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
 
-		out << "<h1>Post Data</h1>";
+		out << "<h1>GET Data</h1>";
+		if(environment.gets.size())
+			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.gets.begin(); it!=environment.gets.end(); ++it)
+				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+		else
+			out << "<p>No GET data</p>";
+		
+		out << "<h1>Cookie Data</h1>";
+		if(environment.cookies.size())
+			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.cookies.begin(); it!=environment.cookies.end(); ++it)
+				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+		else
+			out << "<p>No Cookie data</p>";
+
+		out << "<h1>POST Data</h1>";
 		if(environment.posts.size())
+		{
 			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
@@ -864,17 +898,20 @@ class Echo: public Fastcgipp::Request<wchar_t>
 				else
 				{
 					out << "<p><b>Type:</b> file<br />";
-					out << "<b>Filename:</b> " << it->second.value << "<br />";
+					out << "<b>Filename:</b> " << it->second.filename << "<br />";
+					out << "<b>Content Type:</b> " << it->second.contentType << "<br />";
 					out << "<b>Size:</b> " << it->second.size << "<br />";
 					out << "<b>Data:</b></p><pre>";
 					out.dump(it->second.data.get(), it->second.size);
 					out << "</pre>";
 				}
 			}
+		}
 		else
-			out << "<p>No post data</p>";
+			out << "<p>No POST data</p>";
 
 		out << "</body></html>";
+
 		return true;
 	}
 };
@@ -893,8 +930,6 @@ int main()
 }
 
 \endcode
-
-
 */
 
 /*!
@@ -1151,21 +1186,18 @@ First off let's clean up any expired sessions. Calling this function at the begi
 		sessions.cleanup();
 \endcode
 
-Now we need to initialize the session data member. In this example we will do this by finding a session id passed to us from the client as a cookie. You could also use get data obviously. fastcgi++ has a function for parsing data in a cookie or url string called Fastcgipp::Http::parseValue(). Let's call our session cookie SESSIONID. Remember that our cookie/query data is stored in a Fastcgipp::Http::Environment object called environment.
+Now we need to initialize the session data member. In this example we will do this by finding a session id passed to us from the client as a cookie. You could also use get data instead of cookies obviously. Let's call our session cookie SESSIONID. Remember that our cookies/GET data is stored in a Fastcgipp::Http::Environment object called environment.
 
 \code
-		std::string command;
-
-		Fastcgipp::Http::parseValue(std::string("SESSIONID"), environment.cookies, command, ';');
-		session=sessions.find(command.c_str());
+		session=sessions.find(environment.cookies["SESSIONID"].data());
 \endcode
 	
 Now the session data member will be a valid iterator to a session or it will point to end() if the client didn't provide a session id or it was invalid.
 
-In order to get login/logout commands from the client we will use get information. A simple ?command=login/logout system will suffice. As for the get query string, we will use Fastcgipp::Http::parseValue() to acquire the command value.
+In order to get login/logout commands from the client we will use GET information. A simple ?command=login/logout system will suffice.
 
 \code
-		Fastcgipp::Http::parseValue(std::string("command"), environment.queryString, command, '&');
+		std::string command=environment.gets["command"];
 \endcode
 
 Now we're going to need to set our locale to output boost::date_time stuff in a proper cookie expiry way. See Fastcgipp::Request::setloc().
@@ -1344,12 +1376,9 @@ class SessionExample: public Fastcgipp::Request<char>
 
 		sessions.cleanup();
 
-		std::string command;
-
-		Fastcgipp::Http::parseValue(std::string("SESSIONID"), environment.cookies, command, ';');
-		session=sessions.find(command.c_str());
-
-		Fastcgipp::Http::parseValue(std::string("command"), environment.queryString, command, '&');
+		session=sessions.find(environment.cookies["SESSIONID"].data());
+		
+		std::string command=environment.gets["command"];
 
 		setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
 

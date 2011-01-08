@@ -168,14 +168,10 @@ namespace Fastcgipp
 			std::basic_string<charT> acceptLanguages;
 			//! Character sets the clients accepts
 			std::basic_string<charT> acceptCharsets;
-			//! Referral URL. Percent symbol escaped bytes are converted to their actual value.
+			//! Referral URL
 			std::basic_string<charT> referer;
 			//! Content type of data sent from client
 			std::basic_string<charT> contentType;
-			//! Query string appended to the URL submitted by the client. Percent symbol escaped bytes are converted to their actual value.
-			std::basic_string<charT> queryString;
-			//! Cookie string sent from the client
-			std::basic_string<charT> cookies;
 			//! HTTP root directory
 			std::basic_string<charT> root;
 			//! Filename of script relative to the HTTP root directory
@@ -202,6 +198,11 @@ namespace Fastcgipp
 			uint16_t remotePort;
 			//! Timestamp the client has for this document
 			boost::posix_time::ptime ifModifiedSince;
+
+			//! Container with all url-encoded cookie data
+			std::map<std::basic_string<charT>, std::basic_string<charT> > cookies;
+			//! Container with all url-encoded GET data
+			std::map<std::basic_string<charT>, std::basic_string<charT> > gets;
 
 			typedef std::map<std::basic_string<charT>, Post<charT> > Posts;
 			typedef typename Posts::const_iterator PostsConstIter;
@@ -246,137 +247,6 @@ namespace Fastcgipp
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
 
-            //! Check if a post variable named "key" exists in the posts member.
-            /*! @param[in] key The name of the variable to look up.
-             *  @return True if a variable named key was found and is of type
-             *  Post::Type::file OR Post::Type::form, false otherwise.
-             * */
-            bool requestVarExists(const std::basic_string<charT>& key);
-
-            //! Retrieve the value of a post variable associated with the passed key.
-            /*! Attempts to retrieve the value associated with a post variable
-             * and cast it to value's type.
-             * @param[in] key The name of the variable to look up.
-             * @param[out] value The value associated with key. Will attempt to
-             * cast the data associated with key (stored internally as a
-             * string) to value's type.
-             * @return True if a variable named key was found and the
-             * associated data was compatible with value's type (i.e. the cast
-             * succeeded). False otherwise.
-             * @note This version of requestVarGet only returns the value of a
-             * post variable of type Post::Type::form. See the second
-             * specialization for Post::Type:file data.
-             * */
-            template<class V> bool requestVarGet(const std::basic_string<charT>& key, V& value) const
-            {
-                PostsConstIter it;
-
-                if((it = this->posts.find(key)) == this->posts.end() ||
-                    it->second.type != Post<charT>::form)
-                {
-                    return false;
-                }
-                else
-                {
-                    try
-                    {
-                        value = boost::lexical_cast<V>(it->second.value);
-                        return true;
-                    }
-                    catch(boost::bad_lexical_cast &)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            //! Retrieve the value of a post variable associated with the passed key.
-            /*! This (first) specialization of requestVarGet attempts to
-             * retrieve sequence/array of values associated with a post
-             * variable and copy them into  the passed std::vector.
-             * @param[in] key The Array name name of the variable to look up.
-             * @param[out] value A std::vector of the template type.  For this
-             * functio to work, the post keys should be named something like
-             * "name[0]", "name[1]", "name[2]"... Only the "name" part should
-             * be passed as the key to this method. See example echo.cpp for
-             * usage
-             * @return True if at least one variable named key with an array
-             * index of 0 was found and the associated data was compatible with
-             * value's type (i.e. the cast succeeded). False otherwise.
-             * @note This version of requestVarGet only returns the value of a
-             * post variable of type Post::Type::form. See the second
-             * specialization for Post::Type:file data.
-             * */
-            template<class V> bool requestVarGet(const std::basic_string<charT>& key, std::vector<V>& value) const
-            {
-                PostsConstIter it;
-                std::basic_string<charT> _key;
-                charT right_bracket[2];
-                charT left_bracket[2];
-                unsigned int i(0);
-
-                // Empty the incoming variable where the result will be stored.
-                value.clear();
-
-                // Blargh!
-                if(typeid(key) == typeid(std::basic_string<char>))
-                {
-                    memcpy(right_bracket, "]", sizeof(charT)*2); memcpy(left_bracket,  "[", sizeof(charT)*2);
-                }
-                else if(typeid(key) == typeid(std::basic_string<wchar_t>))
-                {
-                    memcpy(right_bracket, L"]", sizeof(charT)*2); memcpy(left_bracket,  L"[", sizeof(charT)*2);
-                }
-
-                // We can iterate through posts this way because it is a
-                // std::map and thus sorted alphabetically.
-                it = this->posts.begin();
-                while (it != this->posts.end()) {
-                    _key = key + left_bracket + boost::lexical_cast<std::basic_string<charT> >(i) + right_bracket;
-                    if (_key == it->first && it->second.type == Post<charT>::form) {
-                        try {
-                            value.push_back (boost::lexical_cast<V>(it->second.value));
-                        }
-                        catch (boost::bad_lexical_cast &) {
-                            break;
-                        }
-                        // Only increment the array index if a variable key at
-                        // that index is found. Again, this only works because
-                        // a std::map is sorted alphabetically.
-                        i++;
-                    }
-                    it++;
-                }
-                return (value.size() == 0) ? false : true;
-            }
-
-            //! Retrieve the value of a post variable associated with the passed key.
-            /*! This (second) specialization of requestVarGet attempts to
-             * retrieve the value associated with a post variable of type
-             * Post::Type::file.
-             * @param[in] key The name of the variable to look up.
-             * @param[out] a boost::shared_array that will hold that raw file
-             * data. Reference counting for should be handled correctly by the
-             * shared_array.
-             * @return True if a variable named key was found and was of type
-             * Post::Type::file.  False otherwise.
-             * */
-            bool requestVarGet(const std::basic_string<charT>& key, boost::shared_array<char>& value) const
-            {
-                PostsConstIter it;
-
-                if((it = this->posts.find(key)) == this->posts.end() ||
-                    it->second.type != Post<charT>::file)
-                {
-                    return false;
-                }
-                else
-                {
-                    value = it->second.data;
-                    return true;
-                }
-            }
-
 		private:
 			//! Raw string of characters representing the post boundary
 			boost::scoped_array<char> boundary;
@@ -420,19 +290,15 @@ namespace Fastcgipp
 		 */
 		int atoi(const char* start, const char* end);
 
-		/** 
-		 * @brief Finds the value associated with a name in a 'name=value&name2=value2' string
-		 * 
-		 * Use this function to find values in the name/value pairs in get/cookie strings.
-		 *
-		 * @param[in] name Name of field
-		 * @param[in] data Data to look for it in
-		 * @param[out] value String to store the value in
-		 * @param[in] fieldSep Character that separates fields (default: '&')
+		//! Decodes a url-encoded string into a container
+		/*! 
+		 * @param[in] data Data to decode
+		 * @param[in] size Size of data to decode
+		 * @param[out] output Container to output data into
 		 *
 		 * @return Returns false if the name isn't found. True otherwise.
 		 */
-		template<class charT> bool parseValue(const std::basic_string<charT>& name, const std::basic_string<charT>& data, std::basic_string<charT>& value, charT fieldSep='&');
+		template<class charT> void decodeUrlEncoded(const char* data, size_t size, std::map<std::basic_string<charT>, std::basic_string<charT> >& output, const char fieldSeperator='&');
 
 		//! Convert a string with percent escaped byte values to their actual values
 		/*!

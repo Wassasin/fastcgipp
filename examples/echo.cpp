@@ -81,8 +81,6 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
 		out << "<b>Referer:</b> " << environment.referer << "<br />";
 		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
-		out << "<b>Query String:</b> " << environment.queryString << "<br />";
-		out << "<b>Cookies:</b> " << environment.cookies << "<br />";
 		out << "<b>Root:</b> " << environment.root << "<br />";
 		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
 		out << "<b>Request Method:</b> " << environment.requestMethod << "<br />";
@@ -95,8 +93,24 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
 		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
 
+		// Let's see the GET data
+		out << "<h1>GET Data</h1>";
+		if(environment.gets.size())
+			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.gets.begin(); it!=environment.gets.end(); ++it)
+				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+		else
+			out << "<p>No GET data</p>";
+		
+		// Let's see the cookie data
+		out << "<h1>Cookie Data</h1>";
+		if(environment.cookies.size())
+			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.cookies.begin(); it!=environment.cookies.end(); ++it)
+				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+		else
+			out << "<p>No Cookie data</p>";
+
 		//Fastcgipp::Http::Post is defined in fastcgi++/http.hpp
-		out << "<h1>Post Data Dump</h1>";
+		out << "<h1>POST Data</h1>";
 		if(environment.posts.size())
 		{
 			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
@@ -123,7 +137,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 			}
 		}
 		else
-			out << "<p>No post data</p>";
+			out << "<p>No POST data</p>";
 
 		out << "</body></html>";
 
