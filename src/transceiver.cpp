@@ -31,10 +31,9 @@ int Fastcgipp::Transceiver::transmit()
 			ssize_t sent = write(sendBlock.fd, sendBlock.data, sendBlock.size);
 			if(sent<0)
 			{
-				if(errno==EPIPE)
+				if(errno==EPIPE || errno==EBADF)
 				{
-					pollFds.erase(std::find_if(pollFds.begin(), pollFds.end(), equalsFd(sendBlock.fd)));
-					fdBuffers.erase(sendBlock.fd);
+					freeFd(sendBlock.fd);
 					sent=sendBlock.size;
 				}
 				else if(errno!=EAGAIN) throw Exceptions::SocketWrite(sendBlock.fd, errno);
@@ -173,11 +172,7 @@ void Fastcgipp::Transceiver::Buffer::freeRead(size_t size)
 	if((frames.front().size-=size)==0)
 	{
 		if(frames.front().closeFd)
-		{
-			pollFds.erase(std::find_if(pollFds.begin(), pollFds.end(), equalsFd(frames.front().id.fd)));
-			close(frames.front().id.fd);
-			fdBuffers.erase(frames.front().id.fd);
-		}
+			freeFd(frames.front().id.fd);
 		frames.pop();
 	}
 
@@ -307,5 +302,16 @@ Fastcgipp::Exceptions::SocketPoll::SocketPoll(int erno_): CodedException(0, erno
 		case ENOMEM:
 			msg = "There was no space to allocate file descriptor tables.";
 			break;
+	}
+}
+
+void Fastcgipp::Transceiver::freeFd(int fd, std::vector<pollfd>& pollFds, std::map<int, fdBuffer>& fdBuffers)
+{
+	std::vector<pollfd>::iterator it=std::find_if(pollFds.begin(), pollFds.end(), equalsFd(fd));
+	if(it != pollFds.end())
+	{
+		pollFds.erase(it);
+		close(fd);
+		fdBuffers.erase(fd);
 	}
 }
