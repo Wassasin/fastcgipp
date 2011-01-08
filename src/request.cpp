@@ -275,7 +275,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 	catch(const std::exception& e)
 	{
 		out << "Status: 500 Internal Server Error\r\n\r\n";
-		err << '"' << e.what() << '"' << " from \"" << environment.pathInfo << '?' << environment.queryString << "\" with a " << environment.requestMethod << " request method.";
+		err << '"' << e.what() << '"' << " from \"" << environment.pathInfo << "\" with a " << environment.requestMethod << " request method.";
 		complete();
 		return true;
 	}

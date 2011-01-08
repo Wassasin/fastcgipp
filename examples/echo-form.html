@@ -5,55 +5,17 @@
         <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js"></script>
 	</head>
     <body>
-        <h4>ContentType: "multipart/form-data"</h4>
-		<form action="echo.fcgi?getVar=testing&amp;secondGetVar=tested&amp;utf8GetVarTest=проверка" method="post" enctype="multipart/form-data" accept-charset="utf-8">
-			Name: <input type="text" name="aquí está el campo" value="Él está con un niño" /> <br />
+		<h4>enctype="multipart/form-data"</h4>
+		<form action="echo.fcgi?getVar=testing&amp;secondGetVar=tested&amp;utf8GetVarTest=проверка&amp;enctype=multipart" method="post" enctype="multipart/form-data" accept-charset="utf-8">
+			Name: <input type="text" name="+= aquí está el campo" value="Él está con un niño" /> <br />
 			File: <input type="file" name="aFile" /> <br />
 			<input type="submit" name="submit" value="submit" />
-        </form>
-        <br />
-        <h4>Ajax with ContentType: "application/x-www-form-urlencoded"</h4>
-        <input id="one"   type="text" value="Enter"  size="10" /> first <br />
-        <input id="two"   type="text" value="Data"   size="10" /> second <br />
-        <input id="three" type="text" value="To"     size="10" /> third <br />
-        <input id="four"  type="text" value="Submit" size="10" /> fourth <br />
-        <input id="button" type="button" name="" value="Submit" />
-
-        <div id="result"></div>
-
-        <script type="text/javascript">
-            <!--
-            $(document).ready(function(){
-                // conten-type defaults to "application/x-www-form-urlencoded"
-                $("#button").click(function(){
-                    var data = {
-                        first: $("#one").val(),
-                        second: $("#two").val(),
-                        third: $("#three").val(),
-                        fourth: $("#four").val()
-                    }
-
-                    $("#result").text("sending...");
-
-                    $.ajax ({
-                        url: './echo.fcgi',
-                        type: "POST",
-                        data: data, //this is the POST data
-                        success: success,
-                        error: error,
-                    });
-                });
-            });
-
-            function success (data, textStatus) {
-                $("#result").html(data);
-            }
-
-            function error (request, textStatus) {
-                $("#result").html(request.responseText);
-            }
-            // -->
-        </script>
-
+		</form>
+      <h4>enctype="application/x-www-form-urlencoded"</h4>
+		<form action="echo.fcgi?getVar=testing&amp;secondGetVar=tested&amp;utf8GetVarTest=проверка&amp;enctype=url-encoded" method="post" enctype="application/x-www-form-urlencoded" accept-charset="utf-8">
+			Name: <input type="text" name="+= aquí está el campo" value="Él está con un niño" /> <br />
+			File: <input type="file" name="aFile" /> <br />
+			 <input type="submit" name="submit" value="submit" />
+		 </form>
 	</body>
 </html>

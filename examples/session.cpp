@@ -54,12 +54,9 @@ class Session: public Fastcgipp::Request<char>
 	{
 		sessions.cleanup();
 
-		std::string command;
-
-		Fastcgipp::Http::parseValue(std::string("SESSIONID"), environment.cookies, command, ';');
-		session=sessions.find(command.c_str());
+		session=sessions.find(environment.cookies["SESSIONID"].data());
 		
-		Fastcgipp::Http::parseValue(std::string("command"), environment.queryString, command, '&');
+		std::string command=environment.gets["command"];
 		
 		// We need to call this to set a facet in our requests locale regarding how
 		// to format the date upon insertion. It needs to conform to the http standard.
@@ -131,7 +128,7 @@ Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 	</head>\n\
 	<body>\n\
 		<p>We are currently not in a session.</p>\n\
-		<form action='?command=login' method='post' enctype='multipart/form-data' accept-charset='ISO-8859-1'>\n\
+		<form action='?command=login' method='post' enctype='application/x-www-form-urlencoded' accept-charset='ISO-8859-1'>\n\
 			<div>\n\
 				Text: <input type='text' name='data' value='Hola señor, usted me almacenó en una sesión' /> \n\
 				<input type='submit' name='submit' value='submit' />\n\

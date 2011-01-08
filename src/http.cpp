@@ -145,29 +145,6 @@ template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp
 	return is;
 }
 
-template bool  Fastcgipp::Http::parseValue<char>(const std::basic_string<char>& name, const std::basic_string<char>& data, std::basic_string<char>& value, char fieldSep);
-template bool  Fastcgipp::Http::parseValue<wchar_t>(const std::basic_string<wchar_t>& name, const std::basic_string<wchar_t>& data, std::basic_string<wchar_t>& value, wchar_t fieldSep);
-template<class charT> bool Fastcgipp::Http::parseValue(const std::basic_string<charT>& name, const std::basic_string<charT>& data, std::basic_string<charT>& value, charT fieldSep)
-{
-	std::basic_string<charT> searchString(name);
-	searchString+='=';
-
-	size_t it=data.find(searchString);
-
-	if(it==std::string::npos)
-		return false;
-
-	it+=searchString.size();
-
-	size_t size=data.find(fieldSep, it);
-	if(size==std::string::npos)
-		size=data.size();
-	size-=it;
-	value.assign(data, it, size);
-
-	return true;
-}
-
 void Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& string)
 {
 	const size_t bufferSize=512;
@@ -273,7 +250,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 			if(!memcmp(name, "HTTP_ACCEPT", 11))
 				charToString(value, valueSize, acceptContentTypes);
 			else if(!memcmp(name, "HTTP_COOKIE", 11))
-				charToString(value, valueSize, cookies);
+				decodeUrlEncoded(value, valueSize, cookies, ';');
 			else if(!memcmp(name, "SERVER_ADDR", 11))
 				serverAddress.assign(value, value+valueSize);
 			else if(!memcmp(name, "REMOTE_ADDR", 11))
@@ -289,10 +266,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 			break;
 		case 12:
 			if(!memcmp(name, "HTTP_REFERER", 12) && valueSize)
-			{
-				scoped_array<char> buffer(new char[valueSize]);
-				charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), referer);
-			}
+				charToString(value, valueSize, referer);
 			else if(!memcmp(name, "CONTENT_TYPE", 12))
 			{
 				const char* end=(char*)memchr(value, ';', valueSize);
@@ -309,10 +283,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 				}
 			}
 			else if(!memcmp(name, "QUERY_STRING", 12) && valueSize)
-			{
-				scoped_array<char> buffer(new char[valueSize]);
-				charToString(buffer.get(), percentEscapedToRealBytes(value, buffer.get(), valueSize), queryString);
-			}
+				decodeUrlEncoded(value, valueSize, gets);
 			break;
 		case 13:
 			if(!memcmp(name, "DOCUMENT_ROOT", 13))
@@ -604,17 +575,41 @@ template<class charT> const Fastcgipp::Http::SessionId& Fastcgipp::Http::Session
 	return *this;
 }
 
-template bool Fastcgipp::Http::Environment<char>::requestVarExists(const std::basic_string<char>& key);
-template bool Fastcgipp::Http::Environment<wchar_t>::requestVarExists(const std::basic_string<wchar_t>& key);
-template<class charT> bool Fastcgipp::Http::Environment<charT>::requestVarExists(const std::basic_string<charT>& key)
+template void Fastcgipp::Http::decodeUrlEncoded<char>(const char* data, size_t size, std::map<std::basic_string<char>, std::basic_string<char> >& output, const char fieldSeperator);
+template void Fastcgipp::Http::decodeUrlEncoded<wchar_t>(const char* data, size_t size, std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >& output, const char fieldSeperator);
+template<class charT> void Fastcgipp::Http::decodeUrlEncoded(const char* data, size_t size, std::map<std::basic_string<charT>, std::basic_string<charT> >& output, const char fieldSeperator)
 {
-    PostsConstIter it;
+	using namespace std;
 
-    if((it = this->posts.find(key)) == this->posts.end())
-    {
-        return false;
-    }
-    return true;
+	boost::scoped_array<char> buffer(new char[size]);
+	memcpy(buffer.get(), data, size);
+
+	char* nameStart=buffer.get();
+	size_t nameSize;
+	char* valueStart=0;
+	size_t valueSize;
+	for(char* i=buffer.get(); i<=buffer.get()+size; ++i)
+	{
+		if(*i == ' ' && nameStart && !valueStart)
+			++nameStart;
+
+		else if(*i == '=' && nameStart && !valueStart)
+		{
+			nameSize=percentEscapedToRealBytes(nameStart, nameStart, i-nameStart);
+			valueStart=i+1;
+		}
+		else if( (i==buffer.get()+size || *i == fieldSeperator) && nameStart && valueStart)
+		{
+			valueSize=percentEscapedToRealBytes(valueStart, valueStart, i-valueStart);
+
+			basic_string<charT> name;
+			charToString(nameStart, nameSize, name);
+			nameStart=i+1;
+			basic_string<charT>& value=output[name];
+			charToString(valueStart, valueSize, value);
+			valueStart=0;
+		}
+	}
 }
 
 const char Fastcgipp::Http::base64Characters[]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
