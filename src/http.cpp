@@ -183,14 +183,12 @@ int Fastcgipp::Http::atoi(const char* start, const char* end)
 	return neg?-result:result;
 }
 
-template size_t Fastcgipp::Http::percentEscapedToRealBytes<char>(const char* source, char* destination, size_t size);
-template size_t Fastcgipp::Http::percentEscapedToRealBytes<wchar_t>(const wchar_t* source, wchar_t* destination, size_t size);
-template<class charT> size_t Fastcgipp::Http::percentEscapedToRealBytes(const charT* source, charT* destination, size_t size)
+size_t Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* destination, size_t size)
 {
 	if (size < 1) return 0;
 
 	unsigned int i=0;
-	charT* start=destination;
+	char* start=destination;
 	while(1)
 	{
 		if(*source=='%')
