@@ -21,9 +21,6 @@
 
 #include <algorithm>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/trim.hpp>
 
 #include <fastcgi++/http.hpp>
 
@@ -539,65 +536,47 @@ template void Fastcgipp::Http::Environment<char>::fillPostsUrlEncoded(const char
 template void Fastcgipp::Http::Environment<wchar_t>::fillPostsUrlEncoded(const char* data, size_t size);
 template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEncoded(const char* data, size_t size)
 {
-    // FIXME: Assumes entire post data will be sent in one shot for this
-    // encoding. I believe this to be true, but have not been able to confirm.
-    std::basic_string<charT> queryString;
-    boost::scoped_array<char> buffer(new char[size]);
-    memcpy (buffer.get(), data, size);
+	using namespace std;
 
-	charToString(buffer.get(), percentEscapedToRealBytes(data, buffer.get(), size), queryString);
+	if(!postBuffer.get() && size)
+	{
+		postBuffer.reset(new char[contentLength]);
+		postBufferSize=0;
+	}
 
-    doFillPostsUrlEncoded(queryString);
-}
+	// We don't want a buffer overflow so only process a max length of processLength
+	size=min(size, contentLength-postBufferSize);
 
-template void Fastcgipp::Http::Environment<char>::doFillPostsUrlEncoded(std::basic_string<char> &queryString);
-template void Fastcgipp::Http::Environment<wchar_t>::doFillPostsUrlEncoded(std::basic_string<wchar_t> &queryString);
-template<class charT> void Fastcgipp::Http::Environment<charT>::doFillPostsUrlEncoded(std::basic_string<charT> &queryString)
-{
-    // FIXME: Assumes entire post data will be sent in one shot for this
-    // encoding. I believe this to be true, but have not been able to confirm.
-    enum {KEY, VALUE};
-    Fastcgipp::Http::Post<charT> post;
-    post.type = Fastcgipp::Http::Post<charT>::form;
+	memcpy(postBuffer.get()+postBufferSize, data, size);
+	postBufferSize+=size;
 
-    // split up the buffer by the "&" tokenizer to the key/value pairs
-    std::vector<std::basic_string<charT> > kv_pairs;
-    boost::algorithm::split (kv_pairs, queryString, boost::is_any_of ("&"));
+	if(postBufferSize != contentLength)
+		return;
 
-    // For each key/value pair, split it by the "=" tokenizer to get the key and
-    // value. The result should be exactly two tokens (the key and the value).
-    for (int i = 0; i < kv_pairs.size(); i++)
-    {
-        // According to this http://www.w3schools.com/TAGS/ref_urlencode.asp
-        // spaces in request parameters can be replaced with + instead of being
-        // URL encoded. Catch it here. But what happens if it really was a +?
-        boost::algorithm::replace_all(kv_pairs[i], "+", " ");
+	char* nameStart=postBuffer.get();
+	size_t nameSize;
+	char* valueStart=0;
+	size_t valueSize;
+	for(char* i=postBuffer.get(); i<=postBuffer.get()+postBufferSize; ++i)
+	{
+		if(*i == '=' && nameStart && !valueStart)
+		{
+			nameSize=percentEscapedToRealBytes(nameStart, nameStart, i-nameStart);
+			valueStart=i+1;
+		}
+		else if( (i==postBuffer.get()+postBufferSize || *i == '&') && nameStart && valueStart)
+		{
+			valueSize=percentEscapedToRealBytes(valueStart, valueStart, i-valueStart);
 
-        std::vector<std::basic_string<charT> > kv_pair;  // One kv pair
-        boost::algorithm::split (kv_pair, kv_pairs[i], boost::is_any_of ("="));
-        // Check the number of tokens. Anything but 2 is bad.
-        if (kv_pair.size() == 2)
-        {
-            boost::trim (kv_pair[KEY]);
-            boost::trim (kv_pair[VALUE]);
-            post.value = kv_pair[VALUE];
-            posts[kv_pair[KEY]] = post;
-        }
-        else
-        {
-            // Process the next one...
-        }
-    }
-}
-
-template void Fastcgipp::Http::Environment<char>::parseQueryStringAsUrlEncoded (bool always);
-template void Fastcgipp::Http::Environment<wchar_t>::parseQueryStringAsUrlEncoded (bool always);
-template<class charT> void Fastcgipp::Http::Environment<charT>::parseQueryStringAsUrlEncoded (bool always)
-{
-    if (always || requestMethod != Fastcgipp::Http::HTTP_METHOD_POST)
-    {
-        doFillPostsUrlEncoded (queryString);
-    }
+			basic_string<charT> name;
+			charToString(nameStart, nameSize, name);
+			nameStart=i+1;
+			Post<charT>& thePost=posts[name];
+			thePost.type=Post<charT>::form;
+			charToString(valueStart, valueSize, thePost.value);
+			valueStart=0;
+		}
+	}
 }
 
 bool Fastcgipp::Http::SessionId::seeded=false;

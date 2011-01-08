@@ -60,9 +60,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 {
 	bool response()
 	{
-        environment.parseQueryStringAsUrlEncoded();
-
-        wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
+		wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
 
 		// Let's make our header, note the charset=utf-8. Remember that HTTP headers
 		// must be terminated with \r\n\r\n. NOT just \n\n.
@@ -99,7 +97,8 @@ class Echo: public Fastcgipp::Request<wchar_t>
 
 		//Fastcgipp::Http::Post is defined in fastcgi++/http.hpp
 		out << "<h1>Post Data Dump</h1>";
-		if(environment.posts.size()) {
+		if(environment.posts.size())
+		{
 			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
@@ -122,28 +121,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 					out << "</pre>";
 				}
 			}
-
-            {
-                std::basic_string<wchar_t> value;
-                if (environment.requestVarGet(L"aquí está el campo", value)) // change this to "aquí está el campo" for char (drop the L).
-                {
-                    out << L"<p>Retrieving Variable \"aquí está el campo\". Its value is '" << value << "'</p>";
-                }
-            }
-
-            if (environment.requestVarExists(L"the_data[0]"))
-            {
-                std::vector<std::basic_string<wchar_t> > value;
-                if (environment.requestVarGet(L"the_data", value))
-                {
-                    out << "<h2>Retrieving array Post data as a std::vector </h2>";
-                    for (int i = 0; i < value.size(); i++)
-                    {
-                        out << "<b>the_data[" << i << "]=" << value[i] << "</b><br />";
-                    }
-                }
-            }
-        }
+		}
 		else
 			out << "<p>No post data</p>";
 
