@@ -230,43 +230,18 @@ namespace Fastcgipp
 			 */
 			void fillPostsMultipart(const char* data, size_t size);
 
-            //! Parses "application/x-www-form-urlencoded" post data into the post object.
-            /*!
-             * This function parses x-www-form-urlencoded post data into the
-             * Environment::posts member. In truth, this method simply prepares
-             * the passed data and then calls doFillPostsUrlEncoded() to do the
-             * actual work. 
-             *
+			//! Parses "application/x-www-form-urlencoded" post data into the posts object.
+			/*!
+			 * This function parses x-www-form-urlencoded post data into the
+			 * Environment::posts member. This function will take arbitrarily divided chunks
+			 * of raw http post data and parse them into the posts container of Post objects.
+			 * data should equal the first bytes of the FastCGI IN records body with size
+			 * being it's content length.
+			 *
 			 * @param[in] data Pointer to the first byte of post data
 			 * @param[in] size Size of data in bytes
-             */
+			 */
 			void fillPostsUrlEncoded(const char* data, size_t size);
-
-            //! Parses "application/x-www-form-urlencoded" post data into the post object.
-            /*!
-             * This function parses x-www-form-urlencoded post data into the
-             * Environment::posts member. For each key/value pair parsed, the
-             * value will be placed in the value field of an Http::Post struct,
-             * and the key will be the index for the corresponding entry in the
-             * Environment::posts structure. @note This method will try to
-             * parse any passesd data and stick it in the posts structure
-             * regardless of whether the data really came from a POST request or
-             * not. As a result, this method can be (and indeed is!) used to
-             * parse GET/PUT query data as well!
-             *
-			 * @param[in] queryString The query data.
-             */
-			void doFillPostsUrlEncoded(std::basic_string<charT> &queryString);
-
-            //! Parse #queryString as if it were urlencoded.
-            /*! Parses #queryString assuming it is urlencoded, and puts the
-             * results in #posts so they can be accessed using #requestVarGet.
-             * Calls #doFillPostsUrlEncoded to do the real work.
-             * @param[in] always Wether to always parase queryString regardless
-             * of requestMethod, or only when requestMethod is @b not
-             * HTTP_METHOD_POST.
-             */ 
-            void parseQueryStringAsUrlEncoded(bool always=false);
 
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
