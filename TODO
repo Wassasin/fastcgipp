@@ -8,4 +8,3 @@ THINGS TO DO
  * Somehow union/reference together the value and filename members of the
    Fastcgipp::Http::Post<charT> class. Only one will be used at a time so it is
    a waste of memory to have both but too confusing if they share a name.
- * Verify proper functionality of the POSIX signals.

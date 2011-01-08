@@ -183,6 +183,8 @@ namespace Fastcgipp
 			std::vector<pollfd>& pollFds;
 			//! A reference to Transceiver::fdBuffer for deleting buffers upon closing of the file descriptor
 			std::map<int, fdBuffer>& fdBuffers;
+			//! Helper function for freeFd(int fd, std::vector<pollfd> pollFds, std::map<int, fdBuffer> fdBuffers)
+			void freeFd(int fd_) { Fastcgipp::Transceiver::freeFd(fd_, pollFds, fdBuffers);  }
 		public:
 			//! Constructor
 			/*!
@@ -271,6 +273,23 @@ namespace Fastcgipp
 		
 		//! Transmit all buffered data possible
 		int transmit();
+
+	public:
+		//! Free fd/pipe and all it's associated resources
+		/*!
+		 * By calling this function you close the passed file descriptor
+		 * and free up it's associated buffers and resources. It is safe
+		 * to call this function at any time with any fd(even bad ones).
+		 * If requests still exists with this fd then they will be lost.
+		 *
+		 * @param fd File descriptor to delete/free up
+		 * @param pollFds Epoll container
+		 * @param fdBuffers Container of fd/pipe buffers
+		 */
+		static void freeFd(int fd, std::vector<pollfd>& pollFds, std::map<int, fdBuffer>& fdBuffers);
+
+		//! Helper function for freeFd(int fd, std::vector<pollfd> pollFds, std::map<int, fdBuffer> fdBuffers)
+		void freeFd(int fd_) { freeFd(fd_, pollFds, fdBuffers);  }
 	};
 	
 	//! Predicate for comparing the file descriptor of a pollfd
