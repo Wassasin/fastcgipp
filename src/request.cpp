@@ -89,7 +89,7 @@ int Fastcgipp::Fcgistream<charT, traits>::Fcgibuf::emptyBuffer()
 		uint8_t contentRemainder=contentLength%chunkSize;
 		
 		Header& header=*(Header*)dataBlock.data;
-		header.setVersion(version);
+		header.setVersion(Protocol::version);
 		header.setType(type);
 		header.setRequestId(id.fcgiId);
 		header.setContentLength(contentLength);
@@ -147,7 +147,7 @@ template<class charT> void Fastcgipp::Request<charT>::complete()
 	Block buffer(transceiver->requestWrite(sizeof(Header)+sizeof(EndRequest)));
 
 	Header& header=*(Header*)buffer.data;
-	header.setVersion(version);
+	header.setVersion(Protocol::version);
 	header.setType(END_REQUEST);
 	header.setRequestId(id.fcgiId);
 	header.setContentLength(sizeof(EndRequest));
@@ -188,7 +188,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 			Block buffer(transceiver->requestWrite(sizeof(Header)+sizeof(EndRequest)));
 			
 			Header& header=*(Header*)buffer.data;
-			header.setVersion(version);
+			header.setVersion(Protocol::version);
 			header.setType(END_REQUEST);
 			header.setRequestId(id.fcgiId);
 			header.setContentLength(sizeof(EndRequest));

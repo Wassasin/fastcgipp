@@ -90,7 +90,7 @@ void Fastcgipp::ManagerPar::localHandler(Protocol::FullId id)
 				Block buffer(transceiver.requestWrite(sizeof(Header)+sizeof(UnknownType)));
 
 				Header& sendHeader=*(Header*)buffer.data;
-				sendHeader.setVersion(version);
+				sendHeader.setVersion(Protocol::version);
 				sendHeader.setType(UNKNOWN_TYPE);
 				sendHeader.setRequestId(0);
 				sendHeader.setContentLength(sizeof(UnknownType));
