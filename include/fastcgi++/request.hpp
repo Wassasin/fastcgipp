@@ -143,6 +143,9 @@ namespace Fastcgipp
 		 */
 		boost::function<void(Message)> callback;
 
+		//! See the requests role
+		Protocol::Role getRole() const { return role; }
+
 	private:
 		//! Queue type for pending messages
 		/*!

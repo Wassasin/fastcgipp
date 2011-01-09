@@ -5,9 +5,9 @@
 
 DISTCLEANFILES = Makefile.in Makefile
 
-EXTRA_DIST = echo-form.html gnu.png upload.html echo.cpp session.cpp showgnu.cpp upload.cpp utf8-helloworld.cpp timer.cpp database.cpp
+EXTRA_DIST = echo-form.html gnu.png upload.html echo.cpp session.cpp showgnu.cpp upload.cpp utf8-helloworld.cpp timer.cpp database.cpp authorizer.cpp locked/locked.png
 
-examples: utf8-helloworld.fcgi echo.fcgi showgnu.fcgi timer.fcgi upload.fcgi session.fcgi database.fcgi
+examples: utf8-helloworld.fcgi echo.fcgi showgnu.fcgi timer.fcgi upload.fcgi session.fcgi database.fcgi authorizer.fcgi
 
 utf8-helloworld.fcgi: utf8-helloworld.cpp
 	$(CXX) -o utf8-helloworld.fcgi utf8-helloworld.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
@@ -29,6 +29,9 @@ session.fcgi: session.cpp
 
 database.fcgi: database.cpp
 	$(CXX) -o database.fcgi database.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
+
+authorizer.fcgi: authorizer.cpp
+	$(CXX) -o authorizer.fcgi authorizer.cpp -I$(top_srcdir)/include -L$(top_srcdir)/src $(pkgConfigLibs) $(CXXFLAGS)
 
 clean:
 	rm -f *.fcgi
