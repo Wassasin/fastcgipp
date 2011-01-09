@@ -85,6 +85,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
 		out << "<b>Root:</b> " << environment.root << "<br />";
 		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
+		out << "<b>Request URI:</b> " << environment.requestUri << "<br />";
 		out << "<b>Request Method:</b> " << environment.requestMethod << "<br />";
 		out << "<b>Path Info:</b> " << environment.pathInfo << "<br />";
 		out << "<b>Content Length:</b> " << environment.contentLength << "<br />";
