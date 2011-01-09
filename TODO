@@ -5,6 +5,3 @@ THINGS TO DO
    This is really just an issue with the Fastcgipp::Http::Address class.
  * Add the ability to fillPosts() to handle non utf-8 character sets when
    wchar_t is used as the Request template parameter. Possibly through iconv.
- * Somehow union/reference together the value and filename members of the
-   Fastcgipp::Http::Post<charT> class. Only one will be used at a time so it is
-   a waste of memory to have both but too confusing if they share a name.
