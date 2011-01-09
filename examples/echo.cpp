@@ -74,7 +74,9 @@ class Echo: public Fastcgipp::Request<wchar_t>
 
 		// This environment data structure is defined in fastcgi++/http.hpp
 		out << "<h1>Environment Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << environment.host << "<br />";
+		out << "<p><b>FastCGI Version:</b> " << Fastcgipp::Protocol::version << "<br />";
+		out << "<b>fastcgi++ Version:</b> " << Fastcgipp::version << "<br />";
+		out << "<b>Hostname:</b> " << environment.host << "<br />";
 		out << "<b>User Agent:</b> " << environment.userAgent << "<br />";
 		out << "<b>Accepted Content Types:</b> " << environment.acceptContentTypes << "<br />";
 		out << "<b>Accepted Languages:</b> " << environment.acceptLanguages << "<br />";

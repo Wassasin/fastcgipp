@@ -46,6 +46,8 @@
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
+	//! Defines the fastcgi++ version
+	extern const char version[];
 	namespace Protocol
 	{
 		//! The request ID of a FastCGI request
