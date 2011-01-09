@@ -60,13 +60,23 @@ namespace Fastcgipp
 			//! Value of POST data if type=form
 			std::basic_string<charT> value;
 			//! Filename of POST data if type=file
-			std::basic_string<charT> filename;
+			std::basic_string<charT>& filename;
 			//! Content Type if type=file
 			std::basic_string<charT> contentType;
 			//! Pointer to file data
 			boost::shared_array<char> data;
 			//! Size of data in bytes pointed to by data.
 			size_t size;
+
+			Post(): filename(value) {}
+			Post(const Post& x):
+				type(x.type),
+				value(x.value),
+				filename(value),
+				contentType(x.contentType),
+				data(x.data),
+				size(x.size)
+			{}
 		};
 
 		//! The HTTP request method as an enumeration
