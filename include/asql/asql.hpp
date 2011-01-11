@@ -376,29 +376,6 @@ char fixedString[16];
 		};
 
 		/** 
-		 * @brief Wraps a Set object around an new auto-allocated individual object of type T
-		 *
-		 * @tparam T object type to create.
-		 */
-		template<class T> class IndySetBuilder: public Set
-		{
-		public:
-			/** 
-			 * @brief Object of type T that the Set is wrapped around. This is your object.
-			 */
-			T data;
-		private:
-			/** 
-			 * @brief Returns 1 as it is an individual container
-			 */
-			virtual size_t numberOfSqlElements() const { return 1; }
-			/** 
-			 * @brief Just returns an index to data.
-			 */
-			virtual Index getSqlIndex(const size_t index) const { return data; }
-		};
-
-		/** 
 		 * @brief Wraps a Set object around a reference to a dataset of type T
 		 *
 		 * @tparam T object type to reference to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
@@ -499,6 +476,55 @@ char fixedString[16];
 			 * @brief Shared pointer to the dataset
 			 */
 			boost::shared_ptr<T> data;
+		};
+
+		/** 
+		 * @brief Wraps a Set object around an new auto-allocated individual object of type T
+		 *
+		 * @tparam T object type to create.
+		 */
+		template<class T> class IndySetBuilder: public Set
+		{
+		public:
+			/** 
+			 * @brief Object of type T that the Set is wrapped around. This is your object.
+			 */
+			T data;
+		private:
+			/** 
+			 * @brief Returns 1 as it is an individual container
+			 */
+			virtual size_t numberOfSqlElements() const { return 1; }
+			/** 
+			 * @brief Just returns an index to data.
+			 */
+			virtual Index getSqlIndex(const size_t index) const { return data; }
+		};
+
+		/** 
+		 * @brief Wraps a Set object around a reference to an individual object of type T
+		 *
+		 * @tparam T object type to create.
+		 */
+		template<class T> class IndySetRefBuilder: public Set
+		{
+			/** 
+			 * @brief Object of type T that the Set is wrapped around. This is your object.
+			 */
+			const T& data;
+			/** 
+			 * @brief Returns 1 as it is an individual container
+			 */
+			virtual size_t numberOfSqlElements() const { return 1; }
+			/** 
+			 * @brief Just returns an index to data.
+			 */
+			virtual Index getSqlIndex(const size_t index) const { return data; }
+		public:
+			/** 
+			 * @param x Reference to the object of type T to reference to.
+			 */
+			inline IndySetRefBuilder(const T& x): data(x) {}
 		};
 
 		/** 
