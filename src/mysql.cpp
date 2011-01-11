@@ -96,6 +96,8 @@ void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& 
 
 	if(parameterSet) buildBindings(stmt, *parameterSet, paramsConversions, paramsBindings);
 	if(resultSet) buildBindings(stmt, *resultSet, resultsConversions, resultsBindings);
+
+	m_initialized = true;
 }
 
 void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameters)
