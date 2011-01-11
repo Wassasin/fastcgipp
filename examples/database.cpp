@@ -88,9 +88,9 @@ void Database::initSql()
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
 	const ASql::Data::SetBuilder<Log> log;
 	const ASql::Data::IndySetBuilder<unsigned int> addy;
-	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
-	updateStatement.init(updateStatementString, sizeof(updateStatementString), &addy, 0);
-	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
+	insertStatement.init(insertStatementString, sizeof(insertStatementString)-1, &log, 0);
+	updateStatement.init(updateStatementString, sizeof(updateStatementString)-1, &addy, 0);
+	selectStatement.init(selectStatementString, sizeof(selectStatementString)-1, 0, &log);
 	sqlConnection.start();
 }
 
