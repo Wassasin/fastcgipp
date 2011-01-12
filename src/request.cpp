@@ -204,14 +204,14 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 
 		{
 			boost::lock_guard<boost::mutex> lock(messages);
-			message=messages.front();
+			m_message=messages.front();
 			messages.pop();
 		}
 
-		if(message.type==0)
+		if(message().type==0)
 		{
-			const Header& header=*(Header*)message.data.get();
-			const char* body=message.data.get()+sizeof(Header);
+			const Header& header=*(Header*)message().data.get();
+			const char* body=message().data.get()+sizeof(Header);
 			switch(header.getType())
 			{
 				case PARAMS:
@@ -222,7 +222,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						state=IN;
 						break;
 					}
-					environment.fill(body, header.getContentLength());
+					m_environment.fill(body, header.getContentLength());
 					break;
 				}
 
@@ -231,7 +231,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 					if(state!=IN) throw Exceptions::RecordsOutOfOrder();
 					if(header.getContentLength()==0)
 					{
-						environment.clearPostBuffer();
+						m_environment.clearPostBuffer();
 						state=OUT;
 						if(response())
 						{
@@ -246,11 +246,11 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						const char multipart[] = "multipart/form-data";
 						const char urlEncoded[] = "application/x-www-form-urlencoded";
 
-						if(equal(multipart, multipart+sizeof(multipart), environment.contentType.begin()))
-							environment.fillPostsMultipart(body, header.getContentLength());
+						if(equal(multipart, multipart+sizeof(multipart), m_environment.contentType.begin()))
+							m_environment.fillPostsMultipart(body, header.getContentLength());
 
-						else if(equal(urlEncoded, urlEncoded+sizeof(urlEncoded), environment.contentType.begin()))
-							environment.fillPostsUrlEncoded(body, header.getContentLength());
+						else if(equal(urlEncoded, urlEncoded+sizeof(urlEncoded), m_environment.contentType.begin()))
+							m_environment.fillPostsUrlEncoded(body, header.getContentLength());
 
 						else
 							throw Exceptions::UnknownContentType();
@@ -275,7 +275,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 	catch(const std::exception& e)
 	{
 		out << "Status: 500 Internal Server Error\r\n\r\n";
-		err << '"' << e.what() << '"' << " from \"" << environment.pathInfo << "\" with a " << environment.requestMethod << " request method.";
+		err << '"' << e.what() << '"' << " from \"" << environment().pathInfo << "\" with a " << environment().requestMethod << " request method.";
 		complete();
 		return true;
 	}

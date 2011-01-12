@@ -49,7 +49,7 @@ The fastcgi++ library started out as a C++ alternative to the official FastCGI d
 
 The fastcgi++ library is built around three classes. Fastcgipp::Manager handles all task and request management along with the communication inside and outside the library. Fastcgipp::Transceiver handles all low level socket io and maintains send/receive buffers. Fastcgipp::Request is designed to handle the individual requests themselves. The aspects of the FastCGI protocol itself are defined in the Fastcgipp::Protocol namespace.
 
-The Fastcgipp::Request class is a pure virtual class. The class, as is, establishes and parses environment data. Once complete it looks to user defined virtual functions for actually generating the response. A response shall be outputted by the user defined virtuals through an output stream. Once a request has control over operation it maintains it until relinquishing it. Should the user know a request will sit around waiting for data, it can return control to Fastcgipp::Manager and have a message sent back through the manager when the data is ready. The aspects of the environment are build around the Fastcgipp::Http namespace.
+The Fastcgipp::Request class is a pure virtual class. The class, as is, establishes and parses environment().data. Once complete it looks to user defined virtual functions for actually generating the response. A response shall be outputted by the user defined virtuals through an output stream. Once a request has control over operation it maintains it until relinquishing it. Should the user know a request will sit around waiting for data, it can return control to Fastcgipp::Manager and have a message sent back through the manager when the data is ready. The aspects of the environment().are build around the Fastcgipp::Http namespace.
 
 Fastcgipp::Manager basically runs an endless loop (which can be terminated through POSIX signals or a function call from another thread) that passes control to requests that have a message queued or the transceiver. It is smart enough to go into a sleep mode when there are no tasks to complete or data to receive.
 
@@ -199,7 +199,7 @@ Now let's make a five second timer.
 				t.reset(new boost::asio::deadline_timer(io, boost::posix_time::seconds(5)));
 \endcode
 
-Now we work with our Fastcgipp::Request::callback. It is a boost::function that takes a Fastcgipp::Message as a single argument. This callback function will pass the message on to this request thereby having Fastcgipp::Request::response() called function again. The callback function is thread safe. That means you can pass messages back to requests from other threads.
+Now we work with our Fastcgipp::Request::callback(). It is a boost::function that takes a Fastcgipp::Message as a single argument. This callback function will pass the message on to this request thereby having Fastcgipp::Request::response() called function again. The callback function is thread safe. That means you can pass messages back to requests from other threads.
 
 First we'll build the message we want sent back here. Normally the message would be built by whatever is calling the callback, but this is just a simple example. A type of 0 means a FastCGI record and is used internally. All other values we can use ourselves to define different message types (sql queries, file grabs, etc...). In this example we will use type=1 for timer stuff.
 
@@ -218,7 +218,7 @@ First we'll build the message we want sent back here. Normally the message would
 Now we can give our callback function to our timer.
 
 \code
-				t->async_wait(boost::bind(callback, msg));
+				t->async_wait(boost::bind(callback(), msg));
 \endcode
 
 We need to set our state to FINISH so that when this response is called a second time, we don't repeat this.
@@ -352,7 +352,7 @@ private:
 					std::strncpy(msg.data.get(), cString, sizeof(cString));
 				}
 
-				t->async_wait(boost::bind(callback, msg));
+				t->async_wait(boost::bind(callback(), msg));
 
 				state=FINISH;
 
@@ -482,7 +482,7 @@ We will need to call Fastcgipp::Request::setloc() to set a facet in our requests
 If the modification time of the file is older or equal to the if-modified-since value sent to us from the client and the etag matches, we don't need to send the image to them.
 
 \code
-		if(!environment.ifModifiedSince.is_not_a_date_time() && etag==environment.etag && modTime<=environment.ifModifiedSince)
+		if(!environment().ifModifiedSince.is_not_a_date_time() && etag==environment().etag && modTime<=environment().ifModifiedSince)
 		{
 			out << "Status: 304 Not Modified\r\n\r\n";
 			return true;
@@ -587,7 +587,7 @@ class ShowGnu: public Fastcgipp::Request<char>
 
 		setloc(locale(loc, new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
 
-		if(!environment.ifModifiedSince.is_not_a_date_time() && etag==environment.etag && modTime<=environment.ifModifiedSince)
+		if(!environment().ifModifiedSince.is_not_a_date_time() && etag==environment().etag && modTime<=environment().ifModifiedSince)
 		{
 			out << "Status: 304 Not Modified\r\n\r\n";
 			return true;
@@ -628,7 +628,7 @@ int main()
 
 \section echoTutorial Tutorial
 
-Our goal here will be to make a FastCGI application that responds to clients with an echo of all environment data that was processed. This will include HTTP header data along with post data that was transmitted by the client. Since we want to be able to echo any alphabets, our best solution is to use UTF-32 wide characters internally and have the library code convert it to UTF-8 before sending it to the client. Your going to need the boost C++ libraries for this. At least version 1.35.0.
+Our goal here will be to make a FastCGI application that responds to clients with an echo of all environment().data that was processed. This will include HTTP header data along with post data that was transmitted by the client. Since we want to be able to echo any alphabets, our best solution is to use UTF-32 wide characters internally and have the library code convert it to UTF-8 before sending it to the client. Your going to need the boost C++ libraries for this. At least version 1.35.0.
 
 All code and data is located in the examples directory of the tarball. You'll have to compile with: `pkg-config --libs --cflags fastcgi++`
 
@@ -693,53 +693,53 @@ Next we'll get some initial HTML stuff out of the way
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
 \endcode
 
-Now we are ready to start outputting environment data. We'll start with the non-post environment data. This data is defined and initialized in the environment object which is of type Fastcgipp::Http::Environment.
+Now we are ready to start outputting environment().data. We'll start with the non-post environment().data. This data is defined and initialized in the environment().object which is of type Fastcgipp::Http::Environment.
 
 \code
 		out << "<h1>Environment Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << environment.host << "<br />";
-		out << "<b>User Agent:</b> " << environment.userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << environment.acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << environment.acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << environment.referer << "<br />";
-		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
-		out << "<b>Root:</b> " << environment.root << "<br />";
-		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
-		out << "<b>Request Method:</b> " << environment.requestMethod << "<br />";
-		out << "<b>Path Info:</b> " << environment.pathInfo << "<br />";
-		out << "<b>Content Length:</b> " << environment.contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << environment.keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << environment.serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << environment.serverPort << "<br />";
-		out << "<b>Client Address:</b> " << environment.remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
+		out << "<p><b>Hostname:</b> " << environment().host << "<br />";
+		out << "<b>User Agent:</b> " << environment().userAgent << "<br />";
+		out << "<b>Accepted Content Types:</b> " << environment().acceptContentTypes << "<br />";
+		out << "<b>Accepted Languages:</b> " << environment().acceptLanguages << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << environment().acceptCharsets << "<br />";
+		out << "<b>Referer:</b> " << environment().referer << "<br />";
+		out << "<b>Content Type:</b> " << environment().contentType << "<br />";
+		out << "<b>Root:</b> " << environment().root << "<br />";
+		out << "<b>Script Name:</b> " << environment().scriptName << "<br />";
+		out << "<b>Request Method:</b> " << environment().requestMethod << "<br />";
+		out << "<b>Path Info:</b> " << environment().pathInfo << "<br />";
+		out << "<b>Content Length:</b> " << environment().contentLength << "<br />";
+		out << "<b>Keep Alive Time:</b> " << environment().keepAlive << "<br />";
+		out << "<b>Server Address:</b> " << environment().serverAddress << "<br />";
+		out << "<b>Server Port:</b> " << environment().serverPort << "<br />";
+		out << "<b>Client Address:</b> " << environment().remoteAddress << "<br />";
+		out << "<b>Client Port:</b> " << environment().remotePort << "<br />";
+		out << "<b>If Modified Since:</b> " << environment().ifModifiedSince << "</p>";
 \endcode
 
-Now let's take a look at the GET data. The GET data is stored in the associative container environment.gets which is of type std::map< std::basic_string< charT >, std::basic_string< charT > > links names to values.
+Now let's take a look at the GET data. The GET data is stored in the associative container environment().gets which is of type std::map< std::basic_string< charT >, std::basic_string< charT > > links names to values.
 
 \code
 		out << "<h1>GET Data</h1>";
-		if(environment.gets.size())
-			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.gets.begin(); it!=environment.gets.end(); ++it)
+		if(environment().gets.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Gets::const_iterator it=environment().gets.begin(); it!=environment().gets.end(); ++it)
 				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
 		else
 			out << "<p>No GET data</p>";
 \endcode
 
-Now let's take a look at the cookie data. The cookie data is stored in the associative container environment.cookies which is of type std::map< std::basic_string< charT >, std::basic_string< charT > > links names to values.
+Now let's take a look at the cookie data. The cookie data is stored in the associative container environment().cookies which is of type std::map< std::basic_string< charT >, std::basic_string< charT > > links names to values.
 
 \code
 		out << "<h1>Cookie Data</h1>";
-		if(environment.cookies.size())
-			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.cookies.begin(); it!=environment.cookies.end(); ++it)
+		if(environment().cookies.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Cookies::const_iterator it=environment().cookies.begin(); it!=environment().cookies.end(); ++it)
 				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
 		else
 			out << "<p>No Cookie data</p>";
 \endcode
 
-Next, we will make a little loop to output the post. The post data is stored in the associative container environment.posts of type Fastcgipp::Http::Environment::Posts linking field names to Fastcgipp::Http::Post objects.
+Next, we will make a little loop to output the post. The post data is stored in the associative container environment().posts of type Fastcgipp::Http::Environment::Posts linking field names to Fastcgipp::Http::Post objects.
 
 \code
 		out << "<h1>Post Data</h1>";
@@ -748,8 +748,8 @@ Next, we will make a little loop to output the post. The post data is stored in 
 If there isn't any POST data, we'll just say so
 
 \code
-		if(environment.posts.size())
-			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
+		if(environment().posts.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Posts::const_iterator it=environment().posts.begin(); it!=environment().posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
 
@@ -850,43 +850,43 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
 
 		out << "<h1>Environment Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << environment.host << "<br />";
-		out << "<b>User Agent:</b> " << environment.userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << environment.acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << environment.acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << environment.referer << "<br />";
-		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
-		out << "<b>Root:</b> " << environment.root << "<br />";
-		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
-		out << "<b>Request Method:</b> " << environment.requestMethod << "<br />";
-		out << "<b>Path Info:</b> " << environment.pathInfo << "<br />";
-		out << "<b>Content Length:</b> " << environment.contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << environment.keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << environment.serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << environment.serverPort << "<br />";
-		out << "<b>Client Address:</b> " << environment.remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
+		out << "<p><b>Hostname:</b> " << environment().host << "<br />";
+		out << "<b>User Agent:</b> " << environment().userAgent << "<br />";
+		out << "<b>Accepted Content Types:</b> " << environment().acceptContentTypes << "<br />";
+		out << "<b>Accepted Languages:</b> " << environment().acceptLanguages << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << environment().acceptCharsets << "<br />";
+		out << "<b>Referer:</b> " << environment().referer << "<br />";
+		out << "<b>Content Type:</b> " << environment().contentType << "<br />";
+		out << "<b>Root:</b> " << environment().root << "<br />";
+		out << "<b>Script Name:</b> " << environment().scriptName << "<br />";
+		out << "<b>Request Method:</b> " << environment().requestMethod << "<br />";
+		out << "<b>Path Info:</b> " << environment().pathInfo << "<br />";
+		out << "<b>Content Length:</b> " << environment().contentLength << "<br />";
+		out << "<b>Keep Alive Time:</b> " << environment().keepAlive << "<br />";
+		out << "<b>Server Address:</b> " << environment().serverAddress << "<br />";
+		out << "<b>Server Port:</b> " << environment().serverPort << "<br />";
+		out << "<b>Client Address:</b> " << environment().remoteAddress << "<br />";
+		out << "<b>Client Port:</b> " << environment().remotePort << "<br />";
+		out << "<b>If Modified Since:</b> " << environment().ifModifiedSince << "</p>";
 
 		out << "<h1>GET Data</h1>";
-		if(environment.gets.size())
-			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.gets.begin(); it!=environment.gets.end(); ++it)
+		if(environment().gets.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Gets::const_iterator it=environment().gets.begin(); it!=environment().gets.end(); ++it)
 				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
 		else
 			out << "<p>No GET data</p>";
 		
 		out << "<h1>Cookie Data</h1>";
-		if(environment.cookies.size())
-			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.cookies.begin(); it!=environment.cookies.end(); ++it)
+		if(environment().cookies.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Cookies::const_iterator it=environment().cookies.begin(); it!=environment().cookies.end(); ++it)
 				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
 		else
 			out << "<p>No Cookie data</p>";
 
 		out << "<h1>POST Data</h1>";
-		if(environment.posts.size())
+		if(environment().posts.size())
 		{
-			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
+			for(Fastcgipp::Http::Environment<wchar_t>::Posts::const_iterator it=environment().posts.begin(); it!=environment().posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
 				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)
@@ -1186,10 +1186,10 @@ First off let's clean up any expired sessions. Calling this function at the begi
 		sessions.cleanup();
 \endcode
 
-Now we need to initialize the session data member. In this example we will do this by finding a session id passed to us from the client as a cookie. You could also use get data instead of cookies obviously. Let's call our session cookie SESSIONID. Remember that our cookies/GET data is stored in a Fastcgipp::Http::Environment object called environment.
+Now we need to initialize the session data member. In this example we will do this by finding a session id passed to us from the client as a cookie. You could also use get data instead of cookies obviously. Let's call our session cookie SESSIONID. Remember that our cookies/GET data is stored in a Fastcgipp::Http::Environment object called environment().
 
 \code
-		session=sessions.find(environment.cookies["SESSIONID"].data());
+		session=sessions.find(environment().findCookie("SESSIONID").data());
 \endcode
 	
 Now the session data member will be a valid iterator to a session or it will point to end() if the client didn't provide a session id or it was invalid.
@@ -1197,7 +1197,7 @@ Now the session data member will be a valid iterator to a session or it will poi
 In order to get login/logout commands from the client we will use GET information. A simple ?command=login/logout system will suffice.
 
 \code
-		std::string command=environment.gets["command"];
+		std::string command=environment().gets["command"];
 \endcode
 
 Now we're going to need to set our locale to output boost::date_time stuff in a proper cookie expiry way. See Fastcgipp::Request::setloc().
@@ -1249,7 +1249,7 @@ With no valid session id from the client it is even easier.
 Since the client wants to make a new session, we call Fastcgipp::Http::Sessions::generate(). This function will generate a new random session id and associated the passed session data with it. Calling a stream insertion operation on Fastcgipp::Http::SessionId will output a base64 encoding of the id value. Perfect for http communications. To coordinate, constructing the class from a char* / wchar_t* will assume the string is base64 encoded and decode it accordingly.
 
 \code
-				session=sessions.generate(environment.posts["data"].value);
+				session=sessions.generate(environment().posts["data"].value);
 				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
@@ -1376,9 +1376,9 @@ class SessionExample: public Fastcgipp::Request<char>
 
 		sessions.cleanup();
 
-		session=sessions.find(environment.cookies["SESSIONID"].data());
+		session=sessions.find(environment().findCookie("SESSIONID").data());
 		
-		std::string command=environment.gets["command"];
+		const std::string& command=environment().findGet("command");
 
 		setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
 
@@ -1403,7 +1403,7 @@ class SessionExample: public Fastcgipp::Request<char>
 		{
 			if(command=="login")
 			{
-				session=sessions.generate(environment.posts["data"].value);
+				session=sessions.generate(environment().posts["data"].value);
 				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
@@ -1542,7 +1542,7 @@ First let's define our actual data elements in the structure. Unless we are fetc
 
 As you can see, one of our values has the ability to contain null values. This capability comes from the ASql::Data::Nullable template class. See also ASql::Data::NullableArray.
 
-Note we are in a wchar_t environment, and we are accordingly using ASql::Data::WtextN instead of ASql::Data::TextN. Since our SQL table and connection is in utf-8, all data is code converted for you upon reception.
+Note we are in a wchar_t environment(). and we are accordingly using ASql::Data::WtextN instead of ASql::Data::TextN. Since our SQL table and connection is in utf-8, all data is code converted for you upon reception.
 
 Our reason for using Fastcgipp::Http::SessionId is merely that it provides a good fixed binary data array that happens to have iostream inserter/extractor operators to/from base64. Also the default constructor randomly generates a value.
 
@@ -1709,7 +1709,7 @@ Now we set up our ASql::Query object for use with the statement and run it. Agai
 
 \code
 			selectSet=&m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >();
-			m_query.setCallback(boost::bind(callback, Fastcgipp::Message(1)));
+			m_query.setCallback(boost::bind(callback(), Fastcgipp::Message(1)));
 			m_query.enableRows(true);
 			selectStatement.queue(m_query);
 \endcode
@@ -1780,10 +1780,10 @@ By calling reset on m_query we basically recycle it for use a second time around
 
 			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
 			m_query.keepAlive(true);
-			queryParameters.ipAddress = environment.remoteAddress;
+			queryParameters.ipAddress = environment().remoteAddress;
 			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
-			if(environment.referer.size())
-				queryParameters->referral = environment.referer;
+			if(environment().referer.size())
+				queryParameters->referral = environment().referer;
 			else
 				queryParameters->referral.nullness = true;
 \endcode
@@ -1793,7 +1793,7 @@ Above we built a query object for our insert statement. Now let's build a fun li
 \code
 			ASql::Query timeUpdate;
 			unsigned int& addy(timeUpdate.createParameters<ASql::Data::IndySetBuilder<unsigned int> >()->data);
-			addy=environment.remoteAddress.getInt();
+			addy=environment().remoteAddress.getInt();
 			timeUpdate.keepAlive(true);
 \endcode
 
@@ -1949,7 +1949,7 @@ bool Database::response()
 		case START:
 		{
 			selectSet=&m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >()->data;
-			m_query.setCallback(boost::bind(callback, Fastcgipp::Message(1)));
+			m_query.setCallback(boost::bind(callback(), Fastcgipp::Message(1)));
 			m_query.enableRows();
 			selectStatement.queue(m_query);
 			status=FETCH;
@@ -1996,16 +1996,16 @@ bool Database::response()
 
 			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
 			m_query.keepAlive(true);
-			queryParameters.ipAddress = environment.remoteAddress;
+			queryParameters.ipAddress = environment().remoteAddress;
 			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
-			if(environment.referer.size())
-				queryParameters.referral = environment.referer;
+			if(environment().referer.size())
+				queryParameters.referral = environment().referer;
 			else
 				queryParameters.referral.nullness = true;
 
 			ASql::Query timeUpdate;
 			unsigned int& addy(timeUpdate.createParameters<ASql::Data::IndySetBuilder<unsigned int> >()->data);
-			addy=environment.remoteAddress.getInt();
+			addy=environment().remoteAddress.getInt();
 			timeUpdate.keepAlive(true);
 
 			ASql::MySQL::Transaction transaction;

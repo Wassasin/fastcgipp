@@ -72,51 +72,51 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
 
-		// This environment data structure is defined in fastcgi++/http.hpp
+		// This environment().data structure is defined in fastcgi++/http.hpp
 		out << "<h1>Environment Parameters</h1>";
 		out << "<p><b>FastCGI Version:</b> " << Fastcgipp::Protocol::version << "<br />";
 		out << "<b>fastcgi++ Version:</b> " << Fastcgipp::version << "<br />";
-		out << "<b>Hostname:</b> " << environment.host << "<br />";
-		out << "<b>User Agent:</b> " << environment.userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << environment.acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << environment.acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << environment.acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << environment.referer << "<br />";
-		out << "<b>Content Type:</b> " << environment.contentType << "<br />";
-		out << "<b>Root:</b> " << environment.root << "<br />";
-		out << "<b>Script Name:</b> " << environment.scriptName << "<br />";
-		out << "<b>Request URI:</b> " << environment.requestUri << "<br />";
-		out << "<b>Request Method:</b> " << environment.requestMethod << "<br />";
-		out << "<b>Path Info:</b> " << environment.pathInfo << "<br />";
-		out << "<b>Content Length:</b> " << environment.contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << environment.keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << environment.serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << environment.serverPort << "<br />";
-		out << "<b>Client Address:</b> " << environment.remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << environment.remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << environment.ifModifiedSince << "</p>";
+		out << "<b>Hostname:</b> " << environment().host << "<br />";
+		out << "<b>User Agent:</b> " << environment().userAgent << "<br />";
+		out << "<b>Accepted Content Types:</b> " << environment().acceptContentTypes << "<br />";
+		out << "<b>Accepted Languages:</b> " << environment().acceptLanguages << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << environment().acceptCharsets << "<br />";
+		out << "<b>Referer:</b> " << environment().referer << "<br />";
+		out << "<b>Content Type:</b> " << environment().contentType << "<br />";
+		out << "<b>Root:</b> " << environment().root << "<br />";
+		out << "<b>Script Name:</b> " << environment().scriptName << "<br />";
+		out << "<b>Request URI:</b> " << environment().requestUri << "<br />";
+		out << "<b>Request Method:</b> " << environment().requestMethod << "<br />";
+		out << "<b>Path Info:</b> " << environment().pathInfo << "<br />";
+		out << "<b>Content Length:</b> " << environment().contentLength << "<br />";
+		out << "<b>Keep Alive Time:</b> " << environment().keepAlive << "<br />";
+		out << "<b>Server Address:</b> " << environment().serverAddress << "<br />";
+		out << "<b>Server Port:</b> " << environment().serverPort << "<br />";
+		out << "<b>Client Address:</b> " << environment().remoteAddress << "<br />";
+		out << "<b>Client Port:</b> " << environment().remotePort << "<br />";
+		out << "<b>If Modified Since:</b> " << environment().ifModifiedSince << "</p>";
 
 		// Let's see the GET data
 		out << "<h1>GET Data</h1>";
-		if(environment.gets.size())
-			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.gets.begin(); it!=environment.gets.end(); ++it)
+		if(environment().gets.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Gets::const_iterator it=environment().gets.begin(); it!=environment().gets.end(); ++it)
 				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
 		else
 			out << "<p>No GET data</p>";
 		
 		// Let's see the cookie data
 		out << "<h1>Cookie Data</h1>";
-		if(environment.cookies.size())
-			for(	std::map<std::basic_string<wchar_t>, std::basic_string<wchar_t> >::iterator it=environment.cookies.begin(); it!=environment.cookies.end(); ++it)
+		if(environment().cookies.size())
+			for(Fastcgipp::Http::Environment<wchar_t>::Cookies::const_iterator it=environment().cookies.begin(); it!=environment().cookies.end(); ++it)
 				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
 		else
 			out << "<p>No Cookie data</p>";
 
 		//Fastcgipp::Http::Post is defined in fastcgi++/http.hpp
 		out << "<h1>POST Data</h1>";
-		if(environment.posts.size())
+		if(environment().posts.size())
 		{
-			for(Fastcgipp::Http::Environment<wchar_t>::Posts::iterator it=environment.posts.begin(); it!=environment.posts.end(); ++it)
+			for(Fastcgipp::Http::Environment<wchar_t>::Posts::const_iterator it=environment().posts.begin(); it!=environment().posts.end(); ++it)
 			{
 				out << "<h2>" << it->first << "</h2>";
 				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)

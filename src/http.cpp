@@ -622,3 +622,39 @@ const char* Fastcgipp::Http::requestMethodLabels[]= {
 	"OPTIONS",
 	"CONNECT"
 };
+
+template const std::basic_string<char>& Fastcgipp::Http::Environment<char>::findCookie(const char* key) const;
+template const std::basic_string<wchar_t>& Fastcgipp::Http::Environment<wchar_t>::findCookie(const wchar_t* key) const;
+template<class charT> const std::basic_string<charT>& Fastcgipp::Http::Environment<charT>::findCookie(const charT* key) const
+{
+	static const std::basic_string<charT> emptyString;
+	typename Cookies::const_iterator it=cookies.find(key);
+	if(it==cookies.end())
+		return emptyString;
+	else
+		return it->second;
+}
+
+template const std::basic_string<char>& Fastcgipp::Http::Environment<char>::findGet(const char* key) const;
+template const std::basic_string<wchar_t>& Fastcgipp::Http::Environment<wchar_t>::findGet(const wchar_t* key) const;
+template<class charT> const std::basic_string<charT>& Fastcgipp::Http::Environment<charT>::findGet(const charT* key) const
+{
+	static const std::basic_string<charT> emptyString;
+	typename Gets::const_iterator it=gets.find(key);
+	if(it==gets.end())
+		return emptyString;
+	else
+		return it->second;
+}
+
+template const Fastcgipp::Http::Post<char>& Fastcgipp::Http::Environment<char>::findPost(const char* key) const;
+template const Fastcgipp::Http::Post<wchar_t>& Fastcgipp::Http::Environment<wchar_t>::findPost(const wchar_t* key) const;
+template<class charT> const Fastcgipp::Http::Post<charT>& Fastcgipp::Http::Environment<charT>::findPost(const charT* key) const
+{
+	static const Post<charT> emptyPost;
+	typename Posts::const_iterator it=posts.find(key);
+	if(it==posts.end())
+		return emptyPost;
+	else
+		return it->second;
+}
