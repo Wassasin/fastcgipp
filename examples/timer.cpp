@@ -113,7 +113,7 @@ private:
 				}
 
 				// Now we will give our callback data to boost::asio
-				t->async_wait(boost::bind(callback, msg));
+				t->async_wait(boost::bind(callback(), msg));
 
 				// We need to set our state to FINISH so that when this response is called a second time, we don't repeat this.
 				state=FINISH;
@@ -126,7 +126,7 @@ private:
 			{
 				// Although we don't need the message we were sent, it is stored in the Request class as member data named
 				// "message".
-				out << "Timer Finished! Our message data was \"" << message.data.get() << "\"";
+				out << "Timer Finished! Our message data was \"" << message().data.get() << "\"";
 				out << "</body></html>";
 
 				// Always return true if you are done. This will let apache know we are done

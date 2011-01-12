@@ -101,7 +101,7 @@ bool Database::response()
 		case START:
 		{
 			selectSet=&m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >()->data;
-			m_query.setCallback(boost::bind(callback, Fastcgipp::Message(1)));
+			m_query.setCallback(boost::bind(callback(), Fastcgipp::Message(1)));
 			m_query.enableRows();
 			selectStatement.queue(m_query);
 			status=FETCH;
@@ -148,16 +148,16 @@ bool Database::response()
 
 			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
 			m_query.keepAlive(true);
-			queryParameters.ipAddress = environment.remoteAddress;
+			queryParameters.ipAddress = environment().remoteAddress;
 			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
-			if(environment.referer.size())
-				queryParameters.referral = environment.referer;
+			if(environment().referer.size())
+				queryParameters.referral = environment().referer;
 			else
 				queryParameters.referral.nullness = true;
 
 			ASql::Query timeUpdate;
 			unsigned int& addy(timeUpdate.createParameters<ASql::Data::IndySetBuilder<unsigned int> >()->data);
-			addy=environment.remoteAddress.getInt();
+			addy=environment().remoteAddress.getInt();
 			timeUpdate.keepAlive(true);
 
 			ASql::MySQL::Transaction transaction;

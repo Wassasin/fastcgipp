@@ -92,7 +92,7 @@ private:
 	{
 		doHeader();
 
-		out << (totalBytesReceived+=bytesReceived) << '/' << environment.contentLength << "<br />";
+		out << (totalBytesReceived+=bytesReceived) << '/' << environment().contentLength << "<br />";
 		out.flush();    // Make sure to flush the buffer so it is actually sent.
 	}
 };

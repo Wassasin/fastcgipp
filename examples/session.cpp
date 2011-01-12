@@ -54,9 +54,9 @@ class Session: public Fastcgipp::Request<char>
 	{
 		sessions.cleanup();
 
-		session=sessions.find(environment.cookies["SESSIONID"].data());
+		session=sessions.find(environment().findCookie("SESSIONID").data());
 		
-		std::string command=environment.gets["command"];
+		const std::string& command=environment().findGet("command");
 		
 		// We need to call this to set a facet in our requests locale regarding how
 		// to format the date upon insertion. It needs to conform to the http standard.
@@ -82,7 +82,7 @@ class Session: public Fastcgipp::Request<char>
 		{
 			if(command=="login")
 			{
-				session=sessions.generate(environment.posts["data"].value);
+				session=sessions.generate(environment().findPost("data").value);
 				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}

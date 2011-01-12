@@ -209,15 +209,23 @@ namespace Fastcgipp
 			//! Timestamp the client has for this document
 			boost::posix_time::ptime ifModifiedSince;
 
+			typedef std::map<std::basic_string<charT>, std::basic_string<charT> > Cookies;
 			//! Container with all url-encoded cookie data
-			std::map<std::basic_string<charT>, std::basic_string<charT> > cookies;
+			Cookies cookies;
+			//! Quick and easy way to find a cookie value
+			const std::basic_string<charT>& findCookie(const charT* key) const;
+
+			typedef std::map<std::basic_string<charT>, std::basic_string<charT> > Gets;
 			//! Container with all url-encoded GET data
-			std::map<std::basic_string<charT>, std::basic_string<charT> > gets;
+			Gets gets;
+			//! Quick and easy way to find a GET value
+			const std::basic_string<charT>& findGet(const charT* key) const;
 
 			typedef std::map<std::basic_string<charT>, Post<charT> > Posts;
-			typedef typename Posts::const_iterator PostsConstIter;
 			//! STL container associating Post objects with their name
 			Posts posts;
+			//! Quick and easy way to find a POST value
+			const Post<charT>& findPost(const charT* key) const;
 
 			//! Parses FastCGI parameter data into the data structure
 			/*!

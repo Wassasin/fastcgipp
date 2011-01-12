@@ -53,7 +53,7 @@ class Session: public Fastcgipp::Request<char>
 	bool response()
 	{
 		sessions.cleanup();
-		session=sessions.find(environment.cookies["SESSIONID"].data());
+		session=sessions.find(environment().findCookie("SESSIONID").data());
 
 		switch(getRole())
 		{
@@ -92,8 +92,8 @@ Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 
 			case Fastcgipp::Protocol::AUTHORIZER:
 			{
-				err << "Asking for permission to view " << environment.requestUri;
-				if(session!=sessions.end() && environment.requestUri=="/fastcgipp/locked/locked.png")
+				err << "Asking for permission to view " << environment().requestUri;
+				if(session!=sessions.end() && environment().requestUri=="/fastcgipp/locked/locked.png")
 					out << "Status: 200 OK\r\n\r\n";
 				else
 					out << "Status: 403 Forbidden\r\n\r\n";

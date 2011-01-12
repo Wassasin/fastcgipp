@@ -60,11 +60,11 @@ namespace Fastcgipp
 	{
 	public:
 		//! Initializes what it can. set() must be called by Manager before the data is usable.
-		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); environment.clearPostBuffer(); }
+		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
 
 	protected:
-		//! Structure containing all HTTP environment data
-		Http::Environment<charT> environment;
+		//! Accessor for  the data structure containing all HTTP environment data
+		const Http::Environment<charT>& environment() const { return m_environment; }
 
 		// To dump data into the stream without it being code converted and bypassing the stream buffer call Fcgistream::dump(char* data, size_t size)
 		// or Fcgistream::dump(std::basic_istream<char>& stream)
@@ -115,7 +115,7 @@ namespace Fastcgipp
 		 *
 		 * @sa callback
 		 */
-		Message message;
+		const Message& message() const { return m_message; }
 
 		//! Set the requests locale
 		/*!
@@ -129,7 +129,7 @@ namespace Fastcgipp
 		 */
 		void setloc(std::locale loc_);
 
-		//! Callback function for dealings outside the fastcgi++ library
+		//! Accessor for the callback function for dealings outside the fastcgi++ library
 		/*!
 		 * The purpose of the callback object is to provide a thread safe mechanism for functions and
 		 * classes outside the fastcgi++ library to talk to the requests. Should the library
@@ -141,12 +141,38 @@ namespace Fastcgipp
 		 *	The sole parameter is a Message that contains both a type value for processing by response()
 		 *	and the raw castable data.
 		 */
-		boost::function<void(Message)> callback;
+		const boost::function<void(Message)>& callback() const { return m_callback; }
 
 		//! See the requests role
 		Protocol::Role getRole() const { return role; }
 
 	private:
+		//! The message associated with the current handler() call.
+		/*!
+		 * This is only of use to the library user when a non FastCGI (type=0) Message is passed
+		 * by using the requests callback.
+		 *
+		 * @sa callback
+		 */
+		Message m_message;
+
+		//! The callback function for dealings outside the fastcgi++ library
+		/*!
+		 * The purpose of the callback object is to provide a thread safe mechanism for functions and
+		 * classes outside the fastcgi++ library to talk to the requests. Should the library
+		 * wish to have another thread process or fetch some data, that thread can call this
+		 * function when it is finished. It is equivalent to this:
+		 *
+		 * void callback(Message msg);
+		 *
+		 *	The sole parameter is a Message that contains both a type value for processing by response()
+		 *	and the raw castable data.
+		 */
+		boost::function<void(Message)> m_callback;
+
+		//! The data structure containing all HTTP environment data
+		Http::Environment<charT> m_environment;
+
 		//! Queue type for pending messages
 		/*!
 		 * This is merely a derivation of a std::queue<Message> and a
@@ -194,7 +220,7 @@ namespace Fastcgipp
 			id=id_;
 			transceiver=&transceiver_;
 			role=role_;
-			callback=callback_;
+			m_callback=callback_;
 
 			err.set(id_, transceiver_, Protocol::ERR);
 			out.set(id_, transceiver_, Protocol::OUT);
