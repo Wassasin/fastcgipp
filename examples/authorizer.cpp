@@ -55,7 +55,7 @@ class Session: public Fastcgipp::Request<char>
 		sessions.cleanup();
 		session=sessions.find(environment().findCookie("SESSIONID").data());
 
-		switch(getRole())
+		switch(role())
 		{
 			case Fastcgipp::Protocol::RESPONDER:
 			{

@@ -144,7 +144,7 @@ namespace Fastcgipp
 		const boost::function<void(Message)>& callback() const { return m_callback; }
 
 		//! See the requests role
-		Protocol::Role getRole() const { return role; }
+		Protocol::Role role() const { return m_role; }
 
 	private:
 		//! The message associated with the current handler() call.
@@ -195,7 +195,7 @@ namespace Fastcgipp
 		//! Pointer to the transceiver object that will send data to the other side
 		Transceiver* transceiver;
 		//! The role that the other side expects this request to play
-		Protocol::Role role;
+		Protocol::Role m_role;
 		//! The complete ID (request id & file descriptor) associated with the request
 		Protocol::FullId id;
 		//! Boolean value indicating whether or not the file descriptor should be closed upon completion.
@@ -219,7 +219,7 @@ namespace Fastcgipp
 			killCon=killCon_;
 			id=id_;
 			transceiver=&transceiver_;
-			role=role_;
+			m_role=role_;
 			m_callback=callback_;
 
 			err.set(id_, transceiver_, Protocol::ERR);
