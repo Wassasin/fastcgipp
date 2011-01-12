@@ -183,7 +183,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 
 	try
 	{
-		if(!(role==RESPONDER || role==AUTHORIZER))
+		if(!(role()==RESPONDER || role()==AUTHORIZER))
 		{
 			Block buffer(transceiver->requestWrite(sizeof(Header)+sizeof(EndRequest)));
 			
