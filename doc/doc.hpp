@@ -1657,8 +1657,12 @@ const char Database::updateStatementString[] = "UPDATE logs SET timeStamp=SUBTIM
 '01:00:00') WHERE ipAddress=?";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, \
 sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
+\endcode
 
-ASql::MySQL::Connection Database::sqlConnection(1);
+The next line initializes the database connection and decides how many concurrent SQL queries can be operating. Keep in mind that this doesn't dictate how many queries can be queued up, but more how many queues there are. When you queue up a query to be executed it always puts it in the smallest queue.
+
+\code
+ASql::MySQL::Connection Database::sqlConnection(4);
 ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::updateStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);

@@ -41,6 +41,24 @@ namespace ASql
 		 */
 		class Connection: public ConnectionPar<MySQL::Statement>
 		{
+		private:
+			/** 
+			 * @brief Actual %MySQL C API connection object.
+			 */
+			boost::scoped_array<MYSQL> m_connection;
+
+			/** 
+			 * @brief Pointer to the statement used to return the number of rows found.
+			 */
+			boost::scoped_array<MYSQL_STMT*> foundRowsStatement;
+
+			/** 
+			 * @brief Bind object for storing the total number of results from a query.
+			 */
+			boost::scoped_array<MYSQL_BIND> foundRowsBinding;
+
+			bool m_initialized;
+
 		public:
 			/** 
 			 *	@brief Complete Constructor
@@ -53,9 +71,10 @@ namespace ASql
 			 * @param[in] unix_socket If unix_socket is not NULL, the string specifies the socket or named pipe that should be used. Note that the host parameter determines the type of the connection.
 			 * @param[in] client_flag The value of client_flag is usually 0, but can be set to a combination of the following flags to enable certain features. See the mysql c api reference manual for more details.
 			 * @param[in] charset Null terminated string representation of desired connection character set (latin1, utf8, ...)
-			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
+			 * @param[in] threads_ Number of threads to have for simultaneous queries. The higher this number is the more concurrent
+			 * SQL requeries can be processed.
 			 */
-			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_), m_initialized(false)
+			Connection(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset="latin1", const int threads_=1): ConnectionPar<MySQL::Statement>(threads_), m_initialized(false)
 			{
 				connect(host, user, passwd, db, port, unix_socket, client_flag, charset);
 			}
@@ -63,9 +82,15 @@ namespace ASql
 			/** 
 			 * @brief Incomplete Constructor
 			 * 
-			 * @param[in] maxThreads_ Number of threads to have for simultaneous queries.
+			 * @param[in] threads_ Number of threads to have for simultaneous queries. The higher this number is the more concurrent
+			 * SQL requeries can be processed.
 			 */
-			Connection(const int maxThreads_=1): ConnectionPar<MySQL::Statement>(maxThreads_), m_initialized(false) {}
+			Connection(const int threads_=1):
+				ConnectionPar<MySQL::Statement>(maxThreads_),
+				m_connection(new MYSQL[maxThreads_]),
+				foundRowsStatement(new MYSQL_STMT*[maxThreads_]),
+				foundRowsBinding(new MYSQL_BIND[maxThreads_]),
+				m_initialized(false) {}
 			~Connection();
 
 			/**
@@ -87,27 +112,12 @@ namespace ASql
 			 * 
 			 * @param rows A reference to a pointer to the integer to write the value to.
 			 */
-			void getFoundRows(unsigned long long* const& rows);
+			void getFoundRows(unsigned long long* const& rows, const unsigned int id);
 
-			MYSQL* getConnection() { return &connection; }
-		private:
-			/** 
-			 * @brief Actual %MySQL C API connection object.
-			 */
-			MYSQL connection;
-			friend class Statement;
+			MYSQL& connection(unsigned int id) { return m_connection[id]; }
 
-			/** 
-			 * @brief Pointer to the statement used to return the number of rows found.
-			 */
-			MYSQL_STMT* foundRowsStatement;
-
-			/** 
-			 * @brief Bind object for storing the total number of results from a query.
-			 */
-			MYSQL_BIND foundRowsBinding;
-
-			bool m_initialized;
+			inline void commit(const unsigned int thread=0)	{ mysql_commit(&m_connection[thread]); }
+			inline void rollback(const unsigned int thread=0)	{ mysql_rollback(&m_connection[thread]); }
 		};
 
 		/** 
@@ -139,7 +149,14 @@ namespace ASql
 			 * @param[in] parameterSet Template object of parameter data set. Null means no parameters.
 			 * @param[in] resultSet Template object of result data set. Null means no results.
 			 */
-			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet): connection(connection_), stmt(mysql_stmt_init(&connection_.connection)), m_initialized(false), m_stop(&ConnectionPar<Statement>::s_false)
+			Statement(Connection& connection_, const char* const queryString, const size_t queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet):
+				ASql::Statement(connection_.threads()),
+				connection(connection_),
+				stmt(new MYSQL_STMT*[connection_.threads()]),
+				m_initialized(false),
+				paramsBindings(new boost::scoped_array<MYSQL_BIND>[connection_.threads()]),
+				resultsBindings(new boost::scoped_array<MYSQL_BIND>[connection_.threads()]),
+				m_stop(new const bool*[connection_.threads()])
 			{
 				init(queryString, queryLength, parameterSet, resultSet);
 			}
@@ -148,8 +165,16 @@ namespace ASql
 			 * 
 			 * @param[in] connection_ %MySQL connection to run query through.
 			 */
-			Statement(Connection& connection_): connection(connection_), stmt(0), m_initialized(false), m_stop(&ConnectionPar<Statement>::s_false) {}
-			~Statement() { if(m_initialized) mysql_stmt_close(stmt); }
+			Statement(Connection& connection_):
+				ASql::Statement(connection_.threads()),
+				connection(connection_),
+				stmt(new MYSQL_STMT*[connection_.threads()]),
+				m_initialized(false),
+				paramsBindings(new boost::scoped_array<MYSQL_BIND>[connection_.threads()]),
+				resultsBindings(new boost::scoped_array<MYSQL_BIND>[connection_.threads()]),
+				m_stop(new const bool*[connection_.threads()]) {}
+
+			~Statement();
 			
 			/** 
 			 *	@brief Initialize statement.
@@ -192,7 +217,7 @@ namespace ASql
 			 * @param[out] rows Pointer to integer for writing the number of rows affected/matching from last query.
 			 * @param[in] docommit Set to true a transaction commit should be completed at the end of this query.
 			 */
-			void execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0, bool docommit=true);
+			void execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId=0, unsigned long long int* const rows=0, bool docommit=true, const unsigned int thread=0);
 
 			/** 
 			 * @brief Execute single result row %MySQL statement.
@@ -212,7 +237,7 @@ namespace ASql
 			 *
 			 * @return True if result data was recieved, false otherwise.
 			 */
-			bool execute(const Data::Set* const parameters, Data::Set& results, bool docommit=true);
+			bool execute(const Data::Set* const parameters, Data::Set& results, bool docommit=true, const unsigned int thread=0);
 
 			/** 
 			 * @brief Execute result-less multi-row parameter %MySQL statement.
@@ -229,7 +254,7 @@ namespace ASql
 			 * @param[out] rows Pointer to integer for writing the number of rows affected from last query.
 			 * @param[in] docommit Set to true a transaction commit should be completed at the end of this query.
 			 */
-			void execute(const Data::SetContainer& parameters, unsigned long long int* rows=0, bool docommit=true);
+			void execute(const Data::SetContainer& parameters, unsigned long long int* rows=0, bool docommit=true, const unsigned int thread=0);
 
 			/** 
 			 * @brief Asynchronously execute a %MySQL statement.
@@ -248,26 +273,23 @@ namespace ASql
 			{
 				connection.queue(this, query);
 			}
-
-			inline void commit()	{ mysql_commit(connection.getConnection()); }
-			inline void rollback()	{ mysql_rollback(connection.getConnection()); }
 		private:
 			Connection& connection;
 
 			/** 
 			 * @brief Pointer to actual %MySQL C API prepared statement object.
 			 */
-			MYSQL_STMT* stmt;
+			boost::scoped_array<MYSQL_STMT*> stmt;
 
 			/** 
 			 * @brief Array of parameter bindings for use with the query.
 			 */
-			boost::scoped_array<MYSQL_BIND> paramsBindings;
+			boost::scoped_array<boost::scoped_array<MYSQL_BIND> > paramsBindings;
 
 			/** 
 			 * @brief Array of result bindings for use with the query.
 			 */
-			boost::scoped_array<MYSQL_BIND> resultsBindings;
+			boost::scoped_array<boost::scoped_array<MYSQL_BIND> > resultsBindings;
 			
 			/** 
 			 * @brief Build an array of %MySQL C API prepared statement bindings.
@@ -306,16 +328,11 @@ namespace ASql
 			static void bindBindings(Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings);
 
 			/** 
-			 * @brief Mutex for execute function
-			 */
-			boost::mutex executeMutex;
-
-			/** 
 			 * @brief Execute parameter part of statement
 			 * 
 			 * @param[in] parameters Parameters to use in query
 			 */
-			void executeParameters(const Data::Set* const& parameters);
+			void executeParameters(const Data::Set* const& parameters, const unsigned int thread);
 			
 			/** 
 			 * @brief Fetch a row of the results
@@ -324,11 +341,11 @@ namespace ASql
 			 * 
 			 * @return true normally, false if no data
 			 */
-			bool executeResult(Data::Set& row);
+			bool executeResult(Data::Set& row, const unsigned int thread);
 
 			bool m_initialized;
 
-			const bool* m_stop;
+			boost::scoped_array<const bool*> m_stop;
 
 			friend class ConnectionPar<Statement>;
 			friend class Transaction<Statement>;
