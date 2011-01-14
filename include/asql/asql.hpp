@@ -1261,24 +1261,6 @@ template<class T> void ASql::ConnectionPar<T>::terminate()
 		threadsChanged.wait(threadsLock);
 }
 
-#include <fstream>
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-void err_log(unsigned int thread, unsigned int size, const char* msg)
-{
-   using namespace std;
-   using namespace boost;
-   static ofstream error;
-   if(!error.is_open())
-   {
-      error.open("/tmp/errlogasl", ios_base::out | ios_base::app);
-      error.imbue(locale(error.getloc(), new posix_time::time_facet()));
-   }
-
-   error << '[' << posix_time::second_clock::local_time() << "] " << msg << " queue " << thread << ": " << size << endl;
-}
-
-
 template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 {
 	{
@@ -1308,7 +1290,6 @@ template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 		}
 		querySet=queries[id].front();
 		queries[id].pop();
-		err_log(id, queries[id].size(), "Removing from ");
 		queriesLock.unlock();
 
 		Error error;
@@ -1375,7 +1356,6 @@ template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, Query&
 
 	boost::lock_guard<boost::mutex> queriesLock(queries[instance]);
 	queries[instance].push(QuerySet(query, statement, true));
-	err_log(instance, queries[instance].size(), "Adding to ");
 	wakeUp[instance].notify_one();
 }
 
@@ -1394,10 +1374,7 @@ template<class T> void ASql::ConnectionPar<T>::queue(Transaction<T>& transaction
 	boost::lock_guard<boost::mutex> queriesLock(queries[instance]);
 
 	for(typename Transaction<T>::iterator it=transaction.begin(); it!=transaction.end(); ++it)
-	{
 		queries[instance].push(QuerySet(it->m_query, it->m_statement, false));
-		err_log(instance, queries[instance].size(), "Adding to ");
-	}
 	queries[instance].back().m_commit = true;
 
 	wakeUp[instance].notify_one();
