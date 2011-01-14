@@ -28,6 +28,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/scoped_array.hpp>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
@@ -1138,6 +1139,8 @@ char fixedString[16];
 	 */
 	class Connection
 	{
+	public:
+		int threads() const { return maxThreads; }
 	protected:
 		/** 
 		 * @brief Number of threads to pool for simultaneous queries.
@@ -1145,20 +1148,23 @@ char fixedString[16];
 		const int maxThreads;
 		boost::mutex threadsMutex;
 		boost::condition_variable threadsChanged;
-		int threads;
+		int m_threads;
 
-		boost::condition_variable wakeUp;
+		virtual void commit(const unsigned int thread=0)=0;
+		virtual void rollback(const unsigned int thread=0)=0;
+
+		boost::scoped_array<boost::condition_variable> wakeUp;
 
 		boost::mutex terminateMutex;
 		bool terminateBool;
 
-		Connection(const int maxThreads_): maxThreads(maxThreads_), threads(0) {}
+		Connection(const int maxThreads_): maxThreads(maxThreads_), m_threads(0), wakeUp(new boost::condition_variable[maxThreads_]) {}
 	};
 
 	/** 
 	 * @brief Defines some functions and data types shared between ASql engines
 	 */
-	template<class T> class ConnectionPar: private Connection
+	template<class T> class ConnectionPar: public Connection
 	{
 	private:
 		struct QuerySet
@@ -1172,28 +1178,27 @@ char fixedString[16];
 		/** 
 		 * @brief Thread safe queue of queries.
 		 */
-		class Queries: public std::queue<QuerySet>, public boost::mutex {} queries;
+		class Queries: public std::queue<QuerySet>, public boost::mutex {};
+		boost::scoped_array<Queries> queries;
 
 		/** 
 		 * @brief Function that runs in threads.
 		 */
-		void intHandler();
+		void intHandler(const unsigned int id);
 
 		/** 
 		 * @brief Locks the mutex on a statement and set's the canceller to the queries canceller
 		 */
-		class TakeStatement
+		class SetCanceler
 		{
-			boost::lock_guard<boost::mutex> m_lock;
 			const bool*& m_canceler;
 		public:
-			TakeStatement(const bool*& canceler, bool& dest, boost::mutex& mutex): m_lock(mutex), m_canceler(canceler) { canceler=&dest; }
-			~TakeStatement() { m_canceler=s_false; }			
+			SetCanceler(const bool*& canceler, bool& dest): m_canceler(canceler) { canceler=&dest; }
+			~SetCanceler() { m_canceler=s_false; }			
 		};
 
 	protected:
-		ConnectionPar(const int maxThreads_): Connection(maxThreads_) {}
-		inline void queue(T* const& statement, Query& query);
+		ConnectionPar(const int maxThreads_): Connection(maxThreads_), queries(new Queries[maxThreads_]) {}
 	public:
 		/** 
 		 * @brief Start all threads of the handler
@@ -1207,6 +1212,7 @@ char fixedString[16];
 		 * @brief Queue up a transaction for completion
 		 */
 		void queue(Transaction<T>& transaction);
+		inline void queue(T* const& statement, Query& query);
 
 		static const bool s_false;
 	};	
@@ -1217,8 +1223,12 @@ char fixedString[16];
 	class Statement
 	{
 	protected:
-		Data::Conversions paramsConversions;
-		Data::Conversions resultsConversions;
+		boost::scoped_array<Data::Conversions> paramsConversions;
+		boost::scoped_array<Data::Conversions> resultsConversions;
+	
+	Statement(unsigned int threads):
+		paramsConversions(new Data::Conversions[threads]),
+		resultsConversions(new Data::Conversions[threads]) {}
 	};
 }
 
@@ -1230,9 +1240,9 @@ template<class T> void ASql::ConnectionPar<T>::start()
 	}
 	
 	boost::unique_lock<boost::mutex> threadsLock(threadsMutex);
-	while(threads<maxThreads)
+	while(m_threads<maxThreads)
 	{
-		boost::thread(boost::bind(&ConnectionPar<T>::intHandler, boost::ref(*this)));
+		boost::thread(boost::bind(&ConnectionPar<T>::intHandler, boost::ref(*this), m_threads));
 		threadsChanged.wait(threadsLock);
 	}
 }
@@ -1243,25 +1253,42 @@ template<class T> void ASql::ConnectionPar<T>::terminate()
 		boost::lock_guard<boost::mutex> terminateLock(terminateMutex);
 		terminateBool=true;
 	}
-	wakeUp.notify_all();
+	for(boost::condition_variable* i=wakeUp.get(); i<wakeUp.get()+threads(); ++i)
+		i->notify_all();
 
 	boost::unique_lock<boost::mutex> threadsLock(threadsMutex);
-	while(threads)
+	while(m_threads)
 		threadsChanged.wait(threadsLock);
 }
 
-template<class T> void ASql::ConnectionPar<T>::intHandler()
+#include <fstream>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+void err_log(unsigned int thread, unsigned int size, const char* msg)
+{
+   using namespace std;
+   using namespace boost;
+   static ofstream error;
+   if(!error.is_open())
+   {
+      error.open("/tmp/errlogasl", ios_base::out | ios_base::app);
+      error.imbue(locale(error.getloc(), new posix_time::time_facet()));
+   }
+
+   error << '[' << posix_time::second_clock::local_time() << "] " << msg << " queue " << thread << ": " << size << endl;
+}
+
+
+template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 {
 	{
 		boost::lock_guard<boost::mutex> threadsLock(threadsMutex);
-		++threads;
+		++m_threads;
 	}
 	threadsChanged.notify_one();
 	
 	boost::unique_lock<boost::mutex> terminateLock(terminateMutex, boost::defer_lock_t());
-	boost::unique_lock<boost::mutex> queriesLock(queries, boost::defer_lock_t());
-
-	Queries intQueries;
+	boost::unique_lock<boost::mutex> queriesLock(queries[id], boost::defer_lock_t());
 
 	while(1)
 	{
@@ -1272,65 +1299,52 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 		
 		QuerySet querySet;
 
-		if(intQueries.empty())
-		{		
-			queriesLock.lock();
-			if(!queries.size())
-			{
-				wakeUp.wait(queriesLock);
-				queriesLock.unlock();
-				continue;
-			}
-			querySet=queries.front();
-			while(!queries.front().m_commit)
-			{
-				queries.pop();
-				intQueries.push(queries.front());
-			}
-			queries.pop();
-			queriesLock.unlock();
-		}
-		else
+		queriesLock.lock();
+		if(!queries[id].size())
 		{
-			querySet=intQueries.front();
-			intQueries.pop();
+			wakeUp[id].wait(queriesLock);
+			queriesLock.unlock();
+			continue;
 		}
+		querySet=queries[id].front();
+		queries[id].pop();
+		err_log(id, queries[id].size(), "Removing from ");
+		queriesLock.unlock();
 
 		Error error;
 
-		querySet.m_statement->m_stop = &(querySet.m_query.m_sharedData->m_cancel);
 		try
 		{
-			TakeStatement takeStatement(querySet.m_statement->m_stop, querySet.m_query.m_sharedData->m_cancel, querySet.m_statement->executeMutex);
+			SetCanceler SetCanceler(querySet.m_statement->m_stop[id], querySet.m_query.m_sharedData->m_cancel);
 			if(querySet.m_query.m_sharedData->m_flags & Query::SharedData::FLAG_SINGLE_PARAMETERS)
 			{
 				if(querySet.m_query.m_sharedData->m_flags & Query::SharedData::FLAG_SINGLE_RESULTS)
 				{
-					if(!querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), *static_cast<Data::Set*>(querySet.m_query.results()), false)) querySet.m_query.clearResults();
+					if(!querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), *static_cast<Data::Set*>(querySet.m_query.results()), false, id)) querySet.m_query.clearResults();
 				}
 				else
-					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), static_cast<Data::SetContainer*>(querySet.m_query.results()), querySet.m_query.m_sharedData->m_insertId, querySet.m_query.m_sharedData->m_rows, false);
+					querySet.m_statement->execute(static_cast<const Data::Set*>(querySet.m_query.parameters()), static_cast<Data::SetContainer*>(querySet.m_query.results()), querySet.m_query.m_sharedData->m_insertId, querySet.m_query.m_sharedData->m_rows, false, id);
 			}
 			else
 			{
-				querySet.m_statement->execute(*static_cast<const Data::SetContainer*>(querySet.m_query.parameters()), querySet.m_query.m_sharedData->m_rows, false);
+				querySet.m_statement->execute(*static_cast<const Data::SetContainer*>(querySet.m_query.parameters()), querySet.m_query.m_sharedData->m_rows, false, id);
 			}
 
 			if(querySet.m_commit)
-				querySet.m_statement->commit();
+				commit(id);
 		}
 		catch(const Error& e)
 		{
 			querySet.m_query.m_sharedData->m_error=e;
 
-			querySet.m_statement->rollback();
+			rollback(id);
 
 			queriesLock.lock();
 			QuerySet tmpQuerySet=querySet;
-			while(!intQueries.empty())
+			while(!querySet.m_commit)
 			{
-				tmpQuerySet=intQueries.front();
-				intQueries.pop();
+				tmpQuerySet=queries[id].front();
+				queries[id].pop();
 				if(!querySet.m_query.isCallback() && tmpQuerySet.m_query.isCallback())
 					querySet.m_query.setCallback(tmpQuerySet.m_query.getCallback());
 
@@ -1343,30 +1357,50 @@ template<class T> void ASql::ConnectionPar<T>::intHandler()
 
 	{
 		boost::lock_guard<boost::mutex> threadsLock(threadsMutex);
-		--threads;
+		--m_threads;
 	}
-threadsChanged.notify_one();
+	threadsChanged.notify_one();
 }
 
 
 template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, Query& query)
 {
-	boost::lock_guard<boost::mutex> queriesLock(queries);
-	queries.push(QuerySet(query, statement, true));
-	wakeUp.notify_one();
+	unsigned int instance=0;
+	for(unsigned int i=1; i<threads(); ++i)
+	{{
+		boost::lock_guard<boost::mutex> queriesLock(queries[i]);
+		if(queries[i].size() < queries[instance].size())
+			instance=i;
+	}}
+
+	boost::lock_guard<boost::mutex> queriesLock(queries[instance]);
+	queries[instance].push(QuerySet(query, statement, true));
+	err_log(instance, queries[instance].size(), "Adding to ");
+	wakeUp[instance].notify_one();
 }
 
 template<class T> const bool ASql::ConnectionPar<T>::s_false = false;
 
 template<class T> void ASql::ConnectionPar<T>::queue(Transaction<T>& transaction)
 {
-	boost::lock_guard<boost::mutex> queriesLock(queries);
+	unsigned int instance=0;
+	for(unsigned int i=1; i<threads(); ++i)
+	{{
+		boost::lock_guard<boost::mutex> queriesLock(queries[i]);
+		if(queries[i].size() < queries[instance].size())
+			instance=i;
+	}}
+
+	boost::lock_guard<boost::mutex> queriesLock(queries[instance]);
 
 	for(typename Transaction<T>::iterator it=transaction.begin(); it!=transaction.end(); ++it)
-		queries.push(QuerySet(it->m_query, it->m_statement, false));
-	queries.back().m_commit = true;
+	{
+		queries[instance].push(QuerySet(it->m_query, it->m_statement, false));
+		err_log(instance, queries[instance].size(), "Adding to ");
+	}
+	queries[instance].back().m_commit = true;
 
-	wakeUp.notify_one();
+	wakeUp[instance].notify_one();
 }
 
 template<class T> void ASql::Transaction<T>::cancel()

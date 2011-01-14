@@ -78,7 +78,7 @@ const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, tim
 const char Database::updateStatementString[] = "UPDATE logs SET timeStamp=SUBTIME(timeStamp, '01:00:00') WHERE ipAddress=?";
 const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-ASql::MySQL::Connection Database::sqlConnection(1);
+ASql::MySQL::Connection Database::sqlConnection(4);
 ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::updateStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);

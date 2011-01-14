@@ -26,56 +26,70 @@ void ASql::MySQL::Connection::connect(const char* host, const char* user, const 
 {
 	if(m_initialized)
 	{
-		mysql_stmt_close(foundRowsStatement);
+		for(unsigned int i=0; i<threads(); ++i)
+		{
+			mysql_stmt_close(foundRowsStatement[i]);
+			mysql_close(&m_connection[i]);
+		}
 		m_initialized = false;
 	}
 
-	if(!mysql_init(&connection))
-		throw Error(&connection);
+	for(unsigned int i=0; i<threads(); ++i)
+	{
+		if(!mysql_init(&m_connection[i]))
+			throw Error(&m_connection[i]);
 
-	if(!mysql_real_connect(&connection, host, user, passwd, db, port, unix_socket, client_flag))
-		throw Error(&connection);
+		if(!mysql_real_connect(&m_connection[i], host, user, passwd, db, port, unix_socket, client_flag))
+			throw Error(&m_connection[i]);
 
-	if(mysql_set_character_set(&connection, charset))
-		throw Error(&connection);
-	
-	if(mysql_autocommit(&connection, 0))
-		throw Error(&connection);
-	
-	if(!(foundRowsStatement = mysql_stmt_init(&connection)))
-		throw Error(&connection);
+		if(mysql_set_character_set(&m_connection[i], charset))
+			throw Error(&m_connection[i]);
+		
+		if(mysql_autocommit(&m_connection[i], 0))
+			throw Error(&m_connection[i]);
+		
+		if(!(foundRowsStatement[i] = mysql_stmt_init(&m_connection[i])))
+			throw Error(&m_connection[i]);
 
-	if(mysql_stmt_prepare(foundRowsStatement, "SELECT FOUND_ROWS()", 19))
-		throw Error(foundRowsStatement);
+		if(mysql_stmt_prepare(foundRowsStatement[i], "SELECT FOUND_ROWS()", 19))
+			throw Error(foundRowsStatement[i]);
 
-	std::memset(&foundRowsBinding, 0, sizeof(MYSQL_BIND));
-	foundRowsBinding.buffer_type = MYSQL_TYPE_LONGLONG;
-	foundRowsBinding.is_unsigned = 1;
+		std::memset(&foundRowsBinding[i], 0, sizeof(MYSQL_BIND));
+		foundRowsBinding[i].buffer_type = MYSQL_TYPE_LONGLONG;
+		foundRowsBinding[i].is_unsigned = 1;
+	}
 
 	m_initialized = true;
 }
 
 ASql::MySQL::Connection::~Connection()
 {
-	if(m_initialized) mysql_close(&connection);
+	if(m_initialized)
+	{
+		for(unsigned int i=0; i<threads(); ++i)
+		{
+			mysql_stmt_close(foundRowsStatement[i]);
+			mysql_close(&m_connection[i]);
+		}
+	}
 }
 
-void ASql::MySQL::Connection::getFoundRows(unsigned long long* const& rows)
+void ASql::MySQL::Connection::getFoundRows(unsigned long long* const& rows, const unsigned int thread)
 {
-	if(mysql_stmt_bind_param(foundRowsStatement, 0))
-		throw Error(foundRowsStatement);
+	if(mysql_stmt_bind_param(foundRowsStatement[thread], 0))
+		throw Error(foundRowsStatement[thread]);
 	
-	if(mysql_stmt_execute(foundRowsStatement))
-		throw Error(foundRowsStatement);
+	if(mysql_stmt_execute(foundRowsStatement[thread]))
+		throw Error(foundRowsStatement[thread]);
 
-	foundRowsBinding.buffer = rows;
-	if(mysql_stmt_bind_result(foundRowsStatement, &foundRowsBinding))
-		throw Error(foundRowsStatement);
+	foundRowsBinding[thread].buffer = rows;
+	if(mysql_stmt_bind_result(foundRowsStatement[thread], &foundRowsBinding[thread]))
+		throw Error(foundRowsStatement[thread]);
 
-	if(mysql_stmt_fetch(foundRowsStatement))
-		throw Error(foundRowsStatement);
-	mysql_stmt_free_result(foundRowsStatement);
-	mysql_stmt_reset(foundRowsStatement);
+	if(mysql_stmt_fetch(foundRowsStatement[thread]))
+		throw Error(foundRowsStatement[thread]);
+	mysql_stmt_free_result(foundRowsStatement[thread]);
+	mysql_stmt_reset(foundRowsStatement[thread]);
 
 }
 
@@ -83,57 +97,62 @@ void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& 
 {
 	if(m_initialized)
 	{
-		mysql_stmt_close(stmt);
+		for(unsigned int i=0; i<connection.threads(); ++i)
+			mysql_stmt_close(stmt[i]);
 		m_initialized = false;
 	}
 	
-	stmt=mysql_stmt_init(&connection.connection);
-	if(!stmt)
-		throw Error(&connection.connection);
+	for(unsigned int i=0; i<connection.threads(); ++i)
+	{
+		m_stop[i]=&ConnectionPar<Statement>::s_false;
+		stmt[i]=mysql_stmt_init(&connection.connection(i));
+		if(!stmt)
+			throw Error(&connection.connection(i));
 
-	if(mysql_stmt_prepare(stmt, queryString, queryLength))
-		throw Error(stmt);
+		if(mysql_stmt_prepare(stmt[i], queryString, queryLength))
+			throw Error(stmt[i]);
 
-	if(parameterSet) buildBindings(stmt, *parameterSet, paramsConversions, paramsBindings);
-	if(resultSet) buildBindings(stmt, *resultSet, resultsConversions, resultsBindings);
+		if(parameterSet) buildBindings(stmt[i], *parameterSet, paramsConversions[i], paramsBindings[i]);
+		if(resultSet) buildBindings(stmt[i], *resultSet, resultsConversions[i], resultsBindings[i]);
+	}
 
 	m_initialized = true;
 }
 
-void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameters)
+void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameters, const unsigned int thread)
 {
 	if(parameters)
 	{
-		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions, paramsBindings);
-		for(Data::Conversions::iterator it=paramsConversions.begin(); it!=paramsConversions.end(); ++it)
+		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions[thread], paramsBindings[thread]);
+		for(Data::Conversions::iterator it=paramsConversions[thread].begin(); it!=paramsConversions[thread].end(); ++it)
 			it->second->convertParam();
-		if(mysql_stmt_bind_param(stmt, paramsBindings.get())!=0) throw Error(stmt);
+		if(mysql_stmt_bind_param(stmt[thread], paramsBindings[thread].get())!=0) throw Error(stmt[thread]);
 	}
 
-	if(mysql_stmt_execute(stmt)!=0) throw Error(stmt);
+	if(mysql_stmt_execute(stmt[thread])!=0) throw Error(stmt[thread]);
 }
 
-bool ASql::MySQL::Statement::executeResult(Data::Set& row)
+bool ASql::MySQL::Statement::executeResult(Data::Set& row, const unsigned int thread)
 {
-	bindBindings(row, resultsConversions, resultsBindings);
-	if(mysql_stmt_bind_result(stmt, resultsBindings.get())!=0) throw Error(stmt);
-	switch (mysql_stmt_fetch(stmt))
+	bindBindings(row, resultsConversions[thread], resultsBindings[thread]);
+	if(mysql_stmt_bind_result(stmt[thread], resultsBindings[thread].get())!=0) throw Error(stmt[thread]);
+	switch (mysql_stmt_fetch(stmt[thread]))
 	{
 	case 1:
-		throw Error(stmt);
+		throw Error(stmt[thread]);
 	case MYSQL_NO_DATA:
 		return false;
 	default:
-		for(Data::Conversions::iterator it=resultsConversions.begin(); it!=resultsConversions.end(); ++it)
+		for(Data::Conversions::iterator it=resultsConversions[thread].begin(); it!=resultsConversions[thread].end(); ++it)
 			it->second->convertResult();
 		return true;
 	};
 }
 
-void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId, unsigned long long int* const rows, bool docommit)
+void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::SetContainer* const results, unsigned long long int* const insertId, unsigned long long int* const rows, bool docommit, const unsigned int thread)
 {
-	if(*m_stop) goto end;
-	executeParameters(parameters);
+	if(*m_stop[thread]) goto end;
+	executeParameters(parameters, thread);
 
 	if(results)
 	{
@@ -142,73 +161,73 @@ void ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Se
 		while(1)
 		{{
 			Data::Set& row=res.manufacture();
-			bindBindings(row, resultsConversions, resultsBindings);
-			if(!executeResult(row))
+			bindBindings(row, resultsConversions[thread], resultsBindings[thread]);
+			if(!executeResult(row, thread))
 			{
 				res.trim();
 				break;
 			}
-			if(*m_stop)
+			if(*m_stop[thread])
 			{
 				res.trim();
 				goto end;
 			}
 		}}
 
-		if(*m_stop) goto end;
-		if(rows) connection.getFoundRows(rows);
+		if(*m_stop[thread]) goto end;
+		if(rows) connection.getFoundRows(rows, thread);
 	}
 	else
 	{
-		if(*m_stop) goto end;
-		if(rows) *rows = mysql_stmt_affected_rows(stmt);
-		if(*m_stop) goto end;
-		if(insertId) *insertId = mysql_stmt_insert_id(stmt);
+		if(*m_stop[thread]) goto end;
+		if(rows) *rows = mysql_stmt_affected_rows(stmt[thread]);
+		if(*m_stop[thread]) goto end;
+		if(insertId) *insertId = mysql_stmt_insert_id(stmt[thread]);
 	}
 
 end:
-	if(*m_stop)
-		rollback();
+	if(*m_stop[thread])
+		connection.rollback(thread);
 	else if(docommit)
-		commit();
-	mysql_stmt_free_result(stmt);
-	mysql_stmt_reset(stmt);
+		connection.commit(thread);
+	mysql_stmt_free_result(stmt[thread]);
+	mysql_stmt_reset(stmt[thread]);
 }
 
-bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Set& results, bool docommit)
+bool ASql::MySQL::Statement::execute(const Data::Set* const parameters, Data::Set& results, bool docommit, const unsigned int thread)
 {
 	bool retval(false);
-	if(*m_stop) goto end;
-	executeParameters(parameters);
-	if(*m_stop) goto end;
-	retval=executeResult(results);
+	if(*m_stop[thread]) goto end;
+	executeParameters(parameters, thread);
+	if(*m_stop[thread]) goto end;
+	retval=executeResult(results, thread);
 end:
-	if(*m_stop)
-		rollback();
+	if(*m_stop[thread])
+		connection.rollback(thread);
 	else if(docommit)
-		commit();
-	mysql_stmt_free_result(stmt);
-	mysql_stmt_reset(stmt);
+		connection.commit(thread);
+	mysql_stmt_free_result(stmt[thread]);
+	mysql_stmt_reset(stmt[thread]);
 	return retval;
 }
 
-void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsigned long long int* rows, bool docommit)
+void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsigned long long int* rows, bool docommit, const unsigned int thread)
 {
 	if(rows) *rows = 0;
 	
 	for(const Data::Set* set=parameters.pull(); set!=0; set=parameters.pull())
 	{
-		if(*m_stop) break;
-		executeParameters(set);
-		if(*m_stop) break;
-		if(rows) *rows += mysql_stmt_affected_rows(stmt);
+		if(*m_stop[thread]) break;
+		executeParameters(set, thread);
+		if(*m_stop[thread]) break;
+		if(rows) *rows += mysql_stmt_affected_rows(stmt[thread]);
 	}
-	if(*m_stop)
-		rollback();
+	if(*m_stop[thread])
+		connection.rollback(thread);
 	else if(docommit)
-		commit();
-	mysql_stmt_free_result(stmt);
-	mysql_stmt_reset(stmt);
+		connection.commit(thread);
+	mysql_stmt_free_result(stmt[thread]);
+	mysql_stmt_reset(stmt[thread]);
 }
 
 void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::Data::Set& set, ASql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
@@ -490,7 +509,7 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertParam()
 //Instance the ConnectionPar functions
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::start();
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::terminate();
-template void ASql::ConnectionPar<ASql::MySQL::Statement>::intHandler();
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::intHandler(unsigned int id);
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(ASql::MySQL::Statement* const& statement, Query& query);
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(Transaction<ASql::MySQL::Statement>& transaction);
 template void ASql::Transaction<ASql::MySQL::Statement>::cancel();
@@ -500,3 +519,12 @@ ASql::MySQL::Error::Error(MYSQL* mysql): ASql::Error(mysql_error(mysql), mysql_e
 ASql::MySQL::Error::Error(MYSQL_STMT* stmt): ASql::Error(mysql_stmt_error(stmt), mysql_stmt_errno(stmt)) { }
 
 const char ASql::MySQL::CodeConversionErrorMsg[]="Error in code conversion to/from MySQL server.";
+
+ASql::MySQL::Statement::~Statement()
+{
+	if(m_initialized)
+	{
+		for(unsigned int i=0; i<connection.threads(); ++i)
+			mysql_stmt_close(stmt[i]);
+	}
+}
