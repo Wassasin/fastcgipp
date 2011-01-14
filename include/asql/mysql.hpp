@@ -86,10 +86,10 @@ namespace ASql
 			 * SQL requeries can be processed.
 			 */
 			Connection(const int threads_=1):
-				ConnectionPar<MySQL::Statement>(maxThreads_),
-				m_connection(new MYSQL[maxThreads_]),
-				foundRowsStatement(new MYSQL_STMT*[maxThreads_]),
-				foundRowsBinding(new MYSQL_BIND[maxThreads_]),
+				ConnectionPar<MySQL::Statement>(threads_),
+				m_connection(new MYSQL[threads_]),
+				foundRowsStatement(new MYSQL_STMT*[threads_]),
+				foundRowsBinding(new MYSQL_BIND[threads_]),
 				m_initialized(false) {}
 			~Connection();
 
