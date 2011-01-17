@@ -173,7 +173,7 @@ int Fastcgipp::Http::atoi(const char* start, const char* end)
 	bool neg=false;
 	if(*start=='-')
 	{
-		neg=false;
+		neg=true;
 		++start;
 	}
 	int result=0;
