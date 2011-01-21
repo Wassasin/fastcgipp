@@ -105,6 +105,16 @@ namespace Fastcgipp
 		 */
 		virtual void inHandler(int bytesReceived) { };
 
+		//! Called when an exception is caught.
+		/*!
+		 * This function is called whenever an exception is caught inside the request. By default it will output some data
+		 * to the error log and send a standard 500 Internal Server Error message to the user. Override for more specialized
+		 * purposes.
+		 *
+		 * @param[in] error Exception caught
+		 */
+		virtual void errorHandler(const std::exception& error);
+
 		//! The locale associated with the request. Should be set with setloc(), not directly.
 		std::locale loc;
 
