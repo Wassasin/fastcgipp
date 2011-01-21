@@ -274,8 +274,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 	}
 	catch(const std::exception& e)
 	{
-		out << "Status: 500 Internal Server Error\r\n\r\n";
-		err << '"' << e.what() << '"' << " from \"" << environment().pathInfo << "\" with a " << environment().requestMethod << " request method.";
+		errorHandler(e);
 		complete();
 		return true;
 	}
@@ -289,4 +288,24 @@ template<class charT> void Fastcgipp::Request<charT>::setloc(std::locale loc_)
 	loc=makeLocale<charT>(loc_);
 	out.imbue(loc);
 	err.imbue(loc);
+}
+
+template void Fastcgipp::Request<char>::errorHandler(const std::exception& error);
+template void Fastcgipp::Request<wchar_t>::errorHandler(const std::exception& error);
+template<class charT> void Fastcgipp::Request<charT>::errorHandler(const std::exception& error)
+{
+		out << \
+"Status: 500 Internal Server Error\n"\
+"Content-Type: text/html; charset=ISO-8859-1\r\n\r\n"\
+"<!DOCTYPE html>"\
+"<html lang='en'>"\
+	"<head>"\
+		"<title>500 Internal Server Error</title>"\
+	"</head>"\
+	"<body>"\
+		"<h1>500 Internal Server Error</h1>"\
+	"</body>"\
+"</html>";
+
+		err << '"' << error.what() << '"' << " from \"http://" << environment().host << environment().requestUri << "\" with a " << environment().requestMethod << " request method.";
 }
