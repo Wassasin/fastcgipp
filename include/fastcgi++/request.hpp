@@ -31,9 +31,9 @@
 #include <boost/thread.hpp>
 #include <boost/function.hpp>
 
+#include <fastcgi++/transceiver.hpp>
 #include <fastcgi++/protocol.hpp>
 #include <fastcgi++/exceptions.hpp>
-#include <fastcgi++/transceiver.hpp>
 #include <fastcgi++/fcgistream.hpp>
 #include <fastcgi++/http.hpp>
 
@@ -73,13 +73,13 @@ namespace Fastcgipp
 		/*!
 		 * To dump data directly through the stream without it being code converted and bypassing the stream buffer call Fcgistream::dump()
 		 */
-		Fcgistream<charT, std::char_traits<charT> > out;
+		Fcgistream<charT> out;
 
 		//! Output stream to the HTTP server error log
 		/*!
 		 * To dump data directly through the stream without it being code converted and bypassing the stream buffer call Fcgistream::dump()
 		 */
-		Fcgistream<charT, std::char_traits<charT> > err;
+		Fcgistream<charT> err;
 
 		//! Response generator
 		/*!
@@ -137,7 +137,7 @@ namespace Fastcgipp
 		 * @sa loc
 		 * @sa out
 		 */
-		void setloc(std::locale loc_);
+		void setloc(std::locale loc_){ out.imbue(loc); err.imbue(loc); }
 
 		//! Accessor for the callback function for dealings outside the fastcgi++ library
 		/*!

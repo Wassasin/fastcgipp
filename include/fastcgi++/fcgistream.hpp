@@ -19,18 +19,38 @@
 ****************************************************************************/
 
 
-#include <streambuf>
-#include <ostream>
-#include <cstring>
-#include <algorithm>
-#include <ios>
-#include <istream>
+#include <iosfwd>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/categories.hpp>
+#include <boost/iostreams/concepts.hpp>
 
 #include <fastcgi++/protocol.hpp>
+#include <fastcgi++/transceiver.hpp>
 
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
+	class FcgistreamSink: public boost::iostreams::device<boost::iostreams::output, char>
+	{
+	private:
+		Protocol::FullId m_id;
+		Protocol::RecordType m_type;
+		Transceiver* m_transceiver;
+	public:
+		std::streamsize write(const char* s, std::streamsize n);
+
+		void set(Protocol::FullId id, Transceiver &transceiver, Protocol::RecordType type) {m_id=id, m_type=type, m_transceiver=&transceiver;}
+		void dump(const char* data, size_t size) { write(data, size); }
+		void dump(std::basic_istream<char>& stream);
+
+		// ******************
+		// Should be deleted when things start working
+		FcgistreamSink(const FcgistreamSink& x, const long int& i): m_id(x.m_id), m_type(x.m_type), m_transceiver(x.m_transceiver) {}
+		FcgistreamSink(const FcgistreamSink& x): m_id(x.m_id), m_type(x.m_type), m_transceiver(x.m_transceiver) {}
+		FcgistreamSink() {}
+		// ******************
+	};
+
 	//! Stream class for output of client data through FastCGI
 	/*!
 	 * This class is derived from std::basic_ostream<charT, traits>. It acts just
@@ -39,13 +59,27 @@ namespace Fastcgipp
 	 * @tparam charT Character type (char or wchar_t)
 	 * @tparam traits Character traits
 	 */
-	template <class charT, class traits>
-	class Fcgistream: public std::basic_ostream<charT, traits>
+	template <typename charT> class Fcgistream: public boost::iostreams::filtering_stream<boost::iostreams::output, charT>
 	{
+	public: enum OutputEncoding {NONE, HTML, URL};
+	private:
+		struct Encoder: public boost::iostreams::multichar_filter<boost::iostreams::output, charT>
+		{
+			template<typename Sink> std::streamsize write(Sink& dest, const charT* s, std::streamsize n);
+
+			OutputEncoding m_state;
+		};
+		
+		//Encoder& m_encoder;
+
+		FcgistreamSink& m_sink;
+
 	public:
-		Fcgistream(): std::basic_ostream<charT, traits>(&buffer) { }
-		//! Arguments passed directly to Fcgibuf::set()
-		void set(Protocol::FullId id_, Transceiver& transceiver_, Protocol::RecordType type_) { buffer.set(id_, transceiver_, type_); }
+		Fcgistream();
+		//! Arguments passed directly to FcgistreamSink::set()
+		void set(Protocol::FullId id, Transceiver& transceiver, Protocol::RecordType type) { m_sink.set(id, transceiver, type); }
+
+		void flush();
 		
 		//! Dumps raw data directly into the FastCGI protocol
 		/*!
@@ -56,7 +90,7 @@ namespace Fastcgipp
 		 * @param[in] data Pointer to first byte of data to send
 		 * @param[in] size Size in bytes of data to be sent
 		 */
-		void dump(char* data, size_t size) { buffer.dump(data, size); }
+		void dump(const char* data, size_t size) { flush(); m_sink.dump(data, size); }
 		//! Dumps an input stream directly into the FastCGI protocol
 		/*!
 		 * This function exists as a mechanism to dump a raw input stream out this stream bypassing
@@ -65,79 +99,6 @@ namespace Fastcgipp
 		 *
 		 * @param[in] stream Reference to input stream that should be transmitted.
 		 */
-		void dump(std::basic_istream<char>& stream);
-	private:
-		//! Stream buffer class for output of client data through FastCGI
-		/*!
-		 * This class is derived from std::basic_streambuf<charT, traits>. It acts just
-		 * the same as any stream buffer does with the added feature of the dump() function.
-		 *
-		 * @tparam charT Character type (char or wchar_t)
-		 * @tparam traits Character traits
-		 */
-		class Fcgibuf: public std::basic_streambuf<charT, traits>
-		{
-		public:
-			Fcgibuf(): dumpPtr(0), dumpSize(0) { setp(buffer, buffer+buffSize); }
-			//! After construction constructor
-			/*!
-			 * Sets FastCGI related member data necessary for operation of the
-			 * stream buffer.
-			 *
-			 * @param[in] id_ Complete ID associated with the request
-			 * @param[in] transceiver_ Transceiver object to use for transmission
-			 * @param[in] type_ Type of output stream (ERR or OUT)
-			 */
-			void set(Protocol::FullId id_, Transceiver& transceiver_, Protocol::RecordType type_)
-			{
-				id=id_;
-				transceiver=&transceiver_;
-				type=type_;
-			}
-
-			virtual ~Fcgibuf() { try{ sync(); } catch(...){ } }
-			//! Dumps raw data directly into the FastCGI protocol
-			/*!
-			 * This function exists as a mechanism to dump raw data out the stream bypassing
-			 * the stream buffer or any code conversion mechanisms. If the user has any binary
-			 * data to send, this is the function to do it with.
-			 *
-			 * @param[in] data Pointer to first byte of data to send
-			 * @param[in] size Size in bytes of data to be sent
-			 */
-			void dump(char* data, size_t size) { dumpPtr=data; dumpSize=size; sync(); }
-
-		private:
-			typedef typename std::basic_streambuf<charT, traits>::int_type int_type;
-			typedef typename std::basic_streambuf<charT, traits>::traits_type traits_type;
-			typedef typename std::basic_streambuf<charT, traits>::char_type char_type;
-
-			int_type overflow(int_type c = traits_type::eof());
-
-			int sync() { return emptyBuffer(); }
-
-			std::streamsize xsputn(const char_type *s, std::streamsize n);
-
-			//! Pointer to the data that needs to be transmitted upon flush
-			char* dumpPtr;
-			//! Size of the data pointed to be dumpPtr
-			size_t dumpSize;
-
-			//! Code converts, packages and transmits all data in the stream buffer along with the dump data
-			int emptyBuffer();
-			//! Transceiver object to use for transmissio
-			Transceiver* transceiver;
-			//! Size of the internal stream buffer
-			static const int buffSize = 8192;
-			//! The buffer
-			char_type buffer[buffSize];
-			//! Complete ID associated with the request
-			Protocol::FullId id;
-
-			//! Type of output stream (ERR or OUT)
-			Protocol::RecordType type;
-		};
-		//! Stream buffer object
-		Fcgibuf buffer;
+		void dump(std::basic_istream<char>& stream) { flush(); m_sink.dump(stream); }
 	};
 }
