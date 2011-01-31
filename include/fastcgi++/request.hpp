@@ -62,7 +62,6 @@ namespace Fastcgipp
 		//! Initializes what it can. set() must be called by Manager before the data is usable.
 		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
 
-	protected:
 		//! Accessor for  the data structure containing all HTTP environment data
 		const Http::Environment<charT>& environment() const { return m_environment; }
 
@@ -81,6 +80,34 @@ namespace Fastcgipp
 		 */
 		Fcgistream<charT, std::char_traits<charT> > err;
 
+		//! Called when an exception is caught.
+		/*!
+		 * This function is called whenever an exception is caught inside the request. By default it will output some data
+		 * to the error log and send a standard 500 Internal Server Error message to the user. Override for more specialized
+		 * purposes.
+		 *
+		 * @param[in] error Exception caught
+		 */
+		virtual void errorHandler(const std::exception& error);
+
+		//! See the requests role
+		Protocol::Role role() const { return m_role; }
+
+		//! Accessor for the callback function for dealings outside the fastcgi++ library
+		/*!
+		 * The purpose of the callback object is to provide a thread safe mechanism for functions and
+		 * classes outside the fastcgi++ library to talk to the requests. Should the library
+		 * wish to have another thread process or fetch some data, that thread can call this
+		 * function when it is finished. It is equivalent to this:
+		 *
+		 * void callback(Message msg);
+		 *
+		 *	The sole parameter is a Message that contains both a type value for processing by response()
+		 *	and the raw castable data.
+		 */
+		const boost::function<void(Message)>& callback() const { return m_callback; }
+
+	protected:
 		//! Response generator
 		/*!
 		 * This function is called by handler() once all request data has been received from the other side or if a
@@ -105,16 +132,6 @@ namespace Fastcgipp
 		 */
 		virtual void inHandler(int bytesReceived) { };
 
-		//! Called when an exception is caught.
-		/*!
-		 * This function is called whenever an exception is caught inside the request. By default it will output some data
-		 * to the error log and send a standard 500 Internal Server Error message to the user. Override for more specialized
-		 * purposes.
-		 *
-		 * @param[in] error Exception caught
-		 */
-		virtual void errorHandler(const std::exception& error);
-
 		//! The locale associated with the request. Should be set with setloc(), not directly.
 		std::locale loc;
 
@@ -138,23 +155,6 @@ namespace Fastcgipp
 		 * @sa out
 		 */
 		void setloc(std::locale loc_);
-
-		//! Accessor for the callback function for dealings outside the fastcgi++ library
-		/*!
-		 * The purpose of the callback object is to provide a thread safe mechanism for functions and
-		 * classes outside the fastcgi++ library to talk to the requests. Should the library
-		 * wish to have another thread process or fetch some data, that thread can call this
-		 * function when it is finished. It is equivalent to this:
-		 *
-		 * void callback(Message msg);
-		 *
-		 *	The sole parameter is a Message that contains both a type value for processing by response()
-		 *	and the raw castable data.
-		 */
-		const boost::function<void(Message)>& callback() const { return m_callback; }
-
-		//! See the requests role
-		Protocol::Role role() const { return m_role; }
 
 	private:
 		//! The message associated with the current handler() call.
