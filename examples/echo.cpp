@@ -65,7 +65,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		// Let's make our header, note the charset=utf-8. Remember that HTTP headers
 		// must be terminated with \r\n\r\n. NOT just \n\n.
 		// Let's set a cookie just for fun too, in UTF-8.
-		out << "Set-Cookie: lang=" << langString << '\n';
+		out << "Set-Cookie: lang=" << langString << "; path=/\n";
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
 
 		// Now it's all stuff you should be familiar with
@@ -87,7 +87,6 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>Script Name:</b> " << environment().scriptName << "<br />";
 		out << "<b>Request URI:</b> " << environment().requestUri << "<br />";
 		out << "<b>Request Method:</b> " << environment().requestMethod << "<br />";
-		out << "<b>Path Info:</b> " << environment().pathInfo << "<br />";
 		out << "<b>Content Length:</b> " << environment().contentLength << "<br />";
 		out << "<b>Keep Alive Time:</b> " << environment().keepAlive << "<br />";
 		out << "<b>Server Address:</b> " << environment().serverAddress << "<br />";
@@ -95,6 +94,20 @@ class Echo: public Fastcgipp::Request<wchar_t>
 		out << "<b>Client Address:</b> " << environment().remoteAddress << "<br />";
 		out << "<b>Client Port:</b> " << environment().remotePort << "<br />";
 		out << "<b>If Modified Since:</b> " << environment().ifModifiedSince << "</p>";
+
+		// Let's see the Path Info
+		out << "<h1>Path Data</h1>";
+		if(environment().pathInfo.size())
+		{
+			std::wstring preTab;
+			for(Fastcgipp::Http::Environment<wchar_t>::PathInfo::const_iterator it=environment().pathInfo.begin(); it!=environment().pathInfo.end(); ++it)
+			{
+				out << preTab << *it << "<br />";
+				preTab += L"&nbsp;&nbsp;&nbsp;";
+			}
+		}
+		else
+			out << "<p>No Path Info</p>";
 
 		// Let's see the GET data
 		out << "<h1>GET Data</h1>";
