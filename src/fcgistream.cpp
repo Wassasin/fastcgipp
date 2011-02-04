@@ -89,13 +89,13 @@ void Fastcgipp::FcgistreamSink::dump(std::basic_istream<char>& stream)
 	}
 }
 
-template<typename T, typename toChar, typename fromChar> T& fixPush(boost::iostreams::filtering_stream<boost::iostreams::output, fromChar>& stream, const T& t, std::streamsize buffer_size)
+template<typename T, typename toChar, typename fromChar> T& fixPush(boost::iostreams::filtering_stream<boost::iostreams::output, fromChar>& stream, const T& t, int buffer_size)
 {
 	stream.push(t, buffer_size);
 	return *stream.template component<T>(stream.size()-1);
 }
 
-template<> Fastcgipp::FcgistreamSink& fixPush<Fastcgipp::FcgistreamSink, char, wchar_t>(boost::iostreams::filtering_stream<boost::iostreams::output, wchar_t>& stream, const Fastcgipp::FcgistreamSink& t, std::streamsize buffer_size)
+template<> Fastcgipp::FcgistreamSink& fixPush<Fastcgipp::FcgistreamSink, char, wchar_t>(boost::iostreams::filtering_stream<boost::iostreams::output, wchar_t>& stream, const Fastcgipp::FcgistreamSink& t, int buffer_size)
 {
 	stream.push(boost::iostreams::code_converter<Fastcgipp::FcgistreamSink, utf8CodeCvt::utf8_codecvt_facet>(t, buffer_size));
 	return **stream.component<boost::iostreams::code_converter<Fastcgipp::FcgistreamSink, utf8CodeCvt::utf8_codecvt_facet> >(stream.size()-1);
@@ -105,7 +105,7 @@ template<> Fastcgipp::FcgistreamSink& fixPush<Fastcgipp::FcgistreamSink, char, w
 template Fastcgipp::Fcgistream<char>::Fcgistream();
 template Fastcgipp::Fcgistream<wchar_t>::Fcgistream();
 template<typename charT> Fastcgipp::Fcgistream<charT>::Fcgistream():
-	//m_encoder(fixPush<Encoder, charT, charT>(*this, Encoder(), 0)),
+	m_encoder(fixPush<Encoder, charT, charT>(*this, Encoder(), 0)),
 	m_sink(fixPush<FcgistreamSink, char, charT>(*this, FcgistreamSink(), 8192))
 {}
 
