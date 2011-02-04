@@ -42,13 +42,6 @@ namespace Fastcgipp
 		void set(Protocol::FullId id, Transceiver &transceiver, Protocol::RecordType type) {m_id=id, m_type=type, m_transceiver=&transceiver;}
 		void dump(const char* data, size_t size) { write(data, size); }
 		void dump(std::basic_istream<char>& stream);
-
-		// ******************
-		// Should be deleted when things start working
-		FcgistreamSink(const FcgistreamSink& x, const long int& i): m_id(x.m_id), m_type(x.m_type), m_transceiver(x.m_transceiver) {}
-		FcgistreamSink(const FcgistreamSink& x): m_id(x.m_id), m_type(x.m_type), m_transceiver(x.m_transceiver) {}
-		FcgistreamSink() {}
-		// ******************
 	};
 
 	//! Stream class for output of client data through FastCGI
@@ -70,7 +63,7 @@ namespace Fastcgipp
 			OutputEncoding m_state;
 		};
 		
-		//Encoder& m_encoder;
+		Encoder& m_encoder;
 
 		FcgistreamSink& m_sink;
 
