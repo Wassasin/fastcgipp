@@ -140,7 +140,8 @@ namespace ASql
 			void* getVoid() { return &object; }
 			operator T() { return object; }
 			operator const T() const { return object; }
-			Nullable(): NullablePar(false) {}
+			Nullable<T>& operator=(const T& x) { object=x; nullness=false; return *this; }
+			Nullable(): NullablePar(true) {}
 			Nullable(const T& x): NullablePar(false), object(x) { }
 		};
 
