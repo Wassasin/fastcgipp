@@ -242,7 +242,24 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 			if(!memcmp(name, "HTTP_HOST", 9))
 				charToString(value, valueSize, host);
 			else if(!memcmp(name, "PATH_INFO", 9))
-				charToString(value, valueSize, pathInfo);
+			{
+				boost::scoped_array<char> buffer(new char[valueSize]);
+				const char* source=value;
+				int size=-1;
+				for(; source<value+valueSize+1; ++source, ++size)
+				{
+					if(*source == '/' || source == value+valueSize)
+					{
+						if(size > 0)
+						{
+							percentEscapedToRealBytes(source-size, buffer.get(), size);
+							pathInfo.push_back(std::basic_string<charT>());
+							charToString(buffer.get(), size, pathInfo.back());
+						}
+						size=-1;						
+					}
+				}
+			}
 			break;
 		case 11:
 			if(!memcmp(name, "HTTP_ACCEPT", 11))

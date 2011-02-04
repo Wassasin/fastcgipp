@@ -31,6 +31,7 @@
 #include <cstring>
 #include <sstream>
 #include <map>
+#include <vector>
 
 #include <fastcgi++/exceptions.hpp>
 #include <fastcgi++/protocol.hpp>
@@ -191,7 +192,8 @@ namespace Fastcgipp
 			//! REQUEST_URI
 			std::basic_string<charT> requestUri;
 			//! Path Information
-			std::basic_string<charT> pathInfo;
+			typedef std::vector<std::basic_string<charT> > PathInfo;
+			PathInfo pathInfo;
 			//! The etag the client assumes this document should have
 			int etag;
 			//! How many seconds the connection should be kept alive
