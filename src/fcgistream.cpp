@@ -1,5 +1,7 @@
 #include <cstring>
 #include <algorithm>
+#include <map>
+#include <iterator>
 #include <boost/iostreams/code_converter.hpp>
 
 #include "fastcgi++/fcgistream.hpp"
@@ -7,14 +9,129 @@
 
 template<typename charT> template<typename Sink> std::streamsize Fastcgipp::Fcgistream<charT>::Encoder::write(Sink& dest, const charT* s, std::streamsize n)
 {
-	switch(m_state)
+	static std::map<charT, std::basic_string<charT> > htmlCharacters;
+	if(!htmlCharacters.size())
 	{
-		case NONE:
-		{
-			boost::iostreams::write(dest, s, n);
-			return n;
-		}
+		const char quot[]="&quot;";
+		std::copy(quot, quot+sizeof(quot)-1, std::back_inserter(htmlCharacters['"']));
+
+		const char gt[]="&gt;";
+		std::copy(gt, gt+sizeof(gt)-1, std::back_inserter(htmlCharacters['>']));
+
+		const char lt[]="&lt;";
+		std::copy(lt, lt+sizeof(lt)-1, std::back_inserter(htmlCharacters['<']));
+
+		const char amp[]="&amp;";
+		std::copy(amp, amp+sizeof(amp)-1, std::back_inserter(htmlCharacters['&']));
+
+		const char apos[]="&apos;";
+		std::copy(apos, apos+sizeof(apos)-1, std::back_inserter(htmlCharacters['\'']));
 	}
+
+	static std::map<charT, std::basic_string<charT> > urlCharacters;
+	if(!urlCharacters.size())
+	{
+		const char exclaim[]="%21";
+		std::copy(exclaim, exclaim+sizeof(exclaim)-1, std::back_inserter(urlCharacters['!']));
+
+		const char rightbrac[]="%5D";
+		std::copy(rightbrac, rightbrac+sizeof(rightbrac)-1, std::back_inserter(urlCharacters[']']));
+
+		const char leftbrac[]="%5B";
+		std::copy(leftbrac, leftbrac+sizeof(leftbrac)-1, std::back_inserter(urlCharacters['[']));
+
+		const char number[]="%23";
+		std::copy(number, number+sizeof(number)-1, std::back_inserter(urlCharacters['#']));
+
+		const char question[]="%3F";
+		std::copy(question, question+sizeof(question)-1, std::back_inserter(urlCharacters['?']));
+
+		const char slash[]="%2F";
+		std::copy(slash, slash+sizeof(slash)-1, std::back_inserter(urlCharacters['/']));
+
+		const char comma[]="%2C";
+		std::copy(comma, comma+sizeof(comma)-1, std::back_inserter(urlCharacters[',']));
+
+		const char money[]="%24";
+		std::copy(money, money+sizeof(money)-1, std::back_inserter(urlCharacters['$']));
+
+		const char plus[]="%2B";
+		std::copy(plus, plus+sizeof(plus)-1, std::back_inserter(urlCharacters['+']));
+
+		const char equal[]="%3D";
+		std::copy(equal, equal+sizeof(equal)-1, std::back_inserter(urlCharacters['=']));
+
+		const char andsym[]="%26";
+		std::copy(andsym, andsym+sizeof(andsym)-1, std::back_inserter(urlCharacters['&']));
+
+		const char at[]="%21";
+		std::copy(at, at+sizeof(at)-1, std::back_inserter(urlCharacters['@']));
+
+		const char colon[]="%3A";
+		std::copy(colon, colon+sizeof(colon)-1, std::back_inserter(urlCharacters[':']));
+
+		const char semi[]="%3B";
+		std::copy(semi, semi+sizeof(semi)-1, std::back_inserter(urlCharacters[';']));
+
+		const char rightpar[]="%29";
+		std::copy(rightpar, rightpar+sizeof(rightpar)-1, std::back_inserter(urlCharacters[')']));
+
+		const char leftpar[]="%28";
+		std::copy(leftpar, leftpar+sizeof(leftpar)-1, std::back_inserter(urlCharacters['(']));
+
+		const char apos[]="%27";
+		std::copy(apos, apos+sizeof(apos)-1, std::back_inserter(urlCharacters['\'']));
+
+		const char star[]="%2A";
+		std::copy(star, star+sizeof(star)-1, std::back_inserter(urlCharacters['*']));
+
+		const char lt[]="%3C";
+		std::copy(lt, lt+sizeof(lt)-1, std::back_inserter(urlCharacters['<']));
+
+		const char gt[]="%3E";
+		std::copy(gt, gt+sizeof(gt)-1, std::back_inserter(urlCharacters['>']));
+
+		const char quot[]="%22";
+		std::copy(quot, quot+sizeof(quot)-1, std::back_inserter(urlCharacters['"']));
+
+		const char space[]="+";
+		std::copy(space, space+sizeof(space)-1, std::back_inserter(urlCharacters[' ']));
+
+		const char percent[]="%25";
+		std::copy(percent, percent+sizeof(percent)-1, std::back_inserter(urlCharacters['%']));
+	}
+
+	if(m_state==NONE)
+		boost::iostreams::write(dest, s, n);
+	else
+	{
+		std::map<charT, std::basic_string<charT> >* characters;
+		switch(m_state)
+		{
+			case HTML:
+				characters = &htmlCharacters;
+				break;
+			case URL:
+				characters = &urlCharacters;
+				break;
+		}
+
+		const charT* start=s;
+		typename std::map<charT, std::basic_string<charT> >::const_iterator it;
+		for(const charT* i=s; i < s+n; ++i)
+		{
+			it=characters->find(*i);
+			if(it!=characters->end())
+			{
+				if(start<i) boost::iostreams::write(dest, start, start-i);
+				boost::iostreams::write(dest, it->second.data(), it->second.size());
+				start=i+1;
+			}
+		}
+		int size=s+n-start;
+		if(size) boost::iostreams::write(dest, start, size);
+	}
+	return n;
 }
 
 #include <fstream>

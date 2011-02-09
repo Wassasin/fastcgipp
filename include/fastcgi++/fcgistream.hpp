@@ -30,6 +30,7 @@
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
+	enum OutputEncoding {NONE, HTML, URL};
 	class FcgistreamSink: public boost::iostreams::device<boost::iostreams::output, char>
 	{
 	private:
@@ -54,7 +55,6 @@ namespace Fastcgipp
 	 */
 	template <typename charT> class Fcgistream: public boost::iostreams::filtering_stream<boost::iostreams::output, charT>
 	{
-	public: enum OutputEncoding {NONE, HTML, URL};
 	private:
 		struct Encoder: public boost::iostreams::multichar_filter<boost::iostreams::output, charT>
 		{
@@ -93,5 +93,7 @@ namespace Fastcgipp
 		 * @param[in] stream Reference to input stream that should be transmitted.
 		 */
 		void dump(std::basic_istream<char>& stream) { flush(); m_sink.dump(stream); }
+
+		void encoding(OutputEncoding x) { m_encoder.m_state=x; }
 	};
 }
