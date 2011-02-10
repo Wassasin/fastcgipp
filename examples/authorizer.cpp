@@ -52,6 +52,7 @@ class Session: public Fastcgipp::Request<char>
 	typedef Fastcgipp::Http::Sessions<int> Sessions;
 	bool response()
 	{
+		using namespace Fastcgipp;
 		sessions.cleanup();
 		session=sessions.find(environment().findCookie("SESSIONID").data());
 
@@ -66,7 +67,7 @@ class Session: public Fastcgipp::Request<char>
 				if(session==sessions.end())
 				{
 					session=sessions.generate(0);
-					out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+					out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				}
 				else
 					session->first.refresh();

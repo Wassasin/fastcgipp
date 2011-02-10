@@ -671,13 +671,14 @@ Now we can define our response function. It is this function that is called to g
 \code
 	bool response()
 	{
+		using namespace Fastcgipp;
 \endcode
 
 First thing we need to do is output our HTTP header. Let us start with settting a cookie in the client using a Unicode string. Just to see how it echoes.
 
 \code
-		wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
-		out << "Set-Cookie: lang=" << langString << '\n';
+		wchar_t cookieString[] = { '<', '"', 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, '"', '>', ';', 0x0000 };
+		out << "Set-Cookie: echoCookie=" << encoding(URL) << cookieString << encoding(NONE) << "; path=/\n";
 \endcode
 
 Next of course we need to output our content type part of the header. Note the charset=utf-8. Remember that HTTP headers must be terminated with "\r\n\r\n". Not just "\n\n".
@@ -697,24 +698,43 @@ Now we are ready to start outputting environment().data. We'll start with the no
 
 \code
 		out << "<h1>Environment Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << environment().host << "<br />";
-		out << "<b>User Agent:</b> " << environment().userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << environment().acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << environment().acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << environment().acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << environment().referer << "<br />";
-		out << "<b>Content Type:</b> " << environment().contentType << "<br />";
-		out << "<b>Root:</b> " << environment().root << "<br />";
-		out << "<b>Script Name:</b> " << environment().scriptName << "<br />";
-		out << "<b>Request Method:</b> " << environment().requestMethod << "<br />";
-		out << "<b>Path Info:</b> " << environment().pathInfo << "<br />";
-		out << "<b>Content Length:</b> " << environment().contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << environment().keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << environment().serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << environment().serverPort << "<br />";
-		out << "<b>Client Address:</b> " << environment().remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << environment().remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << environment().ifModifiedSince << "</p>";
+		out << "<p><b>FastCGI Version:</b> " << Protocol::version << "<br />";
+		out << "<b>fastcgi++ Version:</b> " << version << "<br />";
+		out << "<b>Hostname:</b> " << encoding(HTML) << environment().host << encoding(NONE) << "<br />";
+		out << "<b>User Agent:</b> " << encoding(HTML) << environment().userAgent << encoding(NONE) << "<br />";
+		out << "<b>Accepted Content Types:</b> " << encoding(HTML) << environment().acceptContentTypes << encoding(NONE) << "<br />";
+		out << "<b>Accepted Languages:</b> " << encoding(HTML) << environment().acceptLanguages << encoding(NONE) << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << encoding(HTML) << environment().acceptCharsets << encoding(NONE) << "<br />";
+		out << "<b>Referer:</b> " << encoding(HTML) << environment().referer << encoding(NONE) << "<br />";
+		out << "<b>Content Type:</b> " << encoding(HTML) << environment().contentType << encoding(NONE) << "<br />";
+		out << "<b>Root:</b> " << encoding(HTML) << environment().root << encoding(NONE) << "<br />";
+		out << "<b>Script Name:</b> " << encoding(HTML) << environment().scriptName << encoding(NONE) << "<br />";
+		out << "<b>Request URI:</b> " << encoding(HTML) << environment().requestUri << encoding(NONE) << "<br />";
+		out << "<b>Request Method:</b> " << encoding(HTML) << environment().requestMethod << encoding(NONE) << "<br />";
+		out << "<b>Content Length:</b> " << encoding(HTML) << environment().contentLength << encoding(NONE) << "<br />";
+		out << "<b>Keep Alive Time:</b> " << encoding(HTML) << environment().keepAlive << encoding(NONE) << "<br />";
+		out << "<b>Server Address:</b> " << encoding(HTML) << environment().serverAddress << encoding(NONE) << "<br />";
+		out << "<b>Server Port:</b> " << encoding(HTML) << environment().serverPort << encoding(NONE) << "<br />";
+		out << "<b>Client Address:</b> " << encoding(HTML) << environment().remoteAddress << encoding(NONE) << "<br />";
+		out << "<b>Client Port:</b> " << encoding(HTML) << environment().remotePort << encoding(NONE) << "<br />";
+		out << "<b>If Modified Since:</b> " << encoding(HTML) << environment().ifModifiedSince << encoding(NONE) << "</p>";
+\endcode
+
+First we will take a look at what path info we were sent
+
+\code
+		out << "<h1>Path Data</h1>";
+		if(environment().pathInfo.size())
+		{
+			std::wstring preTab;
+			for(Http::Environment<wchar_t>::PathInfo::const_iterator it=environment().pathInfo.begin(); it!=environment().pathInfo.end(); ++it)
+			{
+				out << preTab << encoding(HTML) << *it << encoding(NONE) << "<br />";
+				preTab += L"&nbsp;&nbsp;&nbsp;";
+			}
+		}
+		else
+			out << "<p>No Path Info</p>";
 \endcode
 
 Now let's take a look at the GET data. The GET data is stored in the associative container environment().gets which is of type std::map< std::basic_string< charT >, std::basic_string< charT > > links names to values.
@@ -723,7 +743,7 @@ Now let's take a look at the GET data. The GET data is stored in the associative
 		out << "<h1>GET Data</h1>";
 		if(environment().gets.size())
 			for(Fastcgipp::Http::Environment<wchar_t>::Gets::const_iterator it=environment().gets.begin(); it!=environment().gets.end(); ++it)
-				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+				out << "<b>" << encoding(HTML) << it->first << encoding(NONE) << ":</b> " << encoding(HTML) << it->second << encoding(NONE) << "<br />";
 		else
 			out << "<p>No GET data</p>";
 \endcode
@@ -734,7 +754,7 @@ Now let's take a look at the cookie data. The cookie data is stored in the assoc
 		out << "<h1>Cookie Data</h1>";
 		if(environment().cookies.size())
 			for(Fastcgipp::Http::Environment<wchar_t>::Cookies::const_iterator it=environment().cookies.begin(); it!=environment().cookies.end(); ++it)
-				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+				out << "<b>" << encoding(HTML) << it->first << encoding(NONE) << ":</b> " << encoding(HTML) << it->second << encoding(NONE) << "<br />";
 		else
 			out << "<p>No Cookie data</p>";
 \endcode
@@ -756,7 +776,7 @@ If there isn't any POST data, we'll just say so
 				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)
 				{
 					out << "<p><b>Type:</b> form data<br />";
-					out << "<b>Value:</b> " << it->second.value << "</p>";
+					out << "<b>Value:</b> " << encoding(HTML) << it->second.value << encoding(NONE) << "</p>";
 				}
 				
 				else
@@ -767,8 +787,8 @@ If there isn't any POST data, we'll just say so
 When the post type is a file, we have some additional information
 
 \code
-					out << "<b>Filename:</b> " << it->second.filename << "<br />";
-					out << "<b>Content Type:</b> " << it->second.contentType << "<br />";
+					out << "<b>Filename:</b> " << encoding(HTML) << it->second.filename << encoding(NONE) << "<br />";
+					out << "<b>Content Type:</b> " << encoding(HTML) << it->second.contentType << encoding(NONE) << "<br />";
 					out << "<b>Size:</b> " << it->second.size << "<br />";
 					out << "<b>Data:</b></p><pre>";
 \endcode
@@ -816,7 +836,6 @@ int main()
 \section echoWorldCode Full Source Code
 
 \code
-
 #include <fstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -841,65 +860,81 @@ class Echo: public Fastcgipp::Request<wchar_t>
 {
 	bool response()
 	{
-		wchar_t langString[] = { 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, 0x0000 };
+		using namespace Fastcgipp;
+		wchar_t cookieString[] = { '<', '"', 0x0440, 0x0443, 0x0441, 0x0441, 0x043a, 0x0438, 0x0439, '"', '>', ';', 0x0000 };
 
-		out << "Set-Cookie: lang=" << langString << '\n';
+		out << "Set-Cookie: echoCookie=" << encoding(URL) << cookieString << encoding(NONE) << "; path=/\n";
 		out << "Content-Type: text/html; charset=utf-8\r\n\r\n";
 
 		out << "<html><head><meta http-equiv='Content-Type' content='text/html; charset=utf-8' />";
 		out << "<title>fastcgi++: Echo in UTF-8</title></head><body>";
 
 		out << "<h1>Environment Parameters</h1>";
-		out << "<p><b>Hostname:</b> " << environment().host << "<br />";
-		out << "<b>User Agent:</b> " << environment().userAgent << "<br />";
-		out << "<b>Accepted Content Types:</b> " << environment().acceptContentTypes << "<br />";
-		out << "<b>Accepted Languages:</b> " << environment().acceptLanguages << "<br />";
-		out << "<b>Accepted Characters Sets:</b> " << environment().acceptCharsets << "<br />";
-		out << "<b>Referer:</b> " << environment().referer << "<br />";
-		out << "<b>Content Type:</b> " << environment().contentType << "<br />";
-		out << "<b>Root:</b> " << environment().root << "<br />";
-		out << "<b>Script Name:</b> " << environment().scriptName << "<br />";
-		out << "<b>Request Method:</b> " << environment().requestMethod << "<br />";
-		out << "<b>Path Info:</b> " << environment().pathInfo << "<br />";
-		out << "<b>Content Length:</b> " << environment().contentLength << "<br />";
-		out << "<b>Keep Alive Time:</b> " << environment().keepAlive << "<br />";
-		out << "<b>Server Address:</b> " << environment().serverAddress << "<br />";
-		out << "<b>Server Port:</b> " << environment().serverPort << "<br />";
-		out << "<b>Client Address:</b> " << environment().remoteAddress << "<br />";
-		out << "<b>Client Port:</b> " << environment().remotePort << "<br />";
-		out << "<b>If Modified Since:</b> " << environment().ifModifiedSince << "</p>";
+		out << "<p><b>FastCGI Version:</b> " << Protocol::version << "<br />";
+		out << "<b>fastcgi++ Version:</b> " << version << "<br />";
+		out << "<b>Hostname:</b> " << encoding(HTML) << environment().host << encoding(NONE) << "<br />";
+		out << "<b>User Agent:</b> " << encoding(HTML) << environment().userAgent << encoding(NONE) << "<br />";
+		out << "<b>Accepted Content Types:</b> " << encoding(HTML) << environment().acceptContentTypes << encoding(NONE) << "<br />";
+		out << "<b>Accepted Languages:</b> " << encoding(HTML) << environment().acceptLanguages << encoding(NONE) << "<br />";
+		out << "<b>Accepted Characters Sets:</b> " << encoding(HTML) << environment().acceptCharsets << encoding(NONE) << "<br />";
+		out << "<b>Referer:</b> " << encoding(HTML) << environment().referer << encoding(NONE) << "<br />";
+		out << "<b>Content Type:</b> " << encoding(HTML) << environment().contentType << encoding(NONE) << "<br />";
+		out << "<b>Root:</b> " << encoding(HTML) << environment().root << encoding(NONE) << "<br />";
+		out << "<b>Script Name:</b> " << encoding(HTML) << environment().scriptName << encoding(NONE) << "<br />";
+		out << "<b>Request URI:</b> " << encoding(HTML) << environment().requestUri << encoding(NONE) << "<br />";
+		out << "<b>Request Method:</b> " << encoding(HTML) << environment().requestMethod << encoding(NONE) << "<br />";
+		out << "<b>Content Length:</b> " << encoding(HTML) << environment().contentLength << encoding(NONE) << "<br />";
+		out << "<b>Keep Alive Time:</b> " << encoding(HTML) << environment().keepAlive << encoding(NONE) << "<br />";
+		out << "<b>Server Address:</b> " << encoding(HTML) << environment().serverAddress << encoding(NONE) << "<br />";
+		out << "<b>Server Port:</b> " << encoding(HTML) << environment().serverPort << encoding(NONE) << "<br />";
+		out << "<b>Client Address:</b> " << encoding(HTML) << environment().remoteAddress << encoding(NONE) << "<br />";
+		out << "<b>Client Port:</b> " << encoding(HTML) << environment().remotePort << encoding(NONE) << "<br />";
+		out << "<b>If Modified Since:</b> " << encoding(HTML) << environment().ifModifiedSince << encoding(NONE) << "</p>";
+
+		out << "<h1>Path Data</h1>";
+		if(environment().pathInfo.size())
+		{
+			std::wstring preTab;
+			for(Http::Environment<wchar_t>::PathInfo::const_iterator it=environment().pathInfo.begin(); it!=environment().pathInfo.end(); ++it)
+			{
+				out << preTab << encoding(HTML) << *it << encoding(NONE) << "<br />";
+				preTab += L"&nbsp;&nbsp;&nbsp;";
+			}
+		}
+		else
+			out << "<p>No Path Info</p>";
 
 		out << "<h1>GET Data</h1>";
 		if(environment().gets.size())
-			for(Fastcgipp::Http::Environment<wchar_t>::Gets::const_iterator it=environment().gets.begin(); it!=environment().gets.end(); ++it)
-				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+			for(Http::Environment<wchar_t>::Gets::const_iterator it=environment().gets.begin(); it!=environment().gets.end(); ++it)
+				out << "<b>" << encoding(HTML) << it->first << encoding(NONE) << ":</b> " << encoding(HTML) << it->second << encoding(NONE) << "<br />";
 		else
 			out << "<p>No GET data</p>";
 		
 		out << "<h1>Cookie Data</h1>";
 		if(environment().cookies.size())
-			for(Fastcgipp::Http::Environment<wchar_t>::Cookies::const_iterator it=environment().cookies.begin(); it!=environment().cookies.end(); ++it)
-				out << "<b>" << it->first << ":</b> " << it->second << "<br />";
+			for(Http::Environment<wchar_t>::Cookies::const_iterator it=environment().cookies.begin(); it!=environment().cookies.end(); ++it)
+				out << "<b>" << encoding(HTML) << it->first << encoding(NONE) << ":</b> " << encoding(HTML) << it->second << encoding(NONE) << "<br />";
 		else
 			out << "<p>No Cookie data</p>";
 
 		out << "<h1>POST Data</h1>";
 		if(environment().posts.size())
 		{
-			for(Fastcgipp::Http::Environment<wchar_t>::Posts::const_iterator it=environment().posts.begin(); it!=environment().posts.end(); ++it)
+			for(Http::Environment<wchar_t>::Posts::const_iterator it=environment().posts.begin(); it!=environment().posts.end(); ++it)
 			{
-				out << "<h2>" << it->first << "</h2>";
-				if(it->second.type==Fastcgipp::Http::Post<wchar_t>::form)
+				out << "<h2>" << encoding(HTML) << it->first << encoding(NONE) << "</h2>";
+				if(it->second.type==Http::Post<wchar_t>::form)
 				{
 					out << "<p><b>Type:</b> form data<br />";
-					out << "<b>Value:</b> " << it->second.value << "</p>";
+					out << "<b>Value:</b> " << encoding(HTML) << it->second.value << encoding(NONE) << "</p>";
 				}
 				
 				else
 				{
 					out << "<p><b>Type:</b> file<br />";
-					out << "<b>Filename:</b> " << it->second.filename << "<br />";
-					out << "<b>Content Type:</b> " << it->second.contentType << "<br />";
+					out << "<b>Filename:</b> " << encoding(HTML) << it->second.filename << encoding(NONE) << "<br />";
+					out << "<b>Content Type:</b> " << encoding(HTML) << it->second.contentType << encoding(NONE) << "<br />";
 					out << "<b>Size:</b> " << it->second.size << "<br />";
 					out << "<b>Data:</b></p><pre>";
 					out.dump(it->second.data.get(), it->second.size);
@@ -916,6 +951,7 @@ class Echo: public Fastcgipp::Request<wchar_t>
 	}
 };
 
+// The main function is easy to set up
 int main()
 {
 	try
@@ -928,7 +964,6 @@ int main()
 		error_log(e.what());
 	}
 }
-
 \endcode
 */
 
@@ -1178,6 +1213,7 @@ Now we can define our response function. It is this function that is called to g
 \code
 	bool response()
 	{
+		using namespace Fastcgipp;
 \endcode
 
 First off let's clean up any expired sessions. Calling this function at the beginning of every request actually doesn't create all that much overhead as is explained later on.
@@ -1231,7 +1267,7 @@ Otherwise, we just call Fastcgipp::Http::SessionId::refresh() on our session ID 
 
 \code
 				session->first.refresh();
-				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
 		}
@@ -1250,7 +1286,7 @@ Since the client wants to make a new session, we call Fastcgipp::Http::Sessions:
 
 \code
 				session=sessions.generate(environment().posts["data"].value);
-				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
 			else
@@ -1278,6 +1314,7 @@ Now we can define the functions that generate a response whether in session or n
 \code
 	void handleSession()
 	{
+		using namespace Fastcgipp;
 		out << "\
 Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
@@ -1287,7 +1324,7 @@ Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 		<title>fastcgi++: Session Handling example</title>\n\
 	</head>\n\
 	<body>\n\
-		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << session->second << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
+		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << encoding(HTML) << session->second << encoding(NONE) << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
 		<p>Click <a href='?command=logout'>here</a> to logout</p>\n";
 	}
 
@@ -1345,8 +1382,10 @@ And that's it! About as simple as it gets.
 
 \code
 #include <fstream>
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
+
+#include <fastcgi++/request.hpp>
+#include <fastcgi++/manager.hpp>
 
 void error_log(const char* msg)
 {
@@ -1362,24 +1401,18 @@ void error_log(const char* msg)
 	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
 }
 
-#include <fastcgi++/request.hpp>
-
-class SessionExample: public Fastcgipp::Request<char>
+class Session: public Fastcgipp::Request<char>
 {
 	typedef Fastcgipp::Http::Sessions<std::string> Sessions;
-
-	static Sessions sessions;
-	Sessions::iterator session;
-
 	bool response()
 	{
-
+		using namespace Fastcgipp;
 		sessions.cleanup();
 
 		session=sessions.find(environment().findCookie("SESSIONID").data());
 		
 		const std::string& command=environment().findGet("command");
-
+		
 		setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
 
 		if(session!=sessions.end())
@@ -1394,17 +1427,16 @@ class SessionExample: public Fastcgipp::Request<char>
 			else
 			{
 				session->first.refresh();
-				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
 		}
-
 		else
 		{
 			if(command=="login")
 			{
-				session=sessions.generate(environment().posts["data"].value);
-				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				session=sessions.generate(environment().findPost("data").value);
+				out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
 			else
@@ -1414,12 +1446,13 @@ class SessionExample: public Fastcgipp::Request<char>
 		out << "<p>There are " << sessions.size() << " sessions open</p>\n\
 	</body>\n\
 </html>";
-	
+
 		return true;
 	}
 
 	void handleSession()
 	{
+		using namespace Fastcgipp;
 		out << "\
 Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
@@ -1429,12 +1462,13 @@ Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 		<title>fastcgi++: Session Handling example</title>\n\
 	</head>\n\
 	<body>\n\
-		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << session->second << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
+		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << encoding(HTML) << session->second << encoding(NONE) << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
 		<p>Click <a href='?command=logout'>here</a> to logout</p>\n";
 	}
 
 	void handleNoSession()
 	{
+		using namespace Fastcgipp;
 		out << "\
 Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
@@ -1445,21 +1479,25 @@ Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 	</head>\n\
 	<body>\n\
 		<p>We are currently not in a session.</p>\n\
-		<form action='?command=login' method='post' enctype='multipart/form-data' accept-charset='ISO-8859-1'>\n\
+		<form action='?command=login' method='post' enctype='application/x-www-form-urlencoded' accept-charset='ISO-8859-1'>\n\
 			<div>\n\
 				Text: <input type='text' name='data' value='Hola señor, usted me almacenó en una sesión' /> \n\
 				<input type='submit' name='submit' value='submit' />\n\
 			</div>\n\
 		</form>\n";
 	}
+
+	static Sessions sessions;
+	Sessions::iterator session;
 };
 
-#include <fastcgi++/manager.hpp>
+Session::Sessions Session::sessions(30, 30);
+
 int main()
 {
 	try
 	{
-		Fastcgipp::Manager<SessionExample> fcgi;
+		Fastcgipp::Manager<Session> fcgi;
 		fcgi.handler();
 	}
 	catch(std::exception& e)
@@ -1703,6 +1741,7 @@ Now for the actual response.
 \code
 bool Database::response()
 {
+	using namespace Fastcgipp;
 	switch(status)
 	{
 		case START:
@@ -1761,7 +1800,7 @@ Now we'll just iterate through our ASql::Data::SetContainer and show the results
 				<td>" << it->ipAddress << "</td>\n\
 				<td>" << it->timestamp << "</td>\n\
 				<td>" << it->sessionId << "</td>\n\
-				<td>" << it->referral << "</td>\n\
+				<td>" << encoding(HTML) << it->referral << encoding(NONE) << "</td>\n\
 			</tr>\n";
 			}
 
@@ -1948,6 +1987,7 @@ void Database::initSql()
 
 bool Database::response()
 {
+	using namespace Fastcgipp;
 	switch(status)
 	{
 		case START:
@@ -1985,7 +2025,7 @@ bool Database::response()
 				<td>" << it->ipAddress << "</td>\n\
 				<td>" << it->timestamp << "</td>\n\
 				<td>" << it->sessionId << "</td>\n\
-				<td>" << it->referral << "</td>\n\
+				<td>" << encoding(HTML) << it->referral << encoding(NONE) << "</td>\n\
 			</tr>\n";
 			}
 

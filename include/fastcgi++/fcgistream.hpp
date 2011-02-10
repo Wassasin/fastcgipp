@@ -30,7 +30,142 @@
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
+	//! Defines how Fcgistream objects encode output textual data.
+	/*!
+	 * When output encoding is set to NONE, no character translation takes place.
+	 * HTML and URL encoding is described by the following table. 
+	 *
+	 * <b>HTML</b>
+	 * <table>
+	 * 	<tr>
+	 * 		<td><b>Input</b></td>
+	 * 		<td><b>Output</b></td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&quot;</td>
+	 * 		<td>&amp;quot;</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&gt;</td>
+	 * 		<td>&amp;gt;</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&lt;</td>
+	 * 		<td>&amp;lt;</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&amp;</td>
+	 * 		<td>&amp;amp;</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&apos;</td>
+	 * 		<td>&amp;apos;</td>
+	 * 	</tr>
+	 * </table>
+	 *
+	 * <b>URL</b>
+	 * <table>
+	 * 	<tr>
+	 * 		<td><b>Input</b></td>
+	 * 		<td><b>Output</b></td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>!</td>
+	 * 		<td>\%21</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>]</td>
+	 * 		<td>\%5D</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>[</td>
+	 * 		<td>\%5B</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>#</td>
+	 * 		<td>\%23</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>?</td>
+	 * 		<td>\%3F</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>/</td>
+	 * 		<td>\%2F</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>,</td>
+	 * 		<td>\%2C</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>$</td>
+	 * 		<td>\%24</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>+</td>
+	 * 		<td>\%2B</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>=</td>
+	 * 		<td>\%3D</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&amp;</td>
+	 * 		<td>\%26</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>\@</td>
+	 * 		<td>\%21</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>:</td>
+	 * 		<td>\%3A</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>;</td>
+	 * 		<td>\%3B</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>)</td>
+	 * 		<td>\%29</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>(</td>
+	 * 		<td>\%28</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>'</td>
+	 * 		<td>\%27</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>*</td>
+	 * 		<td>\%2A</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&lt;</td>
+	 * 		<td>\%3C</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&gt;</td>
+	 * 		<td>\%3E</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>&quot;</td>
+	 * 		<td>\%22</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>*space*</td>
+	 * 		<td>+</td>
+	 * 	</tr>
+	 * 	<tr>
+	 * 		<td>\%</td>
+	 * 		<td>\%25</td>
+	 * 	</tr>
+	 * </table>
+	 */
 	enum OutputEncoding {NONE, HTML, URL};
+
+	//! Encapsulates data into FastCGI records to be sent back to the web server
 	class FcgistreamSink: public boost::iostreams::device<boost::iostreams::output, char>
 	{
 	private:
@@ -48,10 +183,13 @@ namespace Fastcgipp
 	//! Stream class for output of client data through FastCGI
 	/*!
 	 * This class is derived from std::basic_ostream<charT, traits>. It acts just
-	 * the same as any stream does with the added feature of the dump() function.
+	 * the same as any stream does with the added feature of the dump() function
+	 * and the ability to set output %encoding with the setEncoding() function
+	 * and the Fastcgipp::encoding manipulator.
 	 *
 	 * @tparam charT Character type (char or wchar_t)
 	 * @tparam traits Character traits
+	 * @sa OutputEncoding
 	 */
 	template <typename charT> class Fcgistream: public boost::iostreams::filtering_stream<boost::iostreams::output, charT>
 	{
@@ -72,6 +210,7 @@ namespace Fastcgipp
 		//! Arguments passed directly to FcgistreamSink::set()
 		void set(Protocol::FullId id, Transceiver& transceiver, Protocol::RecordType type) { m_sink.set(id, transceiver, type); }
 
+		//! Called to flush all buffers to the sink
 		void flush();
 		
 		//! Dumps raw data directly into the FastCGI protocol
@@ -94,6 +233,30 @@ namespace Fastcgipp
 		 */
 		void dump(std::basic_istream<char>& stream) { flush(); m_sink.dump(stream); }
 
-		void encoding(OutputEncoding x) { m_encoder.m_state=x; }
+		//! Sets the output encoding for this stream
+		/*!
+		 * This can also be set with the Fastcgipp::encoding manipulator.
+		 *
+		 * @param[in] x Encoding type to use
+		 * @sa OutputEncoding
+		 */
+		void setEncoding(OutputEncoding x) { m_encoder.m_state=x; }
 	};
+
+	//! Stream manipulator for setting output encoding.
+	/*!
+	 * This simple stream manipulator can set the output encoding of Fcgistream
+	 * objects by
+	 *
+	 * \code Fastcgipp::Request::out << Fastcgipp::encoding(Fastcgipp::OutputEncoding); \endcode
+	 *
+	 * @sa OutputEncoding
+	 */
+	struct encoding
+	{
+		const OutputEncoding m_type;
+		encoding(OutputEncoding type): m_type(type) {}
+	};
+
+	template<class charT, class Traits> std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const encoding& enc);
 }

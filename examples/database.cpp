@@ -96,6 +96,7 @@ void Database::initSql()
 
 bool Database::response()
 {
+	using namespace Fastcgipp;
 	switch(status)
 	{
 		case START:
@@ -133,7 +134,7 @@ bool Database::response()
 				<td>" << it->ipAddress << "</td>\n\
 				<td>" << it->timestamp << "</td>\n\
 				<td>" << it->sessionId << "</td>\n\
-				<td>" << it->referral << "</td>\n\
+				<td>" << encoding(HTML) << it->referral << encoding(NONE) << "</td>\n\
 			</tr>\n";
 			}
 
