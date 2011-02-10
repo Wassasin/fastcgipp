@@ -233,3 +233,19 @@ template<typename charT> void Fastcgipp::Fcgistream<charT>::flush()
 	error_log("Calling sync");
 	boost::iostreams::filtering_stream<boost::iostreams::output, charT>::strict_sync();
 }
+
+template std::basic_ostream<char, std::char_traits<char> >& Fastcgipp::operator<< <char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >& os, const encoding& enc);
+template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::operator<< <wchar_t, std::char_traits<wchar_t> >(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const encoding& enc);
+template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgipp::operator<<(std::basic_ostream<charT, Traits>& os, const encoding& enc)
+{
+	try
+	{
+		Fcgistream<charT>& stream(dynamic_cast<Fcgistream<charT>&>(os));
+		stream.setEncoding(enc.m_type);
+	}
+	catch(std::bad_cast& bc)
+	{
+	}
+
+	return os;
+}

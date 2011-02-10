@@ -52,6 +52,7 @@ class Session: public Fastcgipp::Request<char>
 	typedef Fastcgipp::Http::Sessions<std::string> Sessions;
 	bool response()
 	{
+		using namespace Fastcgipp;
 		sessions.cleanup();
 
 		session=sessions.find(environment().findCookie("SESSIONID").data());
@@ -74,7 +75,7 @@ class Session: public Fastcgipp::Request<char>
 			else
 			{
 				session->first.refresh();
-				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
 		}
@@ -83,7 +84,7 @@ class Session: public Fastcgipp::Request<char>
 			if(command=="login")
 			{
 				session=sessions.generate(environment().findPost("data").value);
-				out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+				out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				handleSession();
 			}
 			else
@@ -103,6 +104,7 @@ class Session: public Fastcgipp::Request<char>
 
 	void handleSession()
 	{
+		using namespace Fastcgipp;
 		out << "\
 Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
@@ -112,12 +114,13 @@ Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 		<title>fastcgi++: Session Handling example</title>\n\
 	</head>\n\
 	<body>\n\
-		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << session->second << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
+		<p>We are currently in a session. The session id is " << session->first << " and the session data is \"" << encoding(HTML) << session->second << encoding(NONE) << "\". It will expire at " << sessions.getExpiry(session) << ".</p>\n\
 		<p>Click <a href='?command=logout'>here</a> to logout</p>\n";
 	}
 
 	void handleNoSession()
 	{
+		using namespace Fastcgipp;
 		out << "\
 Content-Type: text/html; charset=ISO-8859-1\r\n\r\n\
 <!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.0 Strict//EN' 'http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd'>\n\
