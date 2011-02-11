@@ -154,7 +154,7 @@ namespace Fastcgipp
 		 * @sa loc
 		 * @sa out
 		 */
-		void setloc(std::locale loc_){ out.imbue(loc); err.imbue(loc); }
+		void setloc(std::locale loc_){ out.imbue(loc_); err.imbue(loc_); }
 
 	private:
 		//! The message associated with the current handler() call.
