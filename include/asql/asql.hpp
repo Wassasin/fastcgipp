@@ -186,6 +186,7 @@ namespace ASql
 		typedef std::vector<char> Blob;
 		typedef std::string Text;
 		typedef std::wstring Wtext;
+		typedef bool Boolean;
 		//typedef std::bitset Bit;
 
 		typedef Nullable<unsigned char> UtinyN;
@@ -204,6 +205,7 @@ namespace ASql
 		typedef Nullable<std::vector<char> > BlobN;
 		typedef Nullable<std::string> TextN;
 		typedef Nullable<std::wstring> WtextN;
+		typedef Nullable<bool> BooleanN;
 		//typedef Nullable<std::bitset> BitN;
 
 		/** 
@@ -234,6 +236,7 @@ namespace ASql
 			Index(const Blob& x): type(BLOB), data(const_cast<Blob*>(&x)) { }
 			Index(const Text& x): type(TEXT), data(const_cast<Text*>(&x)) { }
 			Index(const Wtext& x): type(WTEXT), data(const_cast<Wtext*>(&x)) { }
+			Index(const Boolean& x): type(U_TINY), data(const_cast<Boolean*>(&x)) { }
 			Index(const char* const x, const size_t size_): type(CHAR), data(const_cast<char*>(x)), size(size_) { }
 			template<class T> explicit Index(const T& x): type(BINARY), data(const_cast<T*>(&x)), size(sizeof(T)) { }
 			Index(const UtinyN& x): type(U_TINY_N), data(const_cast<UtinyN*>(&x)) { }
@@ -252,6 +255,7 @@ namespace ASql
 			Index(const BlobN& x): type(BLOB_N), data(const_cast<BlobN*>(&x)) { }
 			Index(const TextN& x): type(TEXT_N), data(const_cast<TextN*>(&x)) { }
 			Index(const WtextN& x): type(WTEXT_N), data(const_cast<WtextN*>(&x)) { }
+			Index(const BooleanN& x): type(U_TINY_N), data(const_cast<BooleanN*>(&x)) { }
 			template<int size_> Index(const NullableArray<char, size_>& x): type(CHAR_N), data(const_cast<NullableArray<char, size_>*>(&x)), size(size_) { }
 			template<class T> explicit Index(const Nullable<T>& x): type(BINARY_N), data(const_cast<Nullable<T>*>(&x)), size(sizeof(T)) { }
 
