@@ -20,22 +20,6 @@
 
 #include <fastcgi++/request.hpp>
 
-#include <fstream>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <sstream>
-void errorlog(const char* msg)
-{
-	using namespace std;
-	using namespace boost;
-	static ofstream error;
-	if(!error.is_open())
-	{
-		error.open("/tmp/errlog", ios_base::out | ios_base::app);
-		error.imbue(locale(error.getloc(), new posix_time::time_facet()));
-	}
-
-	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
-}
 template void Fastcgipp::Request<char>::complete();
 template void Fastcgipp::Request<wchar_t>::complete();
 template<class charT> void Fastcgipp::Request<charT>::complete()
@@ -43,7 +27,6 @@ template<class charT> void Fastcgipp::Request<charT>::complete()
 	using namespace Protocol;
 	out.flush();
 	err.flush();
-	errorlog("Closing up shop");
 
 	Block buffer(transceiver->requestWrite(sizeof(Header)+sizeof(EndRequest)));
 

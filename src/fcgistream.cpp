@@ -134,22 +134,6 @@ template<typename charT> template<typename Sink> std::streamsize Fastcgipp::Fcgi
 	return n;
 }
 
-#include <fstream>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <sstream>
-void error_log(const char* msg)
-{
-	using namespace std;
-	using namespace boost;
-	static ofstream error;
-	if(!error.is_open())
-	{
-		error.open("/tmp/errlog", ios_base::out | ios_base::app);
-		error.imbue(locale(error.getloc(), new posix_time::time_facet()));
-	}
-
-	error << '[' << posix_time::second_clock::local_time() << "] " << msg << endl;
-}
 std::streamsize Fastcgipp::FcgistreamSink::write(const char* s, std::streamsize n)
 {
 	using namespace std;
@@ -169,15 +153,8 @@ std::streamsize Fastcgipp::FcgistreamSink::write(const char* s, std::streamsize 
 		uint16_t contentLength=std::min(size-sizeof(Header), size_t(n));
 		memcpy(dataBlock.data+sizeof(Header), s, contentLength);
 
-		std::stringstream ss;
-		ss << "Sending the " << contentLength << " byte chunk '";
-		ss.write(s, contentLength);
-		ss << "'";
-		error_log(ss.str().c_str());
-
 		s+=contentLength;
 		n-=contentLength;
-
 
 		uint8_t contentPadding=chunkSize-contentLength%chunkSize;
 		if(contentPadding==8) contentPadding=0;
@@ -225,14 +202,6 @@ template<typename charT> Fastcgipp::Fcgistream<charT>::Fcgistream():
 	m_encoder(fixPush<Encoder, charT, charT>(*this, Encoder(), 0)),
 	m_sink(fixPush<FcgistreamSink, char, charT>(*this, FcgistreamSink(), 8192))
 {}
-
-template void Fastcgipp::Fcgistream<char>::flush();
-template void Fastcgipp::Fcgistream<wchar_t>::flush();
-template<typename charT> void Fastcgipp::Fcgistream<charT>::flush()
-{
-	error_log("Calling sync");
-	boost::iostreams::filtering_stream<boost::iostreams::output, charT>::strict_sync();
-}
 
 template std::basic_ostream<char, std::char_traits<char> >& Fastcgipp::operator<< <char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >& os, const encoding& enc);
 template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::operator<< <wchar_t, std::char_traits<wchar_t> >(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const encoding& enc);

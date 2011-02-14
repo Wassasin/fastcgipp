@@ -211,7 +211,7 @@ namespace Fastcgipp
 		void set(Protocol::FullId id, Transceiver& transceiver, Protocol::RecordType type) { m_sink.set(id, transceiver, type); }
 
 		//! Called to flush all buffers to the sink
-		void flush();
+		void flush() { boost::iostreams::filtering_stream<boost::iostreams::output, charT>::strict_sync(); }
 		
 		//! Dumps raw data directly into the FastCGI protocol
 		/*!
