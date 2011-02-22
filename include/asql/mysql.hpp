@@ -267,9 +267,9 @@ namespace ASql
 			 * For two, a callback function is supplied to be called when the query is complete. The data passed is a ASql::Error
 			 * data structure.
 			 * 
-			 * @param[in/out] Query object to manage the asynchronous execution of the query.
+			 * @param[in/out] QueryPar object to manage the asynchronous execution of the query.
 			 */
-			inline void queue(Query& query)
+			inline void queue(QueryPar& query)
 			{
 				connection.queue(this, query);
 			}
