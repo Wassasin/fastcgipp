@@ -334,7 +334,10 @@ namespace ASql
 	template<class Parameters = void, class Results = void, class ParametersParent = void, class ResultsParent = void>
 	struct Query: public QueryPar
 	{
-		//BOOST_STATIC_ASSERT(false);
+		// This default template should never be instanced
+	private:
+		Query() {}
+		Query(const Query& x) {}
 	};
 
 	//! Query specialization for no results or parameters
