@@ -675,3 +675,25 @@ template<class charT> const Fastcgipp::Http::Post<charT>& Fastcgipp::Http::Envir
 	else
 		return it->second;
 }
+
+template bool Fastcgipp::Http::Environment<char>::checkForGet(const char* key) const;
+template bool Fastcgipp::Http::Environment<wchar_t>::checkForGet(const wchar_t* key) const;
+template<class charT> bool Fastcgipp::Http::Environment<charT>::checkForGet(const charT* key) const
+{
+	typename Gets::const_iterator it=gets.find(key);
+	if(it==gets.end())
+		return false;
+	else
+		return true;
+}
+
+template bool Fastcgipp::Http::Environment<char>::checkForPost(const char* key) const;
+template bool Fastcgipp::Http::Environment<wchar_t>::checkForPost(const wchar_t* key) const;
+template<class charT> bool Fastcgipp::Http::Environment<charT>::checkForPost(const charT* key) const
+{
+	typename Posts::const_iterator it=posts.find(key);
+	if(it==posts.end())
+		return false;
+	else
+		return true;
+}
