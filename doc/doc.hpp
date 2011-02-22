@@ -1621,6 +1621,9 @@ The default constructor for ASql::Data::Index makes an invalid object that shoul
 };
 \endcode
 
+Be sure to read the documentation at ASql::Data::Set to fully understand what just happened.
+Note that there is a macro to simply the generation of the above code but it was ommited from this example.
+
 \subsection databaseRequest Request Handler
 
 Now we need to write the code that actually handles the request. This example will be a little bit more complicated than most, but for starters, let's decide on characters sets. Let's go with utf-8 with this one; so pass wchar_t as our template parameter.
