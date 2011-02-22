@@ -220,14 +220,40 @@ namespace Fastcgipp
 			typedef std::map<std::basic_string<charT>, std::basic_string<charT> > Gets;
 			//! Container with all url-encoded GET data
 			Gets gets;
+
 			//! Quick and easy way to find a GET value
+			/*!
+			 * \param[in] key C-string representation of the name of the GET value you want
+			 * \return Constant reference to the string representation of the GET value. If the
+			 * GET value does not exist this will return an empty string;
+			 */
 			const std::basic_string<charT>& findGet(const charT* key) const;
+
+			//! Quick and easy way to check if a GET value exists.
+			/*!
+			 * \param[in] key C-string representation of the name of the GET value you want
+			 * \return True if the value was passed from the client, false otherwise.
+			 */
+			bool checkForGet(const charT* key) const;
 
 			typedef std::map<std::basic_string<charT>, Post<charT> > Posts;
 			//! STL container associating Post objects with their name
 			Posts posts;
+
 			//! Quick and easy way to find a POST value
+			/*!
+			 * \param[in] key C-string representation of the name of the POST value you want
+			 * \return Constant reference to the Post object created for the POST value. If the
+			 * POST value does not exist this will return a default constructed Post object.
+			 */
 			const Post<charT>& findPost(const charT* key) const;
+
+			//! Quick and easy way to check if a POST value exists.
+			/*!
+			 * \param[in] key C-string representation of the name of the POST value you want
+			 * \return True if the value was passed from the client, false otherwise.
+			 */
+			bool checkForPost(const charT* key) const;
 
 			//! Parses FastCGI parameter data into the data structure
 			/*!
