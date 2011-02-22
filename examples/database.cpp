@@ -64,11 +64,10 @@ class Database: public Fastcgipp::Request<wchar_t>
 	enum Status { START, FETCH } status;
 
 	typedef std::vector<Log> LogContainer;
-	LogContainer* selectSet;
 
 	bool response();
 
-	ASql::Query m_query;
+	ASql::Query<void, ASql::Data::STLSetContainer<LogContainer> > m_query;
 public:
 	Database(): status(START) {}
 	static void initSql();
@@ -100,7 +99,7 @@ bool Database::response()
 	{
 		case START:
 		{
-			selectSet=&m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >()->data;
+			m_query.createResults();
 			m_query.setCallback(boost::bind(callback(), Fastcgipp::Message(1)));
 			m_query.enableRows();
 			selectStatement.queue(m_query);
@@ -117,7 +116,7 @@ bool Database::response()
 		<title>fastcgi++: SQL Database example</title>\n\
 	</head>\n\
 	<body>\n\
-		<h2>Showing " << selectSet->size() << " results out of " << m_query.rows() << "</h2>\n\
+		<h2>Showing " << m_query.results()->data.size() << " results out of " << m_query.rows() << "</h2>\n\
 		<table>\n\
 			<tr>\n\
 				<td><b>IP Address</b></td>\n\
@@ -126,7 +125,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(m_query.results()->data.begin()); it!=m_query.results()->data.end(); ++it)
 			{
 				out << "\
 			<tr>\n\
@@ -142,33 +141,27 @@ bool Database::response()
 		<p><a href='database.fcgi'>Refer Me</a></p>\n\
 	</body>\n\
 </html>";
-			
-			m_query.reset();
-			selectSet=0;
 
-			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
-			m_query.keepAlive(true);
-			queryParameters.ipAddress = environment().remoteAddress;
-			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
+			ASql::Query<ASql::Data::SetBuilder<Log>, void> insertQuery;
+			insertQuery.createParameters();
+			insertQuery.keepAlive(true);
+			insertQuery.parameters()->data.ipAddress = environment().remoteAddress;
+			insertQuery.parameters()->data.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment().referer.size())
-				queryParameters.referral = environment().referer;
-			else
-				queryParameters.referral.nullness = true;
+				insertQuery.parameters()->data.referral = environment().referer;
 
-			ASql::Query timeUpdate;
-			unsigned int& addy(timeUpdate.createParameters<ASql::Data::IndySetBuilder<unsigned int> >()->data);
-			addy=environment().remoteAddress.getInt();
-			timeUpdate.keepAlive(true);
+			ASql::Query<ASql::Data::IndySetBuilder<unsigned int>, void> updateQuery;
+			updateQuery.createParameters().data = environment().remoteAddress.getInt();
+			updateQuery.keepAlive(true);
 
 			ASql::MySQL::Transaction transaction;
-			transaction.push(m_query, insertStatement);
-			transaction.push(timeUpdate, updateStatement);
+			transaction.push(insertQuery, insertStatement);
+			transaction.push(updateQuery, updateStatement);
 			transaction.start();
 
 			return true;
 		}
 	}
-	return true;
 }
 
 int main()
