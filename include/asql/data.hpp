@@ -7,6 +7,21 @@
 #include <string>
 #include <map>
 
+#include <boost/preprocessor/seq/size.hpp>
+#include <boost/preprocessor/seq/for_each_i.hpp>
+#define ASQL_BUILDSETLINE(r, data, i, elem) case i: return elem;
+//! Build the appropriate function to make a Data::Set compatible data structure
+#define ASQL_BUILDSET(elements) \
+	size_t numberOfSqlElements() const { return BOOST_PP_SEQ_SIZE(elements); } \
+	ASql::Data::Index getSqlIndex(size_t index) const \
+	{ \
+		switch(index) \
+		{ \
+			BOOST_PP_SEQ_FOR_EACH_I(ASQL_BUILDSETLINE, 0, elements) \
+			default: return ASql::Data::Index(); \
+		} \
+	}
+
 namespace ASql
 {
 	//! Defines data types and conversion techniques standard to the fastcgipp %SQL facilities.
@@ -225,6 +240,13 @@ namespace ASql
 		 * - SetRefBuilder
 		 * - SetPtrBuilder
 		 * - SetSharedPtrBuilder
+		 * - IndySetBuilder
+		 * - IndySetRefBuilder
+		 * 
+		 * Or for ASql::Data::SetContainer objects
+		 * - STLSetContainer
+		 * - STLSetRefContainer
+		 * - STLSharedSetContainer
 		 *
 		 * If you use this technique you MUST still define the numberOfSqlElements() and getSqlIndex() in
 		 * your dataset as below but do not derive from Set. The function will be called from the templates
@@ -237,6 +259,14 @@ namespace ASql
 @code
 struct TestSet: public ASql::Data::Set
 {
+	ASql::Data::DoubleN fraction;
+	ASql::Data::DateN aDate;
+	ASql::Data::Time aTime;
+	ASql::Data::DatetimeN timestamp;
+	ASql::Data::WtextN someText;
+	ASql::Data::BlobN someData;
+	char fixedString[16];
+
 	size_t numberOfSqlElements() const { return 7; }
 	ASql::Data::Index getSqlIndex(size_t index) const
 	{
@@ -260,18 +290,41 @@ struct TestSet: public ASql::Data::Set
 				return ASql::Data::Index();
 		}
 	}
-}
-
-ASql::Data::DoubleN fraction;
-ASql::Data::DateN aDate;
-ASql::Data::Time aTime;
-ASql::Data::DatetimeN timestamp;
-ASql::Data::WtextN someText;
-ASql::Data::BlobN someData;
-char fixedString[16];
 };
 @endcode
-		 * Note that the indexing order must match the result column/parameter order of the
+		 * Note that this same example can be more easily done with the use of the ASQL_SETBUILDER macro.
+		 * In the following example we will also use the set builders.
+@code
+struct TestSet
+{
+	ASql::Data::DoubleN fraction;
+	ASql::Data::DateN aDate;
+	ASql::Data::Time aTime;
+	ASql::Data::DatetimeN timestamp;
+	ASql::Data::WtextN someText;
+	ASql::Data::BlobN someData;
+	char fixedString[16];
+
+	ASQL_SETBUILDER(
+		(fraction)\
+		(aDate)\
+		(aTime)\
+		(timeStamp)\
+		(someText)\
+		(someData)\
+		(ASql::Data::Index(fixedChunk, sizeof(fixedString)))\
+		)
+};
+@endcode
+		 * Then to make a Data::Set out of it
+\code
+typedef ASql::Data::SetBuilder<TestSet> FunctionalTestSet;
+\endcode
+		 * or maybe a Data::SetContainer
+\code
+typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
+\endcode
+		 * Note that in both examples the indexing order must match the result column/parameter order of the
 		 * SQL query.
 		 *
 		 * In order to be binded to a particular SQL type indexed elements in the class should be of a

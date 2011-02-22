@@ -30,24 +30,12 @@ struct Log
 	Fastcgipp::Http::SessionId sessionId;
 	ASql::Data::WtextN referral;
 
-	size_t numberOfSqlElements() const { return 4; }
-
-	ASql::Data::Index getSqlIndex(const size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return ipAddress.getInt();
-			case 1:
-				return timestamp;
-			case 2:
-				return ASql::Data::Index(sessionId);
-			case 3:
-				return referral;
-			default:
-				return ASql::Data::Index();
-		}
-	}
+	ASQL_BUILDSET(\
+			(ipAddress.getInt())\
+			(timestamp)\
+			(ASql::Data::Index(sessionId))\
+			(referral)\
+			)
 };
 
 class Database: public Fastcgipp::Request<wchar_t>
