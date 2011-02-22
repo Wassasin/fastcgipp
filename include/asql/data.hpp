@@ -292,7 +292,7 @@ struct TestSet: public ASql::Data::Set
 	}
 };
 @endcode
-		 * Note that this same example can be more easily done with the use of the ASQL_SETBUILDER macro.
+		 * Note that this same example can be more easily done with the use of the ASQL_BUILDSET macro.
 		 * In the following example we will also use the set builders.
 @code
 struct TestSet
@@ -305,7 +305,7 @@ struct TestSet
 	ASql::Data::BlobN someData;
 	char fixedString[16];
 
-	ASQL_SETBUILDER(
+	ASQL_BUILDSET(
 		(fraction)\
 		(aDate)\
 		(aTime)\
