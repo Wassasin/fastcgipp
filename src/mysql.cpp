@@ -125,7 +125,7 @@ void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameter
 	{
 		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions[thread], paramsBindings[thread]);
 		for(Data::Conversions::iterator it=paramsConversions[thread].begin(); it!=paramsConversions[thread].end(); ++it)
-			it->second->convertParam();
+			if(!(paramsBindings[thread][it->first].is_null && *paramsBindings[thread][it->first].is_null)) it->second->convertParam();
 		if(mysql_stmt_bind_param(stmt[thread], paramsBindings[thread].get())!=0) throw Error(stmt[thread]);
 	}
 
@@ -144,7 +144,7 @@ bool ASql::MySQL::Statement::executeResult(Data::Set& row, const unsigned int th
 		return false;
 	default:
 		for(Data::Conversions::iterator it=resultsConversions[thread].begin(); it!=resultsConversions[thread].end(); ++it)
-			it->second->convertResult();
+			if(!(resultsBindings[thread][it->first].is_null && *resultsBindings[thread][it->first].is_null)) it->second->convertResult();
 		return true;
 	};
 }
