@@ -1583,6 +1583,9 @@ The default constructor for ASql::Data::Index makes an invalid object that shoul
 };
 \endcode
 
+Be sure to read the documentation at ASql::Data::Set to fully understand what just happened.
+Note that there is a macro to simply the generation of the above code but it was ommited from this example.
+
 \subsection databaseRequest Request Handler
 
 Now we need to write the code that actually handles the request. This example will be a little bit more complicated than most, but for starters, let's decide on characters sets. Let's go with utf-8 with this one; so pass wchar_t as our template parameter.
@@ -1619,7 +1622,6 @@ We need a container to use for out Log objects.
 
 \code
 	typedef std::vector<Log> LogContainer;
-	LogContainer* selectSet;
 \endcode
 
 Now we declare our response function as usual.
@@ -1631,7 +1633,7 @@ Now we declare our response function as usual.
 The following object handles all data associated with the actual queries. It provides a mechanism for controlling the scope of all data required to execute the SQL statements. Be sure to read the documentation associated with the class.
 
 \code
-	ASql::Query m_query;
+	ASql::Query<void, ASql::Data::STLSetContainer<LogContainer> > m_query;
 public:
 \endcode
 
@@ -1712,7 +1714,7 @@ bool Database::response()
 Now we set up our ASql::Query object for use with the statement and run it. Again, be sure to read the doc for the class. We set the callback function to the callback object in the Fastcgipp::Request class.
 
 \code
-			selectSet=&m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >();
+			m_query.createResults();
 			m_query.setCallback(boost::bind(callback(), Fastcgipp::Message(1)));
 			m_query.enableRows(true);
 			selectStatement.queue(m_query);
@@ -1779,34 +1781,29 @@ So here we go, let's build a Log structure and insert it into the database. We'r
 By calling reset on m_query we basically recycle it for use a second time around. Notice the call to keepAlive to ensure that the query is not cancelled when the query object goes out of scope.
 
 \code
-			m_query.reset();
-			selectSet=0;
-
-			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
-			m_query.keepAlive(true);
-			queryParameters.ipAddress = environment().remoteAddress;
-			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
+			ASql::Query<ASql::Data::SetBuilder<Log>, void> insertQuery;
+			insertQuery.createParameters();
+			insertQuery.keepAlive(true);
+			insertQuery.parameters()->data.ipAddress = environment().remoteAddress;
+			insertQuery.parameters()->data.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment().referer.size())
-				queryParameters->referral = environment().referer;
-			else
-				queryParameters->referral.nullness = true;
+				insertQuery.parameters()->data.referral = environment().referer;
 \endcode
 
 Above we built a query object for our insert statement. Now let's build a fun little query for our update statement. This second query will take all timestamps associated with the clients address and subtract one hour from them.
 
 \code
-			ASql::Query timeUpdate;
-			unsigned int& addy(timeUpdate.createParameters<ASql::Data::IndySetBuilder<unsigned int> >()->data);
-			addy=environment().remoteAddress.getInt();
-			timeUpdate.keepAlive(true);
+			ASql::Query<ASql::Data::IndySetBuilder<unsigned int>, void> updateQuery;
+			updateQuery.createParameters().data = environment().remoteAddress.getInt();
+			updateQuery.keepAlive(true);
 \endcode
 
 Now that we have a second query, we can put the two together into a transaction.
 
 \code
 			ASql::MySQL::Transaction transaction;
-			transaction.push(m_query, insertStatement);
-			transaction.push(timeUpdate, updateStatement);
+			transaction.push(insertQuery, insertStatement);
+			transaction.push(updateQuery, updateStatement);
 			transaction.start();
 \endcode
 
