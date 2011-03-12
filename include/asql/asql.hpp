@@ -282,6 +282,8 @@ template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 
 			if(querySet.m_commit)
 				commit(id);
+
+			querySet.m_query.m_sharedData->m_error=Error();
 		}
 		catch(const Error& e)
 		{
@@ -302,7 +304,6 @@ template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 			queriesLock.unlock();
 		}
 
-		querySet.m_query.m_sharedData->m_error=Error();
 		querySet.m_query.callback();
 	}
 
