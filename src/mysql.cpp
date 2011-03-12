@@ -215,6 +215,7 @@ void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsig
 {
 	if(rows) *rows = 0;
 	
+	parameters.init();
 	for(const Data::Set* set=parameters.pull(); set!=0; set=parameters.pull())
 	{
 		if(*m_stop[thread]) break;
