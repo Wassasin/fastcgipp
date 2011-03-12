@@ -555,6 +555,7 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			 * @return This function should return a pointer to the row or null if at the end.
 			 */
 			virtual const Set* pull() const =0;
+			virtual void init() const =0;
 		};
 
 		/** 
@@ -582,6 +583,7 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			void trim() { data.pop_back(); }
 			const Set* pull() const
 			{
+				if(m_itBuffer == const_cast<T&>(data).end()) return 0;
 				m_buffer.set(*m_itBuffer++);
 				return &m_buffer;
 			}
@@ -590,6 +592,7 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			 * @brief STL container object of type T that the SetContainer is wrapped around. This is your object.
 			 */
 			T data;
+			void init() const {  m_itBuffer = const_cast<T&>(data).begin(); }
 			STLSetContainer(): m_itBuffer(data.begin()) {}
 		};
 	
@@ -619,10 +622,12 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			void trim() { data.pop_back(); }
 			const Set* pull() const
 			{
+				if(m_itBuffer == const_cast<T&>(data).end()) return 0;
 				m_buffer.set(*m_itBuffer++);
 				return &m_buffer;
 			}
 		public:
+			void init() const {  m_itBuffer = const_cast<T&>(data).begin(); }
 			/** 
 			 * @param x Reference to the STL container of type T to reference to.
 			 */
@@ -654,6 +659,7 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			void trim() { data->pop_back(); }
 			const Set* pull() const
 			{
+				if(m_itBuffer == const_cast<T*>(data)->end()) return 0;
 				m_buffer.set(*m_itBuffer++);
 				return &m_buffer;
 			}
@@ -664,6 +670,7 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			boost::shared_ptr<T> data;
 			STLSharedSetContainer(const boost::shared_ptr<T>& x): data(x) {}
 			STLSharedSetContainer(): m_itBuffer(data->begin()) {}
+			void init() const {  m_itBuffer = const_cast<T*>(data)->begin(); }
 		};
 
 		/** 
