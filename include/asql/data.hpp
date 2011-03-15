@@ -421,39 +421,30 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 		 */
 		template<class T> class SetPtrBuilder: public Set
 		{
-			/** 
-			 * @brief Pointer to the dataset
-			 */
+			//! Pointer to the dataset
 			const T* m_data;
-			/** 
-			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
-			 */
+
+			//! Wrapper function for the %numberOfSqlElements() function in the data object.
 			virtual size_t numberOfSqlElements() const { return m_data->numberOfSqlElements(); }
-			/** 
-			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
-			 */
+
+			//! Wrapper function for the %getSqlIndex() function in the data object.
 			virtual Index getSqlIndex(const size_t index) const { return m_data->getSqlIndex(index); }
 		public:
-			/** 
-			 * @brief Default constructor set's the pointer to null
-			 */
+			//! Default constructor set's the pointer to null
 			inline SetPtrBuilder(): m_data(0) {}
-			/** 
-			 * @brief Set the pointer to the address of the object referenced to by x
-			 */
+
+			//! Set the pointer to the address of the object referenced to by x
 			inline SetPtrBuilder(const T& x): m_data(&x) {}
+
 			inline SetPtrBuilder(SetPtrBuilder& x): m_data(x.m_data) {}
-			/** 
-			 * @brief Set the pointer to the address of the object referenced to by x
-			 */
+
+			//! Set the pointer to the address of the object referenced to by x
 			inline void set(const T& data) { m_data=&data; }
-			/** 
-			 * @brief Set the pointer to null
-			 */
+
+			//! Set the pointer to null
 			inline void clear() { m_data=0; }
-			/** 
-			 * @brief Return true if the pointer is not null
-			 */
+
+			//! Return true if the pointer is not null
 			operator bool() const { return m_data; }
 		};
 
@@ -535,6 +526,39 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			inline IndySetRefBuilder(const T& x): data(x) {}
 		};
 
+		 //! Wraps a Set object around a pointer to an individual object of type T
+		 /*!
+		 * \tparam T object type to create.
+		 */
+		template<class T> class IndySetPtrBuilder: public Set
+		{
+			//! Object of type T that the Set is wrapped around. This is your object.
+			const T* m_data;
+
+			//! Returns 1 as it is an individual container
+			virtual size_t numberOfSqlElements() const { return 1; }
+			 
+			//! Just returns an index to data.
+			virtual Index getSqlIndex(const size_t index) const { return *m_data; }
+		public:
+			//! Default constructor set's the pointer to null
+			inline IndySetPtrBuilder(): m_data(0) {}
+
+			//! Set the pointer to the address of the object referenced to by x
+			inline IndySetPtrBuilder(const T& x): m_data(&x) {}
+
+			inline IndySetPtrBuilder(IndySetPtrBuilder& x): m_data(x.m_data) {}
+
+			//! Set the pointer to the address of the object referenced to by x
+			inline void set(const T& data) { m_data=&data; }
+
+			//! Set the pointer to null
+			inline void clear() { m_data=0; }
+
+			//! Return true if the pointer is not null
+			operator bool() const { return m_data; }
+		};
+
 		/** 
 		 * @brief Base class for containers of Data::Set objects to be used for result/parameter data in SQL queries.
 		 */
@@ -594,6 +618,42 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			T data;
 			void init() const {  m_itBuffer = const_cast<T&>(data).begin(); }
 			STLSetContainer(): m_itBuffer(data.begin()) {}
+		};
+	
+		/** 
+		 * @brief Wraps a SetContainer object around a new auto-allocated STL container of type T
+		 *
+		 * This class defines a basic container for types that can be wrapped by the Set class.
+		 *	It is intended for retrieving multi-row results from SQL queries. In order to
+		 *	function the passed container type must have the following member functions
+		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
+		 *	instructions there.
+		 *
+		 *	@tparam Container type. Must be sequential.
+		 */
+		template<class T> class IndySTLSetContainer: public SetContainer
+		{
+			mutable IndySetPtrBuilder<typename T::value_type> m_buffer;
+			mutable typename T::iterator m_itBuffer;
+
+			Set& manufacture()
+			{
+				data.push_back(typename T::value_type());
+				m_buffer.set(data.back());
+				return m_buffer;
+			}
+			void trim() { data.pop_back(); }
+			const Set* pull() const
+			{
+				if(m_itBuffer == const_cast<T&>(data).end()) return 0;
+				m_buffer.set(*m_itBuffer++);
+				return &m_buffer;
+			}
+		public:
+			//! STL container object of type T that the SetContainer is wrapped around. This is your object.
+			T data;
+			void init() const {  m_itBuffer = const_cast<T&>(data).begin(); }
+			IndySTLSetContainer(): m_itBuffer(data.begin()) {}
 		};
 	
 		/** 
