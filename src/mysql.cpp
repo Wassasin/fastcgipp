@@ -465,12 +465,10 @@ template<class T> void ASql::MySQL::TypedConversion<T>::convertParam()
 
 void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
 {
-	using namespace std;
-	
-	vector<char>& conversionBuffer = inputBuffer;
-	grabIt(conversionBuffer);
+	std::vector<char>& conversionBuffer = inputBuffer;
+	grabIt(Data::VectorBlob(conversionBuffer).blobify());
 
-	wstring& output = *(wstring*)external;
+	std::wstring& output = *(std::wstring*)external;
 	output.resize(conversionBuffer.size());
 
 	if(conversionBuffer.size())
@@ -478,7 +476,7 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
 		wchar_t* it;
 		const char* tmp;
 		mbstate_t conversionState = mbstate_t();
-		if(use_facet<codecvt<wchar_t, char, mbstate_t> >(locale(locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=codecvt_base::ok)
+		if(std::use_facet<std::codecvt<wchar_t, char, mbstate_t> >(std::locale(std::locale::classic(), new utf8CodeCvt::utf8_codecvt_facet)).in(conversionState, (const char*)&conversionBuffer.front(), (const char*)&conversionBuffer.front() + conversionBuffer.size(), tmp, &output[0], &output[0] + output.size(), it)!=std::codecvt_base::ok)
 			throw ASql::Error(CodeConversionErrorMsg, -1);
 		output.resize(it-&output[0]);
 		conversionBuffer.clear();
