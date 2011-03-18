@@ -145,10 +145,10 @@ class Echo: public Fastcgipp::Request<wchar_t>
 					// When the post type is a file, we have some additional information
 					out << "<b>Filename:</b> " << encoding(HTML) << it->second.filename << encoding(NONE) << "<br />";
 					out << "<b>Content Type:</b> " << encoding(HTML) << it->second.contentType << encoding(NONE) << "<br />";
-					out << "<b>Size:</b> " << it->second.size << "<br />";
+					out << "<b>Size:</b> " << it->second.size() << "<br />";
 					out << "<b>Data:</b></p><pre>";
 					// We will use dump to send the raw data directly to the client
-					out.dump(it->second.data.get(), it->second.size);
+					out.dump(it->second.data(), it->second.size());
 					out << "</pre>";
 				}
 			}
