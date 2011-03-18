@@ -490,11 +490,11 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsMultipa
 				thePost.type=Post<charT>::file;
 				charToString(contentTypeStart, contentTypeSize, thePost.contentType);
 				if(filenameSize != -1) charToString(filenameStart, filenameSize, thePost.filename);
-				thePost.size=end-bodyStart;
-				if(thePost.size)
+				thePost.m_size=end-bodyStart;
+				if(thePost.size())
 				{
-					thePost.data.reset(new char[thePost.size]);
-					memcpy(thePost.data.get(), bodyStart, thePost.size);
+					thePost.m_data = new char[thePost.size()];
+					memcpy(thePost.m_data, bodyStart, thePost.size());
 				}
 			}
 			else
