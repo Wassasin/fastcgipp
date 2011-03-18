@@ -27,9 +27,8 @@ namespace ASql
 	//! Defines data types and conversion techniques standard to the fastcgipp %SQL facilities.
 	namespace Data
 	{
-		/** 
-		 * @brief Defines data types supported by the fastcgi++ sql facilities.
-		 *
+		//! Defines data types supported by the fastcgi++ sql facilities.
+		/*!
 		 * This enumeration provides runtime type identification capabilities to classes derived from
 		 * the Set class. All types starting with U_ mean unsigned and all types ending will _N means
 		 * they can store null values via the Nullable class.
@@ -74,9 +73,8 @@ namespace ASql
 						BIT_N,
 						NOTHING };
 		
-		/** 
-		 * @brief Base class to the Nullable template class.
-		 *
+		//! Base class to the Nullable template class.
+		/*!
 		 * This base class provides a polymorphic method of retrieving a void pointer to the contained
 		 * object regardless of it's type along with it's nullness.
 		 *
@@ -94,10 +92,7 @@ namespace ASql
 			virtual void* getVoid() =0;
 		};
 		
-		/** 
-		 * @brief Class for adding null capabilities to any type. Needed for SQL queries involving
-		 * null values.
-		 */
+		//! Class for adding null capabilities to any type. Needed for SQL queries involving
 		template<class T> struct Nullable: public NullablePar
 		{
 			T object;
@@ -109,9 +104,7 @@ namespace ASql
 			Nullable(const T& x): NullablePar(false), object(x) { }
 		};
 
-		/** 
-		 * @brief Class for adding null capabilities to character arrays.
-		 */
+		//! Class for adding null capabilities to character arrays.
 		template<class T, int size> struct NullableArray: public NullablePar
 		{
 			T object[size];
@@ -121,9 +114,7 @@ namespace ASql
 			NullableArray(const T& x): NullablePar(false), object(x) { }
 		};
 
-		/** 
-		 * @brief A basic, practically none-functional stream inserter for Nullable objects.
-		 */
+		//! A basic, practically none-functional stream inserter for Nullable objects.
 		template<class charT, class Traits, class T> inline std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const Nullable<T>& x)
 		{
 			if(x.nullness)
@@ -147,34 +138,50 @@ namespace ASql
 		typedef boost::posix_time::time_duration Time;
 		typedef boost::gregorian::date Date;
 		typedef boost::posix_time::ptime Datetime;
-		typedef std::vector<char> Blob;
 		typedef std::string Text;
 		typedef std::wstring Wtext;
 		typedef bool Boolean;
-		//typedef std::bitset Bit;
+		//! Derive from this to create your own Blob types
+		/*!
+		 * All derivations must provide the three virtual functions and insure
+		 * that they behave the same as std::vector does. This means that the data
+		 * must be contiguous.
+		 */
+		struct Blob
+		{
+			virtual size_t size() const =0;
+			virtual void resize(const size_t size) =0;
+			virtual char& operator[](const size_t index) =0;
+			Blob& blobify() { return *this; }
+		};
+		struct VectorBlob: public Blob
+		{
+			std::vector<char>& m_data;
+			VectorBlob(std::vector<char>& data): m_data(data) {}
+			size_t size() const { return m_data.size(); }
+			void resize(const size_t size) { m_data.resize(size); };
+			char& operator[](const size_t index) { return m_data[index]; };
+		};
 
-		typedef Nullable<unsigned char> UtinyN;
-		typedef Nullable<char> TinyN;
-		typedef Nullable<unsigned short int> UshortN;
-		typedef Nullable<short int> ShortN;
-		typedef Nullable<unsigned int> UintN;
-		typedef Nullable<int> IntN;
-		typedef Nullable<unsigned long long int> UbigintN;
-		typedef Nullable<long long int> BigintN;
-		typedef Nullable<float> FloatN;
-		typedef Nullable<double> DoubleN;
-		typedef Nullable<boost::posix_time::time_duration> TimeN;
-		typedef Nullable<boost::gregorian::date> DateN;
-		typedef Nullable<boost::posix_time::ptime> DatetimeN;
-		typedef Nullable<std::vector<char> > BlobN;
-		typedef Nullable<std::string> TextN;
-		typedef Nullable<std::wstring> WtextN;
-		typedef Nullable<bool> BooleanN;
-		//typedef Nullable<std::bitset> BitN;
+		typedef Nullable<Utiny> UtinyN;
+		typedef Nullable<Tiny> TinyN;
+		typedef Nullable<Ushort> UshortN;
+		typedef Nullable<Short> ShortN;
+		typedef Nullable<Uint> UintN;
+		typedef Nullable<Int> IntN;
+		typedef Nullable<Ubigint> UbigintN;
+		typedef Nullable<Bigint> BigintN;
+		typedef Nullable<Float> FloatN;
+		typedef Nullable<Double> DoubleN;
+		typedef Nullable<Time> TimeN;
+		typedef Nullable<Date> DateN;
+		typedef Nullable<Datetime> DatetimeN;
+		typedef Nullable<Text> TextN;
+		typedef Nullable<Wtext> WtextN;
+		typedef Nullable<Boolean> BooleanN;
 
-		/** 
-		 * @brief Stores on index value from a Set
-		 *
+		//! Stores on index value from a Set
+		/*! 
 		 * All of the constructors allow for implicit construction upon return from 
 		 * Set::getSqlIndex() except for the templated generic binary ones.
 		 */
@@ -216,7 +223,6 @@ namespace ASql
 			Index(const TimeN& x): type(TIME_N), data(const_cast<TimeN*>(&x)) { }
 			Index(const DateN& x): type(DATE_N), data(const_cast<DateN*>(&x)) { }
 			Index(const DatetimeN& x): type(DATETIME_N), data(const_cast<DatetimeN*>(&x)) { }
-			Index(const BlobN& x): type(BLOB_N), data(const_cast<BlobN*>(&x)) { }
 			Index(const TextN& x): type(TEXT_N), data(const_cast<TextN*>(&x)) { }
 			Index(const WtextN& x): type(WTEXT_N), data(const_cast<WtextN*>(&x)) { }
 			Index(const BooleanN& x): type(U_TINY_N), data(const_cast<BooleanN*>(&x)) { }
