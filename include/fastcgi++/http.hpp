@@ -64,20 +64,30 @@ namespace Fastcgipp
 			std::basic_string<charT>& filename;
 			//! Content Type if type=file
 			std::basic_string<charT> contentType;
-			//! Pointer to file data
-			boost::shared_array<char> data;
-			//! Size of data in bytes pointed to by data.
-			size_t size;
 
-			Post(): filename(value) {}
+			//! Pointer to file data
+			const char* data() const { return m_data; }
+			//! Size of file data
+			size_t size() const { return m_size; }
+			//! Expropriates the file data. Beyond this you must free it when done
+			char* steal() const { char* ptr=m_data; m_data=0; m_size=0; return ptr; }
+
+			Post(): filename(value), m_data(0), m_size(0) {}
 			Post(const Post& x):
 				type(x.type),
 				value(x.value),
 				filename(value),
 				contentType(x.contentType),
-				data(x.data),
-				size(x.size)
+				m_size(x.m_size),
+				m_data(x.steal())
 			{}
+			~Post() { delete [] m_data; }
+		private:
+			//! Pointer to file data
+			mutable char* m_data;
+			//! Size of data in bytes pointed to by data.
+			mutable size_t m_size;
+			template<class T> friend class Environment;
 		};
 
 		//! The HTTP request method as an enumeration
