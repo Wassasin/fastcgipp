@@ -54,13 +54,18 @@ namespace Fastcgipp
 	 * a 8bit character set encoding pass char as the template argument and
 	 * setloc() a locale with the corresponding character set.
 	 *
-	 * @tparam charT Character type for internal processing (wchar_t or char)
+	 * \tparam charT Character type for internal processing (wchar_t or char)
 	 */
 	template<class charT> class Request
 	{
 	public:
 		//! Initializes what it can. set() must be called by Manager before the data is usable.
-		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
+		/*!
+		 * \param maxPostSize This would be the maximum size you want to allow for
+		 * post data. Any data beyond this size would result in a call to
+		 * bigPostErrorHandler(). A value of 0 represents unlimited.
+		 */
+		Request(const size_t maxPostSize=0): state(Protocol::PARAMS), m_maxPostSize(maxPostSize), m_postSize(0)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
 
 		//! Accessor for  the data structure containing all HTTP environment data
 		const Http::Environment<charT>& environment() const { return m_environment; }
@@ -89,6 +94,9 @@ namespace Fastcgipp
 		 * @param[in] error Exception caught
 		 */
 		virtual void errorHandler(const std::exception& error);
+
+		//! Called when too much post data is recieved.
+		virtual void bigPostErrorHandler();
 
 		//! See the requests role
 		Protocol::Role role() const { return m_role; }
@@ -191,6 +199,12 @@ namespace Fastcgipp
 		class Messages: public std::queue<Message>, public boost::mutex {};
 		//! A queue of messages to be handler by the request
 		Messages messages;
+
+		//! The maximum amount of post data that can be recieved
+		const size_t m_maxPostSize;
+
+		//! Keeps track of how much POST data has been recieved
+		size_t m_postSize;
 
 		//! Request Handler
 		/*!
