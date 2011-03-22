@@ -89,6 +89,12 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 					if(state!=PARAMS) throw Exceptions::RecordsOutOfOrder();
 					if(header.getContentLength()==0) 
 					{
+						if(m_maxPostSize && environment().contentLength > m_maxPostSize)
+						{
+							bigPostErrorHandler();
+							complete();
+							return true;
+						}
 						state=IN;
 						break;
 					}
@@ -109,6 +115,14 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 							return true;
 						}
 						break;
+					}
+
+					m_postSize += header.getContentLength();
+					if(m_postSize > m_maxPostSize)
+					{
+						bigPostErrorHandler();
+						complete();
+						return true;
 					}
 
 					// Process POST data based on what our incoming content type is
@@ -169,4 +183,22 @@ template<class charT> void Fastcgipp::Request<charT>::errorHandler(const std::ex
 "</html>";
 
 		err << '"' << error.what() << '"' << " from \"http://" << environment().host << environment().requestUri << "\" with a " << environment().requestMethod << " request method.";
+}
+
+template void Fastcgipp::Request<char>::bigPostErrorHandler();
+template void Fastcgipp::Request<wchar_t>::bigPostErrorHandler();
+template<class charT> void Fastcgipp::Request<charT>::bigPostErrorHandler()
+{
+		out << \
+"Status: 413 Request Entity Too Large\n"\
+"Content-Type: text/html; charset=ISO-8859-1\r\n\r\n"\
+"<!DOCTYPE html>"\
+"<html lang='en'>"\
+	"<head>"\
+		"<title>413 Request Entity Too Large</title>"\
+	"</head>"\
+	"<body>"\
+		"<h1>413 Request Entity Too Large</h1>"\
+	"</body>"\
+"</html>";
 }
