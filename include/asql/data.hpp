@@ -152,7 +152,6 @@ namespace ASql
 			virtual size_t size() const =0;
 			virtual void resize(const size_t size) =0;
 			virtual char& operator[](const size_t index) =0;
-			Blob& blobify() { return *this; }
 		};
 		struct VectorBlob: public Blob
 		{

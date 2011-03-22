@@ -466,7 +466,8 @@ template<class T> void ASql::MySQL::TypedConversion<T>::convertParam()
 void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
 {
 	std::vector<char>& conversionBuffer = inputBuffer;
-	grabIt(Data::VectorBlob(conversionBuffer).blobify());
+	Data::VectorBlob blob(inputBuffer);
+	grabIt(blob);
 
 	std::wstring& output = *(std::wstring*)external;
 	output.resize(conversionBuffer.size());
