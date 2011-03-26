@@ -115,7 +115,7 @@ namespace Fastcgipp
 	 * 	</tr>
 	 * 	<tr>
 	 * 		<td>\@</td>
-	 * 		<td>\%21</td>
+	 * 		<td>\%40</td>
 	 * 	</tr>
 	 * 	<tr>
 	 * 		<td>:</td>
@@ -155,7 +155,7 @@ namespace Fastcgipp
 	 * 	</tr>
 	 * 	<tr>
 	 * 		<td>*space*</td>
-	 * 		<td>+</td>
+	 * 		<td>\%20</td>
 	 * 	</tr>
 	 * 	<tr>
 	 * 		<td>\%</td>
