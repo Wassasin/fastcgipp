@@ -62,7 +62,7 @@ class Session: public Fastcgipp::Request<char>
 			{
 				// We need to call this to set a facet in our requests locale regarding how
 				// to format the date upon insertion. It needs to conform to the http standard.
-				setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
+				setloc(std::locale(getloc(), new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
 
 				if(session==sessions.end())
 				{
