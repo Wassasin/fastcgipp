@@ -81,7 +81,7 @@ class ShowGnu: public Fastcgipp::Request<char>
 
 		// We need to call this to set a facet in our requests locale regarding how
 		// to format the date upon insertion. It needs to conform to the http standard.
-		setloc(locale(loc, new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
+		setloc(locale(getloc(), new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
 
 		// If the modification time of the file is older or equal to the if-modified-since value
 		// sent to us from the client and we were actually sent an if-modified since value,

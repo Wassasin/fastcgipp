@@ -476,7 +476,7 @@ Fastcgipp::Http::Environment implements the etag variable as an integer for bett
 We will need to call Fastcgipp::Request::setloc() to set a facet in our requests locale regarding how to format the date upon insertion. It needs to conform to the HTTP standard. When setting locales for the streams, make sure to use the Fastcgipp::Request::setloc() function instead of directly imbueing them. This insures that the UTF-8 code conversion still functions properly if used.
 
 \code
-		setloc(locale(loc, new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
+		setloc(locale(getloc(), new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
 \endcode
 
 If the modification time of the file is older or equal to the if-modified-since value sent to us from the client and the etag matches, we don't need to send the image to them.
@@ -585,7 +585,7 @@ class ShowGnu: public Fastcgipp::Request<char>
 			etag = fileStat.st_ino;
 		}
 
-		setloc(locale(loc, new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
+		setloc(locale(getloc(), new posix_time::time_facet("%a, %d %b %Y %H:%M:%S GMT")));
 
 		if(!environment().ifModifiedSince.is_not_a_date_time() && etag==environment().etag && modTime<=environment().ifModifiedSince)
 		{
@@ -1239,7 +1239,7 @@ In order to get login/logout commands from the client we will use GET informatio
 Now we're going to need to set our locale to output boost::date_time stuff in a proper cookie expiry way. See Fastcgipp::Request::setloc().
 
 \code
-		setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
+		setloc(std::locale(getloc(), new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
 \endcode
 
 Now we do what needs to be done if we received valid session data.
@@ -1413,7 +1413,7 @@ class Session: public Fastcgipp::Request<char>
 		
 		const std::string& command=environment().findGet("command");
 		
-		setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
+		setloc(std::locale(getloc(), new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
 
 		if(session!=sessions.end())
 		{

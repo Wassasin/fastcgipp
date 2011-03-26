@@ -115,6 +115,24 @@ namespace Fastcgipp
 		 */
 		const boost::function<void(Message)>& callback() const { return m_callback; }
 
+		//! Set the requests locale
+		/*!
+		 * This function both sets loc to the locale passed to it and imbues the locale into the
+		 * out and err stream. The user should always call this function as opposed to setting the
+		 * locales directly is this functions insures the utf8 code conversion is functioning properly.
+		 *
+		 * @param[in] loc_ New locale
+		 * @sa loc
+		 * @sa out
+		 */
+		void setloc(std::locale loc_){ out.imbue(loc_); err.imbue(loc_); }
+
+		//! Retrieves the requests locale
+		/*!
+		 * \return Constant reference to the requests locale
+		 */
+		const std::locale& getloc(){ return loc; }
+
 	protected:
 		//! Response generator
 		/*!
@@ -140,9 +158,6 @@ namespace Fastcgipp
 		 */
 		virtual void inHandler(int bytesReceived) { };
 
-		//! The locale associated with the request. Should be set with setloc(), not directly.
-		std::locale loc;
-
 		//! The message associated with the current handler() call.
 		/*!
 		 * This is only of use to the library user when a non FastCGI (type=0) Message is passed
@@ -152,19 +167,10 @@ namespace Fastcgipp
 		 */
 		const Message& message() const { return m_message; }
 
-		//! Set the requests locale
-		/*!
-		 * This function both sets loc to the locale passed to it and imbues the locale into the
-		 * out and err stream. The user should always call this function as opposed to setting the
-		 * locales directly is this functions insures the utf8 code conversion is functioning properly.
-		 *
-		 * @param[in] loc_ New locale
-		 * @sa loc
-		 * @sa out
-		 */
-		void setloc(std::locale loc_){ out.imbue(loc_); err.imbue(loc_); }
-
 	private:
+		//! The locale associated with the request. Should be set with setloc(), not directly.
+		std::locale loc;
+
 		//! The message associated with the current handler() call.
 		/*!
 		 * This is only of use to the library user when a non FastCGI (type=0) Message is passed
