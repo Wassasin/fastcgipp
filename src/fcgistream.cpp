@@ -64,7 +64,7 @@ template<typename charT> template<typename Sink> std::streamsize Fastcgipp::Fcgi
 		const char andsym[]="%26";
 		std::copy(andsym, andsym+sizeof(andsym)-1, std::back_inserter(urlCharacters['&']));
 
-		const char at[]="%21";
+		const char at[]="%40";
 		std::copy(at, at+sizeof(at)-1, std::back_inserter(urlCharacters['@']));
 
 		const char colon[]="%3A";
@@ -94,7 +94,7 @@ template<typename charT> template<typename Sink> std::streamsize Fastcgipp::Fcgi
 		const char quot[]="%22";
 		std::copy(quot, quot+sizeof(quot)-1, std::back_inserter(urlCharacters['"']));
 
-		const char space[]="+";
+		const char space[]="%20";
 		std::copy(space, space+sizeof(space)-1, std::back_inserter(urlCharacters[' ']));
 
 		const char percent[]="%25";
