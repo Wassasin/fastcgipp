@@ -165,7 +165,7 @@ void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameter
 {
 	if(parameters)
 	{
-		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions[thread], paramsBindings[thread]);
+		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions[thread], paramsBindings[thread], paramOrder.size()?&paramOrder:0);
 		for(Data::Conversions::iterator it=paramsConversions[thread].begin(); it!=paramsConversions[thread].end(); ++it)
 			if(!(paramsBindings[thread][it->first].is_null && *paramsBindings[thread][it->first].is_null)) it->second->convertParam();
 		if(mysql_stmt_bind_param(stmt[thread], paramsBindings[thread].get())!=0) throw Error(stmt[thread]);
@@ -287,9 +287,8 @@ void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::
 
 	for(int i=0; i<bindSize; ++i)
 	{
-		Data::Index element;
-		if(order) element = set.getSqlIndex((*order)[i]);
-		else element = set.getSqlIndex(i);
+		const unsigned char index = order?(*order)[i]:i;
+		Data::Index element = set.getSqlIndex(index);
 
 		// Handle NULL
 		if(element.type>=U_TINY_N)
@@ -418,9 +417,8 @@ void ASql::MySQL::Statement::bindBindings(Data::Set& set, Data::Conversions& con
 	const int bindSize=order?order->size():set.numberOfSqlElements();
 	for(int i=0; i<bindSize; ++i)
 	{
-		Data::Index element;
-		if(order) element = set.getSqlIndex((*order)[i]);
-		else element = set.getSqlIndex(i);
+		const unsigned char index = order?(*order)[i]:i;
+		Data::Index element = set.getSqlIndex(index);
 
 		if(element.type >= Data::U_TINY_N)
 		{
