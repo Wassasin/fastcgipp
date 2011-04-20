@@ -19,6 +19,9 @@
 ****************************************************************************/
 
 
+#ifndef FCGISTREAM_HPP
+#define FCGISTREAM_HPP
+
 #include <iosfwd>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/categories.hpp>
@@ -260,3 +263,5 @@ namespace Fastcgipp
 
 	template<class charT, class Traits> std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const encoding& enc);
 }
+
+#endif
