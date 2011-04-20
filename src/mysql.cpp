@@ -505,7 +505,8 @@ template<class T> void ASql::MySQL::TypedConversion<T>::convertParam()
 	T& data = *(T*)external;
 
 	length = data.size();
-	buffer = &data[0];
+	if(length) buffer = &data[0];
+	else buffer=0;
 }
 
 void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
