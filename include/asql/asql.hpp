@@ -165,7 +165,7 @@ namespace ASql
 			const bool*& m_canceler;
 		public:
 			SetCanceler(const bool*& canceler, bool& dest): m_canceler(canceler) { canceler=&dest; }
-			~SetCanceler() { m_canceler=s_false; }			
+			~SetCanceler() { m_canceler=&s_false; }			
 		};
 
 	protected:
