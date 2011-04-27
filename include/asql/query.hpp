@@ -213,6 +213,13 @@ namespace ASql
 		 */
 		void* results() { return m_sharedData->m_results; }
 
+		//! Return a const void pointer to the result set.
+		/*!
+		 * Usually you would keep the original typed pointer around but if you
+		 * lost it for some reason you can use this and cast it.
+		 */
+		const void* results() const { return m_sharedData->m_results; }
+
 		//! Return a void pointer to the parameter set.
 		/*!
 		 * Usually you would keep the original typed pointer around but if you
@@ -412,6 +419,9 @@ namespace ASql
 		//! Returns a pointer to the result set
 		Results* results() { return static_cast<Results*>((ASql::Data::Set*)(QueryPar::results())); }
 
+		//! Returns a const pointer to the result set
+		const Results* results() const { return static_cast<const Results*>((const ASql::Data::Set*)(QueryPar::results())); }
+
 		//! Relinquishes control over the result set.
 		/*!
 		 * Calling this will disassociate the query object (and it's copies) from
@@ -490,6 +500,9 @@ namespace ASql
 		//! Returns a pointer to the result set container
 		Results* results() { return static_cast<Results*>((ASql::Data::SetContainer*)(QueryPar::results())); }
 
+		//! Returns a const pointer to the result set container
+		const Results* results() const { return static_cast<const Results*>((const ASql::Data::SetContainer*)(QueryPar::results())); }
+
 		//! Relinquishes control over the result set container.
 		/*!
 		 * Calling this will disassociate the query object (and it's copies) from
@@ -537,6 +550,9 @@ namespace ASql
 		//! Returns a pointer to the result set
 		Results* results() { return static_cast<Results*>((ASql::Data::Set*)(QueryPar::results())); }
 
+		//! Returns a const pointer to the result set
+		const Results* results() const { return static_cast<const Results*>((const ASql::Data::Set*)(QueryPar::results())); }
+
 		//! Relinquishes control over the result set.
 		/*!
 		 * Calling this will disassociate the query object (and it's copies) from
@@ -583,6 +599,9 @@ namespace ASql
 
 		//! Returns a pointer to the result set container
 		Results* results() { return static_cast<Results*>((ASql::Data::SetContainer*)(QueryPar::results())); }
+
+		//! Returns a const pointer to the result set container
+		const Results* results() const { return static_cast<const Results*>((const ASql::Data::SetContainer*)(QueryPar::results())); }
 
 		//! Relinquishes control over the result set container.
 		/*!
