@@ -439,7 +439,14 @@ void ASql::MySQL::Statement::bindBindings(Data::Set& set, Data::Conversions& con
 
 void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertResult()
 {
-	*(boost::posix_time::ptime*)external=boost::posix_time::ptime(boost::gregorian::date(internal.year, internal.month, internal.day), boost::posix_time::time_duration(internal.hour, internal.minute, internal.second));
+	try
+	{
+		*(boost::posix_time::ptime*)external=boost::posix_time::ptime(boost::gregorian::date(internal.year, internal.month, internal.day), boost::posix_time::time_duration(internal.hour, internal.minute, internal.second));
+	}
+	catch(...)
+	{
+		*(boost::posix_time::ptime*)external==boost::posix_time::not_a_date_time;
+	}
 }
 
 void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertParam()
@@ -455,7 +462,14 @@ void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertParam()
 
 void ASql::MySQL::TypedConversion<ASql::Data::Date>::convertResult()
 {
-	*(boost::gregorian::date*)external=boost::gregorian::date(internal.year, internal.month, internal.day);
+	try
+	{
+		*(boost::gregorian::date*)external=boost::gregorian::date(internal.year, internal.month, internal.day);
+	}
+	catch(...)
+	{
+		*(boost::gregorian::date*)external==boost::gregorian::date(boost::gregorian::not_a_date_time);
+	}
 }
 
 void ASql::MySQL::TypedConversion<ASql::Data::Date>::convertParam()
