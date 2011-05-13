@@ -113,6 +113,9 @@ namespace ASql
 	{
 	public:
 		int threads() const { return maxThreads; }
+
+		//! Return true if the handler is running
+		bool running() const { return m_threads; }
 	protected:
 		/** 
 		 * @brief Number of threads to pool for simultaneous queries.
