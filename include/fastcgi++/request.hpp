@@ -40,6 +40,8 @@
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
+	template<class T> class Manager;
+
 	//! %Request handling class
 	/*!
 	 * Derivations of this class will handle requests. This
@@ -168,6 +170,8 @@ namespace Fastcgipp
 		const Message& message() const { return m_message; }
 
 	private:
+		template<class T> friend class Manager;
+
 		//! The locale associated with the request. Should be set with setloc(), not directly.
 		std::locale loc;
 
@@ -221,7 +225,6 @@ namespace Fastcgipp
 		 * @sa callback
 		 */
 		bool handler();
-		template <class T> friend class Manager;
 		//! Pointer to the transceiver object that will send data to the other side
 		Transceiver* transceiver;
 		//! The role that the other side expects this request to play
