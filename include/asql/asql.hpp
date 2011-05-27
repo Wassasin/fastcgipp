@@ -296,7 +296,7 @@ template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 
 			queriesLock.lock();
 			QuerySet tmpQuerySet=querySet;
-			while(!querySet.m_commit)
+			while(!querySet.m_commit && queries[id].size())
 			{
 				tmpQuerySet=queries[id].front();
 				queries[id].pop();
