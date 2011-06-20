@@ -93,6 +93,10 @@ namespace Fastcgipp
 		 * @sa signalHandler()
 		 */
 		void setupSignals();
+
+		//! Tells you the size of the message queue
+		size_t getMessagesSize() const { return messages.size(); }
+
 	protected:
 		//! Handles low level communication with the other side
 		Transceiver transceiver;
@@ -219,6 +223,9 @@ namespace Fastcgipp
 		 * @sa Request::callback
 		 */
 		void push(Protocol::FullId id, Message message);
+
+		//! Return the amount of pending requests
+		size_t getRequestsSize() const { return requests.size(); }
 	private:
 		//! Associative container type for active requests
 		/*!

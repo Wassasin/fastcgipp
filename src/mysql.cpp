@@ -570,8 +570,8 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertParam()
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::start();
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::terminate();
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::intHandler(unsigned int id);
-template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(ASql::MySQL::Statement* const& statement, QueryPar& query);
-template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(Transaction<ASql::MySQL::Statement>& transaction);
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(ASql::MySQL::Statement* const& statement, QueryPar& query, int instance);
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(Transaction<ASql::MySQL::Statement>& transaction, int instance);
 template void ASql::Transaction<ASql::MySQL::Statement>::cancel();
 
 
