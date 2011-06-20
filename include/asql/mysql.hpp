@@ -288,9 +288,9 @@ namespace ASql
 			 *
 			 * \param[in/out] QueryPar object to manage the asynchronous execution of the query.
 			 */
-			inline void queue(QueryPar& query)
+			inline void queue(QueryPar& query, int instance=-1)
 			{
-				connection.queue(this, query);
+				connection.queue(this, query, instance);
 			}
 		private:
 			Connection& connection;
