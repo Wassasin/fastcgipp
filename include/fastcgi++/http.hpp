@@ -64,20 +64,30 @@ namespace Fastcgipp
 			std::basic_string<charT>& filename;
 			//! Content Type if type=file
 			std::basic_string<charT> contentType;
-			//! Pointer to file data
-			boost::shared_array<char> data;
-			//! Size of data in bytes pointed to by data.
-			size_t size;
 
-			Post(): filename(value) {}
+			//! Pointer to file data
+			const char* data() const { return m_data; }
+			//! Size of file data
+			size_t size() const { return m_size; }
+			//! Expropriates the file data. Beyond this you must free it when done
+			char* steal() const { char* ptr=m_data; m_data=0; m_size=0; return ptr; }
+
+			Post(): filename(value), m_data(0), m_size(0) {}
 			Post(const Post& x):
 				type(x.type),
 				value(x.value),
 				filename(value),
 				contentType(x.contentType),
-				data(x.data),
-				size(x.size)
+				m_size(x.m_size),
+				m_data(x.steal())
 			{}
+			~Post() { delete [] m_data; }
+		private:
+			//! Pointer to file data
+			mutable char* m_data;
+			//! Size of data in bytes pointed to by data.
+			mutable size_t m_size;
+			template<class T> friend class Environment;
 		};
 
 		//! The HTTP request method as an enumeration
@@ -220,14 +230,40 @@ namespace Fastcgipp
 			typedef std::map<std::basic_string<charT>, std::basic_string<charT> > Gets;
 			//! Container with all url-encoded GET data
 			Gets gets;
+
 			//! Quick and easy way to find a GET value
+			/*!
+			 * \param[in] key C-string representation of the name of the GET value you want
+			 * \return Constant reference to the string representation of the GET value. If the
+			 * GET value does not exist this will return an empty string;
+			 */
 			const std::basic_string<charT>& findGet(const charT* key) const;
+
+			//! Quick and easy way to check if a GET value exists.
+			/*!
+			 * \param[in] key C-string representation of the name of the GET value you want
+			 * \return True if the value was passed from the client, false otherwise.
+			 */
+			bool checkForGet(const charT* key) const;
 
 			typedef std::map<std::basic_string<charT>, Post<charT> > Posts;
 			//! STL container associating Post objects with their name
 			Posts posts;
+
 			//! Quick and easy way to find a POST value
+			/*!
+			 * \param[in] key C-string representation of the name of the POST value you want
+			 * \return Constant reference to the Post object created for the POST value. If the
+			 * POST value does not exist this will return a default constructed Post object.
+			 */
 			const Post<charT>& findPost(const charT* key) const;
+
+			//! Quick and easy way to check if a POST value exists.
+			/*!
+			 * \param[in] key C-string representation of the name of the POST value you want
+			 * \return True if the value was passed from the client, false otherwise.
+			 */
+			bool checkForPost(const charT* key) const;
 
 			//! Parses FastCGI parameter data into the data structure
 			/*!

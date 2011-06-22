@@ -19,6 +19,7 @@ libfastcgipp_la_SOURCES = \
 	request.cpp \
 	manager.cpp \
 	transceiver.cpp \
+	fcgistream.cpp \
 	utf8_codecvt_facet.cpp
 
 if HAVE_MYSQL_H

@@ -21,6 +21,7 @@
 
 #include <asql/mysql.hpp>
 #include <utf8_codecvt.hpp>
+#include <cstdlib>
 
 void ASql::MySQL::Connection::connect(const char* host, const char* user, const char* passwd, const char* db, unsigned int port, const char* unix_socket, unsigned long client_flag, const char* const charset)
 {
@@ -93,13 +94,54 @@ void ASql::MySQL::Connection::getFoundRows(unsigned long long* const& rows, cons
 
 }
 
-void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet)
+void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& queryLength, const Data::Set* const parameterSet, const Data::Set* const resultSet, bool customPlaceholders)
 {
 	if(m_initialized)
 	{
 		for(unsigned int i=0; i<connection.threads(); ++i)
 			mysql_stmt_close(stmt[i]);
 		m_initialized = false;
+	}
+
+	const char* realQueryString = queryString;
+	size_t realQueryLength = queryLength;
+	boost::scoped_array<char> buffer;
+
+	if(customPlaceholders)
+	{
+		buffer.reset(new char[queryLength]);
+		std::memset(buffer.get(), 0, queryLength);
+		realQueryString = buffer.get();
+		realQueryLength = 0;
+
+		char intBuffer[4];
+		size_t intBufferSize=0;
+		std::memset(intBuffer, 0, sizeof(intBuffer));
+		bool inPlaceholder = false;
+
+		for(const char* it=queryString; it != queryString+queryLength; ++it)
+		{
+			if(inPlaceholder && '0' <= *it && *it <= '9' && intBufferSize < sizeof(intBuffer)-1)
+			{
+				intBuffer[intBufferSize++] = *it;
+				continue;
+			}
+
+			if(inPlaceholder)
+			{
+				paramOrder.push_back(std::atoi(intBuffer));
+
+				intBufferSize=0;
+				std::memset(intBuffer, 0, sizeof(intBuffer));
+				inPlaceholder = false;
+			}
+
+			if(*it == '?') inPlaceholder = true;
+
+			buffer[realQueryLength++] = *it;
+		}
+
+		if(inPlaceholder) paramOrder.push_back(std::atoi(intBuffer));
 	}
 	
 	for(unsigned int i=0; i<connection.threads(); ++i)
@@ -109,10 +151,10 @@ void ASql::MySQL::Statement::init(const char* const& queryString, const size_t& 
 		if(!stmt)
 			throw Error(&connection.connection(i));
 
-		if(mysql_stmt_prepare(stmt[i], queryString, queryLength))
+		if(mysql_stmt_prepare(stmt[i], realQueryString, realQueryLength))
 			throw Error(stmt[i]);
 
-		if(parameterSet) buildBindings(stmt[i], *parameterSet, paramsConversions[i], paramsBindings[i]);
+		if(parameterSet) buildBindings(stmt[i], *parameterSet, paramsConversions[i], paramsBindings[i], paramOrder.size()?&paramOrder:0);
 		if(resultSet) buildBindings(stmt[i], *resultSet, resultsConversions[i], resultsBindings[i]);
 	}
 
@@ -123,7 +165,7 @@ void ASql::MySQL::Statement::executeParameters(const Data::Set* const& parameter
 {
 	if(parameters)
 	{
-		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions[thread], paramsBindings[thread]);
+		bindBindings(*const_cast<Data::Set*>(parameters), paramsConversions[thread], paramsBindings[thread], paramOrder.size()?&paramOrder:0);
 		for(Data::Conversions::iterator it=paramsConversions[thread].begin(); it!=paramsConversions[thread].end(); ++it)
 			if(!(paramsBindings[thread][it->first].is_null && *paramsBindings[thread][it->first].is_null)) it->second->convertParam();
 		if(mysql_stmt_bind_param(stmt[thread], paramsBindings[thread].get())!=0) throw Error(stmt[thread]);
@@ -231,13 +273,13 @@ void ASql::MySQL::Statement::execute(const Data::SetContainer& parameters, unsig
 	mysql_stmt_reset(stmt[thread]);
 }
 
-void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::Data::Set& set, ASql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
+void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::Data::Set& set, ASql::Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings, const std::deque<unsigned char>* order)
 {
 	using namespace Data;
 	
 	conversions.clear();
 
-	const int& bindSize=set.numberOfSqlElements();
+	const int bindSize=order?order->size():set.numberOfSqlElements();
 	if(!bindSize) return;
 	bindings.reset(new MYSQL_BIND[bindSize]);
 
@@ -245,7 +287,8 @@ void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::
 
 	for(int i=0; i<bindSize; ++i)
 	{
-		Index element(set.getSqlIndex(i));
+		const unsigned char index = order?(*order)[i]:i;
+		Data::Index element = set.getSqlIndex(index);
 
 		// Handle NULL
 		if(element.type>=U_TINY_N)
@@ -369,12 +412,14 @@ void ASql::MySQL::Statement::buildBindings(MYSQL_STMT* const& stmt, const ASql::
 	}
 }
 
-void ASql::MySQL::Statement::bindBindings(Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings)
+void ASql::MySQL::Statement::bindBindings(Data::Set& set, Data::Conversions& conversions, boost::scoped_array<MYSQL_BIND>& bindings, const std::deque<unsigned char>* order)
 {
-	int bindSize=set.numberOfSqlElements();
+	const int bindSize=order?order->size():set.numberOfSqlElements();
 	for(int i=0; i<bindSize; ++i)
 	{
-		Data::Index element(set.getSqlIndex(i));
+		const unsigned char index = order?(*order)[i]:i;
+		Data::Index element = set.getSqlIndex(index);
+
 		if(element.type >= Data::U_TINY_N)
 		{
 			bindings[i].is_null = (my_bool*)&((Data::NullablePar*)element.data)->nullness;
@@ -394,7 +439,14 @@ void ASql::MySQL::Statement::bindBindings(Data::Set& set, Data::Conversions& con
 
 void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertResult()
 {
-	*(boost::posix_time::ptime*)external=boost::posix_time::ptime(boost::gregorian::date(internal.year, internal.month, internal.day), boost::posix_time::time_duration(internal.hour, internal.minute, internal.second));
+	try
+	{
+		*(boost::posix_time::ptime*)external=boost::posix_time::ptime(boost::gregorian::date(internal.year, internal.month, internal.day), boost::posix_time::time_duration(internal.hour, internal.minute, internal.second));
+	}
+	catch(...)
+	{
+		*(boost::posix_time::ptime*)external==boost::posix_time::not_a_date_time;
+	}
 }
 
 void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertParam()
@@ -410,7 +462,14 @@ void ASql::MySQL::TypedConversion<ASql::Data::Datetime>::convertParam()
 
 void ASql::MySQL::TypedConversion<ASql::Data::Date>::convertResult()
 {
-	*(boost::gregorian::date*)external=boost::gregorian::date(internal.year, internal.month, internal.day);
+	try
+	{
+		*(boost::gregorian::date*)external=boost::gregorian::date(internal.year, internal.month, internal.day);
+	}
+	catch(...)
+	{
+		*(boost::gregorian::date*)external==boost::gregorian::date(boost::gregorian::not_a_date_time);
+	}
 }
 
 void ASql::MySQL::TypedConversion<ASql::Data::Date>::convertParam()
@@ -460,13 +519,15 @@ template<class T> void ASql::MySQL::TypedConversion<T>::convertParam()
 	T& data = *(T*)external;
 
 	length = data.size();
-	buffer = &data[0];
+	if(length) buffer = &data[0];
+	else buffer=0;
 }
 
 void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertResult()
 {
 	std::vector<char>& conversionBuffer = inputBuffer;
-	grabIt(Data::VectorBlob(conversionBuffer).blobify());
+	Data::VectorBlob blob(inputBuffer);
+	grabIt(blob);
 
 	std::wstring& output = *(std::wstring*)external;
 	output.resize(conversionBuffer.size());
@@ -509,8 +570,8 @@ void ASql::MySQL::TypedConversion<ASql::Data::Wtext>::convertParam()
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::start();
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::terminate();
 template void ASql::ConnectionPar<ASql::MySQL::Statement>::intHandler(unsigned int id);
-template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(ASql::MySQL::Statement* const& statement, QueryPar& query);
-template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(Transaction<ASql::MySQL::Statement>& transaction);
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(ASql::MySQL::Statement* const& statement, QueryPar& query, int instance);
+template void ASql::ConnectionPar<ASql::MySQL::Statement>::queue(Transaction<ASql::MySQL::Statement>& transaction, int instance);
 template void ASql::Transaction<ASql::MySQL::Statement>::cancel();
 
 

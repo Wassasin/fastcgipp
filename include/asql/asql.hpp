@@ -103,7 +103,7 @@ namespace ASql
 		/** 
 		 * @brief Initiate the transaction.
 		 */
-		void start() { m_items.front().m_statement->connection.queue(*this); }
+		void start(int instance=-1) { m_items.front().m_statement->connection.queue(*this, instance); }
 	};
 
 	/** 
@@ -112,7 +112,11 @@ namespace ASql
 	class Connection
 	{
 	public:
+		//! Returns the number of threads
 		int threads() const { return maxThreads; }
+
+		//! Return true if the handler is running
+		bool running() const { return m_threads; }
 	protected:
 		/** 
 		 * @brief Number of threads to pool for simultaneous queries.
@@ -165,12 +169,15 @@ namespace ASql
 			const bool*& m_canceler;
 		public:
 			SetCanceler(const bool*& canceler, bool& dest): m_canceler(canceler) { canceler=&dest; }
-			~SetCanceler() { m_canceler=s_false; }			
+			~SetCanceler() { m_canceler=&s_false; }			
 		};
 
 	protected:
 		ConnectionPar(const int maxThreads_): Connection(maxThreads_), queries(new Queries[maxThreads_]) {}
 	public:
+		//! Returns the number of queued queries
+		int queriesSize() const; 
+
 		/** 
 		 * @brief Start all threads of the handler
 		 */
@@ -182,8 +189,8 @@ namespace ASql
 		/** 
 		 * @brief Queue up a transaction for completion
 		 */
-		void queue(Transaction<T>& transaction);
-		inline void queue(T* const& statement, QueryPar& query);
+		void queue(Transaction<T>& transaction, int instance);
+		inline void queue(T* const& statement, QueryPar& query, int instance);
 
 		static const bool s_false;
 	};	
@@ -293,7 +300,7 @@ template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 
 			queriesLock.lock();
 			QuerySet tmpQuerySet=querySet;
-			while(!querySet.m_commit)
+			while(!querySet.m_commit && queries[id].size())
 			{
 				tmpQuerySet=queries[id].front();
 				queries[id].pop();
@@ -314,16 +321,18 @@ template<class T> void ASql::ConnectionPar<T>::intHandler(const unsigned int id)
 	threadsChanged.notify_one();
 }
 
-
-template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, QueryPar& query)
+template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, QueryPar& query, int instance)
 {
-	unsigned int instance=0;
-	for(unsigned int i=1; i<threads(); ++i)
-	{{
-		boost::lock_guard<boost::mutex> queriesLock(queries[i]);
-		if(queries[i].size() < queries[instance].size())
-			instance=i;
-	}}
+	if(instance == -1)
+	{
+		instance=0;
+		for(unsigned int i=1; i<threads(); ++i)
+		{{
+			boost::lock_guard<boost::mutex> queriesLock(queries[i]);
+			if(queries[i].size() < queries[instance].size())
+				instance=i;
+		}}
+	}
 
 	boost::lock_guard<boost::mutex> queriesLock(queries[instance]);
 	queries[instance].push(QuerySet(query, statement, true));
@@ -332,15 +341,18 @@ template<class T> void ASql::ConnectionPar<T>::queue(T* const& statement, QueryP
 
 template<class T> const bool ASql::ConnectionPar<T>::s_false = false;
 
-template<class T> void ASql::ConnectionPar<T>::queue(Transaction<T>& transaction)
+template<class T> void ASql::ConnectionPar<T>::queue(Transaction<T>& transaction, int instance)
 {
-	unsigned int instance=0;
-	for(unsigned int i=1; i<threads(); ++i)
-	{{
-		boost::lock_guard<boost::mutex> queriesLock(queries[i]);
-		if(queries[i].size() < queries[instance].size())
-			instance=i;
-	}}
+	if(instance == -1)
+	{
+		instance=0;
+		for(unsigned int i=1; i<threads(); ++i)
+		{{
+			boost::lock_guard<boost::mutex> queriesLock(queries[i]);
+			if(queries[i].size() < queries[instance].size())
+				instance=i;
+		}}
+	}
 
 	boost::lock_guard<boost::mutex> queriesLock(queries[instance]);
 
@@ -355,6 +367,18 @@ template<class T> void ASql::Transaction<T>::cancel()
 {
 	for(iterator it=begin(); it!=end(); ++it)
 		it->m_query.cancel();
+}
+
+template<class T> int ASql::ConnectionPar<T>::queriesSize() const
+{
+	int size=0;
+	for(unsigned int i=1; i<threads(); ++i)
+	{{
+		boost::lock_guard<boost::mutex> queriesLock(queries[i]);
+		size += queries[i].size();
+	}}
+	
+	return size;
 }
 
 #endif

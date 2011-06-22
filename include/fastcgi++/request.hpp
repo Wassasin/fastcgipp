@@ -31,15 +31,17 @@
 #include <boost/thread.hpp>
 #include <boost/function.hpp>
 
+#include <fastcgi++/transceiver.hpp>
 #include <fastcgi++/protocol.hpp>
 #include <fastcgi++/exceptions.hpp>
-#include <fastcgi++/transceiver.hpp>
 #include <fastcgi++/fcgistream.hpp>
 #include <fastcgi++/http.hpp>
 
 //! Topmost namespace for the fastcgi++ library
 namespace Fastcgipp
 {
+	template<class T> class Manager;
+
 	//! %Request handling class
 	/*!
 	 * Derivations of this class will handle requests. This
@@ -54,13 +56,18 @@ namespace Fastcgipp
 	 * a 8bit character set encoding pass char as the template argument and
 	 * setloc() a locale with the corresponding character set.
 	 *
-	 * @tparam charT Character type for internal processing (wchar_t or char)
+	 * \tparam charT Character type for internal processing (wchar_t or char)
 	 */
 	template<class charT> class Request
 	{
 	public:
 		//! Initializes what it can. set() must be called by Manager before the data is usable.
-		Request(): state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
+		/*!
+		 * \param maxPostSize This would be the maximum size you want to allow for
+		 * post data. Any data beyond this size would result in a call to
+		 * bigPostErrorHandler(). A value of 0 represents unlimited.
+		 */
+		Request(const size_t maxPostSize=0): state(Protocol::PARAMS), m_maxPostSize(maxPostSize), m_postSize(0)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
 
 		//! Accessor for  the data structure containing all HTTP environment data
 		const Http::Environment<charT>& environment() const { return m_environment; }
@@ -72,13 +79,13 @@ namespace Fastcgipp
 		/*!
 		 * To dump data directly through the stream without it being code converted and bypassing the stream buffer call Fcgistream::dump()
 		 */
-		Fcgistream<charT, std::char_traits<charT> > out;
+		Fcgistream<charT> out;
 
 		//! Output stream to the HTTP server error log
 		/*!
 		 * To dump data directly through the stream without it being code converted and bypassing the stream buffer call Fcgistream::dump()
 		 */
-		Fcgistream<charT, std::char_traits<charT> > err;
+		Fcgistream<charT> err;
 
 		//! Called when an exception is caught.
 		/*!
@@ -89,6 +96,9 @@ namespace Fastcgipp
 		 * @param[in] error Exception caught
 		 */
 		virtual void errorHandler(const std::exception& error);
+
+		//! Called when too much post data is recieved.
+		virtual void bigPostErrorHandler();
 
 		//! See the requests role
 		Protocol::Role role() const { return m_role; }
@@ -106,6 +116,24 @@ namespace Fastcgipp
 		 *	and the raw castable data.
 		 */
 		const boost::function<void(Message)>& callback() const { return m_callback; }
+
+		//! Set the requests locale
+		/*!
+		 * This function both sets loc to the locale passed to it and imbues the locale into the
+		 * out and err stream. The user should always call this function as opposed to setting the
+		 * locales directly is this functions insures the utf8 code conversion is functioning properly.
+		 *
+		 * @param[in] loc_ New locale
+		 * @sa loc
+		 * @sa out
+		 */
+		void setloc(std::locale loc_){ out.imbue(loc_); err.imbue(loc_); }
+
+		//! Retrieves the requests locale
+		/*!
+		 * \return Constant reference to the requests locale
+		 */
+		const std::locale& getloc(){ return loc; }
 
 	protected:
 		//! Response generator
@@ -132,9 +160,6 @@ namespace Fastcgipp
 		 */
 		virtual void inHandler(int bytesReceived) { };
 
-		//! The locale associated with the request. Should be set with setloc(), not directly.
-		std::locale loc;
-
 		//! The message associated with the current handler() call.
 		/*!
 		 * This is only of use to the library user when a non FastCGI (type=0) Message is passed
@@ -144,19 +169,12 @@ namespace Fastcgipp
 		 */
 		const Message& message() const { return m_message; }
 
-		//! Set the requests locale
-		/*!
-		 * This function both sets loc to the locale passed to it and imbues the locale into the
-		 * out and err stream. The user should always call this function as opposed to setting the
-		 * locales directly is this functions insures the utf8 code conversion is functioning properly.
-		 *
-		 * @param[in] loc_ New locale
-		 * @sa loc
-		 * @sa out
-		 */
-		void setloc(std::locale loc_);
-
 	private:
+		template<class T> friend class Manager;
+
+		//! The locale associated with the request. Should be set with setloc(), not directly.
+		std::locale loc;
+
 		//! The message associated with the current handler() call.
 		/*!
 		 * This is only of use to the library user when a non FastCGI (type=0) Message is passed
@@ -192,6 +210,12 @@ namespace Fastcgipp
 		//! A queue of messages to be handler by the request
 		Messages messages;
 
+		//! The maximum amount of post data that can be recieved
+		const size_t m_maxPostSize;
+
+		//! Keeps track of how much POST data has been recieved
+		size_t m_postSize;
+
 		//! Request Handler
 		/*!
 		 * This function is called by Manager::handler() to handle messages destined for the request.
@@ -201,7 +225,6 @@ namespace Fastcgipp
 		 * @sa callback
 		 */
 		bool handler();
-		template <class T> friend class Manager;
 		//! Pointer to the transceiver object that will send data to the other side
 		Transceiver* transceiver;
 		//! The role that the other side expects this request to play

@@ -84,10 +84,9 @@ namespace ASql
 		{
 			NullablePar(bool _nullness): nullness(_nullness) { }
 			bool nullness;
-			/** 
-			 * @brief Retrieve a void pointer to the object contained in the class.
-			 * 
-			 * @return Void pointer to the object contained in the class.
+			//! Retrieve a void pointer to the object contained in the class.
+			/*! 
+			 * \return Void pointer to the object contained in the class.
 			 */
 			virtual void* getVoid() =0;
 		};
@@ -152,7 +151,6 @@ namespace ASql
 			virtual size_t size() const =0;
 			virtual void resize(const size_t size) =0;
 			virtual char& operator[](const size_t index) =0;
-			Blob& blobify() { return *this; }
 		};
 		struct VectorBlob: public Blob
 		{
@@ -236,8 +234,8 @@ namespace ASql
 			bool operator==(const Index& x) { return type==x.type && data==x.data && size==x.size; }
 		};
 
-		/** 
-		 * @brief Base data set class for communicating parameters and results with SQL queries.
+		/*! 
+		//! Base data set class for communicating parameters and results with SQL queries.
 		 *
 		 * Note that in most cases you are better off using one the following templated wrapper classes 
 		 * to associate you data set with ASql. This eliminates the overhead of virtual functions from
@@ -339,90 +337,74 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 		 * be stored as a binary data array. Be sure to examine the constructors for Index. For a default
 		 * it is best to return a default constructed Index object.
 		 *
-		 * @sa ASql::Data::Nullable
+		 * \sa ASql::Data::Nullable
 		 */
 		struct Set
 		{
-			/** 
-			 * @brief Get total number of indexable data members.
-			 * 
-			 * @return Total number of indexable data members.
+			//! Get total number of indexable data members.
+			/*! 
+			 * \return Total number of indexable data members.
 			 */
 			virtual size_t numberOfSqlElements() const =0;
 
-			/** 
-			 * @brief Get constant void pointer to member data.
-			 *
+			//! Get constant void pointer to member data.
+			/*! 
 			 * Because of the implicit constructors in Index, for most types it suffices to just return the
 			 * member object itself. 
 			 * 
-			 * @param[in] index index Index number for member, starting at 0.
+			 * \param[in] index index Index number for member, starting at 0.
 			 * 
-			 * @return Constant void pointer to member data.
+			 * \return Constant void pointer to member data.
 			 */
 			virtual Index getSqlIndex(const size_t index) const =0; 
 
 			virtual ~Set() {}
 		};
 
-		/** 
-		 * @brief Wraps a Set object around an new auto-allocated dataset of type T
-		 *
-		 * @tparam T object type to create. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		//! Wraps a Set object around an new auto-allocated dataset of type T
+		/*! 
+		 * \tparam T object type to create. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
 		 * per the instruction in Data::Set.
 		 */
 		template<class T> class SetBuilder: public Set
 		{
 		public:
-			/** 
-			 * @brief Dataset object of type T that the Set is wrapped around. This is your object.
-			 */
+			//! Dataset object of type T that the Set is wrapped around. This is your object.
 			T data;
+			SetBuilder() {}
 		private:
-			/** 
-			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
-			 */
+			//! Wrapper function for the %numberOfSqlElements() function in the data object.
 			virtual size_t numberOfSqlElements() const { return data.numberOfSqlElements(); }
-			/** 
-			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
-			 */
+			//! Wrapper function for the %getSqlIndex() function in the data object.
 			virtual Index getSqlIndex(const size_t index) const { return data.getSqlIndex(index); }
 		};
 
-		/** 
-		 * @brief Wraps a Set object around a reference to a dataset of type T
-		 *
-		 * @tparam T object type to reference to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		//! Wraps a Set object around a reference to a dataset of type T
+		/*! 
+		 * \tparam T object type to reference to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
 		 * per the instruction in Data::Set.
 		 */
 		template<class T> class SetRefBuilder: public Set
 		{
-			/** 
-			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
-			 */
+			//! Wrapper function for the %numberOfSqlElements() function in the data object.
 			virtual size_t numberOfSqlElements() const { return m_data.numberOfSqlElements(); }
-			/** 
-			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
-			 */
+			//! Wrapper function for the %getSqlIndex() function in the data object.
 			virtual Index getSqlIndex(const size_t index) const { return m_data.getSqlIndex(index); }
-			/** 
-			 * @brief Reference to the dataset
-			 */
+			//! Reference to the dataset
 			const T& m_data;
 		public:
-			/** 
-			 * @param x Reference to the dataset of type T to reference to.
+			/*! 
+			 * \param x Reference to the dataset of type T to reference to.
 			 */
 			inline SetRefBuilder(const T& x): m_data(x) {}
 		};
 
-		/** 
-		 * @brief Wraps a Set object around a pointer to a dataset of type T
-		 *
+		//! Wraps a Set object around a pointer to a dataset of type T
+		/*! 
 		 * This has the one advantage over SetRefBuilder in that the dataset pointed to can be changed with destroying/rebuilding
 		 * wrapper object.
 		 *
-		 * @tparam T object type to point to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		 * \tparam T object type to point to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
 		 * per the instruction in Data::Set.
 		 */
 		template<class T> class SetPtrBuilder: public Set
@@ -454,80 +436,60 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			operator bool() const { return m_data; }
 		};
 
-		/** 
-		 * @brief Wraps a Set object around a shared pointer to a dataset of type T
-		 *
+		//! Wraps a Set object around a shared pointer to a dataset of type T
+		/*! 
 		 * This has the one advantage over SetRefBuilder in that the dataset pointed to can be changed with destroying/rebuilding
 		 * wrapper object and SetPtrBuilder in that the pointer can be shared.
 		 *
-		 * @tparam T object type to point to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
+		 * \tparam T object type to point to. Must have %numberOfSqlElements() and  %getSqlIndex() function defined as
 		 * per the instruction in Data::Set.
 		 */
 		template<class T> class SetSharedPtrBuilder: public Set
 		{
-			/** 
-			 * @brief Wrapper function for the %numberOfSqlElements() function in the data object.
-			 */
+			//! Wrapper function for the %numberOfSqlElements() function in the data object.
 			virtual size_t numberOfSqlElements() const { return data->numberOfSqlElements(); }
-			/** 
-			 * @brief Wrapper function for the %getSqlIndex() function in the data object.
-			 */
+			//! Wrapper function for the %getSqlIndex() function in the data object.
 		public:
 			virtual Index getSqlIndex(const size_t index) const { return data->getSqlIndex(index); }
 			inline SetSharedPtrBuilder() {}
 			inline SetSharedPtrBuilder(const boost::shared_ptr<T>& x): data(x) {}
 			inline SetSharedPtrBuilder(SetSharedPtrBuilder& x): data(x.data) {}
-			/** 
-			 * @brief Shared pointer to the dataset
-			 */
+			//! Shared pointer to the dataset
 			boost::shared_ptr<T> data;
 		};
 
-		/** 
-		 * @brief Wraps a Set object around an new auto-allocated individual object of type T
-		 *
-		 * @tparam T object type to create.
+		//! Wraps a Set object around an new auto-allocated individual object of type T
+		/*! 
+		 * \tparam T object type to create.
 		 */
 		template<class T> class IndySetBuilder: public Set
 		{
 		public:
-			/** 
-			 * @brief Object of type T that the Set is wrapped around. This is your object.
-			 */
+			//! Object of type T that the Set is wrapped around. This is your object.
 			T data;
+			IndySetBuilder() {}
 		private:
-			/** 
-			 * @brief Returns 1 as it is an individual container
-			 */
+			//! Returns 1 as it is an individual container
 			virtual size_t numberOfSqlElements() const { return 1; }
-			/** 
-			 * @brief Just returns an index to data.
-			 */
+			//! Just returns an index to data.
 			virtual Index getSqlIndex(const size_t index) const { return data; }
 		};
 
-		/** 
-		 * @brief Wraps a Set object around a reference to an individual object of type T
-		 *
-		 * @tparam T object type to create.
+		//! Wraps a Set object around a reference to an individual object of type T
+		/*! 
+		 * \tparam T object type to create.
 		 */
 		template<class T> class IndySetRefBuilder: public Set
 		{
-			/** 
-			 * @brief Object of type T that the Set is wrapped around. This is your object.
-			 */
+			//! Object of type T that the Set is wrapped around. This is your object.
 			const T& data;
-			/** 
-			 * @brief Returns 1 as it is an individual container
-			 */
+			//! Returns 1 as it is an individual container
 			virtual size_t numberOfSqlElements() const { return 1; }
-			/** 
-			 * @brief Just returns an index to data.
-			 */
+			//! Just returns an index to data.
 			virtual Index getSqlIndex(const size_t index) const { return data; }
 		public:
-			/** 
-			 * @param x Reference to the object of type T to reference to.
+			/*! 
+			 * \param x Reference to the object of type T to reference to.
 			 */
 			inline IndySetRefBuilder(const T& x): data(x) {}
 		};
@@ -565,39 +527,31 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			operator bool() const { return m_data; }
 		};
 
-		/** 
-		 * @brief Base class for containers of Data::Set objects to be used for result/parameter data in SQL queries.
-		 */
+		//! Base class for containers of Data::Set objects to be used for result/parameter data in SQL queries.
 		struct SetContainer
 		{
-			/** 
-			 * @brief Appends a row to the container and returns a reference to it.
-			 */
+			//! Appends a row to the container and returns a reference to it.
 			virtual Set& manufacture() =0;
-			/** 
-			 * @brief Pop a row off the end of the container.
-			 */
+			//! Pop a row off the end of the container.
 			virtual void trim() =0;
 			virtual ~SetContainer() {}
-			/** 
-			 * @brief Get a row from the front and move on to the next row.
-			 * 
-			 * @return This function should return a pointer to the row or null if at the end.
+			//! Get a row from the front and move on to the next row.
+			/*! 
+			 * \return This function should return a pointer to the row or null if at the end.
 			 */
 			virtual const Set* pull() const =0;
 			virtual void init() const =0;
 		};
 
-		/** 
-		 * @brief Wraps a SetContainer object around a new auto-allocated STL container of type T
-		 *
+		//! Wraps a SetContainer object around a new auto-allocated STL container of type T
+		/*! 
 		 * This class defines a basic container for types that can be wrapped by the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order to
 		 *	function the passed container type must have the following member functions
 		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
 		 *	instructions there.
 		 *
-		 *	@tparam Container type. Must be sequential.
+		 *	\tparam Container type. Must be sequential.
 		 */
 		template<class T> class STLSetContainer: public SetContainer
 		{
@@ -618,24 +572,21 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 				return &m_buffer;
 			}
 		public:
-			 /** 
-			 * @brief STL container object of type T that the SetContainer is wrapped around. This is your object.
-			 */
+			//! STL container object of type T that the SetContainer is wrapped around. This is your object.
 			T data;
 			void init() const {  m_itBuffer = const_cast<T&>(data).begin(); }
 			STLSetContainer(): m_itBuffer(data.begin()) {}
 		};
 	
-		/** 
-		 * @brief Wraps a SetContainer object around a new auto-allocated STL container of type T
-		 *
+		//! Wraps a SetContainer object around a new auto-allocated STL container of type T
+		/*! 
 		 * This class defines a basic container for types that can be wrapped by the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order to
 		 *	function the passed container type must have the following member functions
 		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
 		 *	instructions there.
 		 *
-		 *	@tparam Container type. Must be sequential.
+		 *	\tparam Container type. Must be sequential.
 		 */
 		template<class T> class IndySTLSetContainer: public SetContainer
 		{
@@ -662,16 +613,15 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			IndySTLSetContainer(): m_itBuffer(data.begin()) {}
 		};
 	
-		/** 
-		 * @brief Wraps a SetContainer object around a reference to an STL container of type T
-		 *
+		//! Wraps a SetContainer object around a reference to an STL container of type T
+		/*! 
 		 * This class defines a basic container for types that can be wrapped by the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order to
 		 *	function the passed container type must have the following member functions
 		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
 		 *	instructions there.
 		 *
-		 *	@tparam Container type. Must be sequential.
+		 *	\tparam Container type. Must be sequential.
 		 */
 		template<class T> class STLSetRefContainer: public SetContainer
 		{
@@ -694,22 +644,21 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 			}
 		public:
 			void init() const {  m_itBuffer = const_cast<T&>(data).begin(); }
-			/** 
-			 * @param x Reference to the STL container of type T to reference to.
+			/*! 
+			 * \param x Reference to the STL container of type T to reference to.
 			 */
 			STLSetRefContainer(T& x): data(x), m_itBuffer(data.begin()) {}
 		};
 	
-		/** 
-		 * @brief Wraps a SetContainer object around a shared pointer to an STL container of type T
-		 *
+		//! Wraps a SetContainer object around a shared pointer to an STL container of type T
+		/*! 
 		 * This class defines a basic container for types that can be wrapped by the Set class.
 		 *	It is intended for retrieving multi-row results from SQL queries. In order to
 		 *	function the passed container type must have the following member functions
 		 *	push_back(), back(), pop_back() and it's content type must be wrappable by Set as per the
 		 *	instructions there.
 		 *
-		 *	@tparam Container type. Must be sequential.
+		 *	\tparam Container type. Must be sequential.
 		 */
 		template<class T> class STLSharedSetContainer: public SetContainer
 		{
@@ -730,40 +679,29 @@ typedef ASql::Data::SetContainer<std::deque<TestSet> > FunctionalTestContainer;
 				return &m_buffer;
 			}
 		public:
-			/** 
-			 * @brief Shared pointer to the STL container
-			 */
+			//! Shared pointer to the STL container
 			boost::shared_ptr<T> data;
 			STLSharedSetContainer(const boost::shared_ptr<T>& x): data(x) {}
 			STLSharedSetContainer(): m_itBuffer(data->begin()) {}
 			void init() const {  m_itBuffer = const_cast<T*>(data)->begin(); }
 		};
 
-		/** 
-		 * @brief Handle data conversion from standard data types to internal SQL engine types.
-		 */
+		//! Handle data conversion from standard data types to internal SQL engine types.
 		struct Conversion
 		{
-			/** 
-			 * @brief Get a pointer to the internal data.
-			 * 
-			 * @return Void pointer to internal data.
+			//! Get a pointer to the internal data.
+			/*! 
+			 * \return Void pointer to internal data.
 			 */
 			virtual void* getPointer() =0;
 
-			/** 
-			 * @brief Convert SQL query results.
-			 */
+			//! Convert SQL query results.
 			virtual void convertResult() =0;
 
-			/** 
-			 * @brief Convert SQL query parameters.
-			 */
+			//! Convert SQL query parameters.
 			virtual void convertParam() =0;
 
-			/** 
-			 * @brief Pointer to standard data type.
-			 */
+			//! Pointer to standard data type.
 			void* external;
 		};
 		
