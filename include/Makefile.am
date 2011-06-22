@@ -29,5 +29,6 @@ endif
 nobase_nodist_include_HEADERS = ./fastcgi++/config.h
 
 noinst_HEADERS = \
-	utf8_codecvt.hpp \
-	utf8_codecvt_facet.hpp
+	./utf8_codecvt.hpp \
+	./utf8_codecvt_facet.hpp \
+	./boost/iostreams/code_converter.hpp

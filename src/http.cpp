@@ -490,11 +490,11 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsMultipa
 				thePost.type=Post<charT>::file;
 				charToString(contentTypeStart, contentTypeSize, thePost.contentType);
 				if(filenameSize != -1) charToString(filenameStart, filenameSize, thePost.filename);
-				thePost.size=end-bodyStart;
-				if(thePost.size)
+				thePost.m_size=end-bodyStart;
+				if(thePost.size())
 				{
-					thePost.data.reset(new char[thePost.size]);
-					memcpy(thePost.data.get(), bodyStart, thePost.size);
+					thePost.m_data = new char[thePost.size()];
+					memcpy(thePost.m_data, bodyStart, thePost.size());
 				}
 			}
 			else
@@ -674,4 +674,26 @@ template<class charT> const Fastcgipp::Http::Post<charT>& Fastcgipp::Http::Envir
 		return emptyPost;
 	else
 		return it->second;
+}
+
+template bool Fastcgipp::Http::Environment<char>::checkForGet(const char* key) const;
+template bool Fastcgipp::Http::Environment<wchar_t>::checkForGet(const wchar_t* key) const;
+template<class charT> bool Fastcgipp::Http::Environment<charT>::checkForGet(const charT* key) const
+{
+	typename Gets::const_iterator it=gets.find(key);
+	if(it==gets.end())
+		return false;
+	else
+		return true;
+}
+
+template bool Fastcgipp::Http::Environment<char>::checkForPost(const char* key) const;
+template bool Fastcgipp::Http::Environment<wchar_t>::checkForPost(const wchar_t* key) const;
+template<class charT> bool Fastcgipp::Http::Environment<charT>::checkForPost(const charT* key) const
+{
+	typename Posts::const_iterator it=posts.find(key);
+	if(it==posts.end())
+		return false;
+	else
+		return true;
 }

@@ -52,6 +52,7 @@ class Session: public Fastcgipp::Request<char>
 	typedef Fastcgipp::Http::Sessions<int> Sessions;
 	bool response()
 	{
+		using namespace Fastcgipp;
 		sessions.cleanup();
 		session=sessions.find(environment().findCookie("SESSIONID").data());
 
@@ -61,12 +62,12 @@ class Session: public Fastcgipp::Request<char>
 			{
 				// We need to call this to set a facet in our requests locale regarding how
 				// to format the date upon insertion. It needs to conform to the http standard.
-				setloc(std::locale(loc, new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
+				setloc(std::locale(getloc(), new boost::posix_time::time_facet("%a, %d-%b-%Y %H:%M:%S GMT")));
 
 				if(session==sessions.end())
 				{
 					session=sessions.generate(0);
-					out << "Set-Cookie: SESSIONID=" << session->first << "; expires=" << sessions.getExpiry(session) << '\n';
+					out << "Set-Cookie: SESSIONID=" << encoding(URL) << session->first << encoding(NONE) << "; expires=" << sessions.getExpiry(session) << '\n';
 				}
 				else
 					session->first.refresh();
