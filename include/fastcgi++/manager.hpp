@@ -250,7 +250,7 @@ template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message 
 
 	if(id.fcgiId)
 	{
-		upgrade_lock<shared_mutex> reqLock(requests);
+		shared_lock<shared_mutex> reqReadLock(requests);
 		typename Requests::iterator it(requests.find(id));
 		if(it!=requests.end())
 		{
@@ -265,7 +265,10 @@ template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message 
 			if(header.getType()==BEGIN_REQUEST)
 			{
 				BeginRequest& body=*(BeginRequest*)(message.data.get()+sizeof(Header));
-				upgrade_to_unique_lock<shared_mutex> lock(reqLock);
+
+				reqReadLock.unlock();
+				unique_lock<shared_mutex> reqWriteLock(requests);
+
 				boost::shared_ptr<T>& request = requests[id];
 				request.reset(new T);
 				request->set(id, transceiver, body.getRole(), !body.getKeepConn(), boost::bind(&Manager::push, boost::ref(*this), id, _1));
@@ -347,11 +350,13 @@ template<class T> void Fastcgipp::Manager<T>::handler()
 			localHandler(id);
 		else
 		{
-			upgrade_lock<shared_mutex> reqReadLock(requests);
+			shared_lock<shared_mutex> reqReadLock(requests);
 			typename map<Protocol::FullId, boost::shared_ptr<T> >::iterator it(requests.find(id));
 			if(it!=requests.end() && it->second->handler())
 			{
-				upgrade_to_unique_lock<shared_mutex> reqWriteLock(reqReadLock);
+				reqReadLock.unlock();
+				unique_lock<shared_mutex> reqWriteLock(requests);
+
 				requests.erase(it);
 			}
 		}
