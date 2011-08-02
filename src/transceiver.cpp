@@ -78,7 +78,7 @@ bool Fastcgipp::Transceiver::handler()
 	
 	std::vector<pollfd>::iterator pollFd = find_if(pollFds.begin(), pollFds.end(), reventsZero);
 
-	if(pollFd->revents&POLLHUP)
+	if(pollFd->revents & (POLLHUP|POLLERR|POLLNVAL) )
 	{
 		fdBuffers.erase(pollFd->fd);
 		pollFds.erase(pollFd);
@@ -95,7 +95,7 @@ bool Fastcgipp::Transceiver::handler()
 		
 		pollFds.push_back(pollfd());
 		pollFds.back().fd = fd;
-		pollFds.back().events = POLLIN|POLLHUP;
+		pollFds.back().events = POLLIN|POLLHUP|POLLERR|POLLNVAL;
 
 		Message& messageBuffer=fdBuffers[fd].messageBuffer;
 		messageBuffer.size=0;
@@ -119,6 +119,14 @@ bool Fastcgipp::Transceiver::handler()
 		actual=read(fd, (char*)&headerBuffer+messageBuffer.size, sizeof(Header)-messageBuffer.size);
 		if(actual<0 && errno!=EAGAIN) throw Exceptions::SocketRead(fd, errno);
 		if(actual>0) messageBuffer.size+=actual;
+		
+		if( actual == 0 )
+		{
+			fdBuffers.erase( pollFd->fd );
+			pollFds.erase( pollFd );
+			return false;
+		}
+
 		if(messageBuffer.size!=sizeof(Header))
 		{
 			if(transmitEmpty) return true;
