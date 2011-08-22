@@ -118,7 +118,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 					}
 
 					m_postSize += header.getContentLength();
-					if(m_postSize > m_maxPostSize)
+					if(m_maxPostSize && m_postSize > m_maxPostSize)
 					{
 						bigPostErrorHandler();
 						complete();
