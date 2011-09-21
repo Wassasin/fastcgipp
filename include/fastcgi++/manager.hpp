@@ -66,8 +66,9 @@ namespace Fastcgipp
 		 *
 		 * @param[in] fd File descriptor to listen on.
 		 * @param[in] sendMessage_ Function Transceiver should use to communicate with Manager.
+		 * @param[in] doSetupSignals If true, signal handlers will be set up for SIGTERM and SIGUSR1. If false, no signal handlers will be set up.
 		 */
-		ManagerPar(int fd, const boost::function<void(Protocol::FullId, Message)>& sendMessage_);
+		ManagerPar(int fd, const boost::function<void(Protocol::FullId, Message)>& sendMessage_, bool doSetupSignals);
 
 		~ManagerPar() { instance=0; }
 
@@ -192,9 +193,10 @@ namespace Fastcgipp
 		 * passed by default to the constructor. The only time it would be another
 		 * value is if an external FastCGI server was defined.
 		 *
-		 * @param [in] fd File descriptor to listen on.
+		 * @param[in] fd File descriptor to listen on.
+		 * @param[in] doSetupSignals If true, signal handlers will be set up for SIGTERM and SIGUSR1. If false, no signal handlers will be set up.
 		 */
-		Manager(int fd=0): ManagerPar(fd, boost::bind(&Manager::push, boost::ref(*this), _1, _2)) {}
+		Manager(int fd=0, bool doSetupSignals=true): ManagerPar(fd, boost::bind(&Manager::push, boost::ref(*this), _1, _2), doSetupSignals) {}
 
 		//! General handling function to be called after construction
 		/*!
