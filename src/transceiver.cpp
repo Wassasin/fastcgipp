@@ -188,7 +188,7 @@ void Fastcgipp::Transceiver::Buffer::freeRead(size_t size)
 
 void Fastcgipp::Transceiver::wake()
 {
-	char x;
+	char x=0;
 	write(wakeUpFdOut, &x, 1);
 }
 
