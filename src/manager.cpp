@@ -11,14 +11,26 @@ Fastcgipp::ManagerPar::ManagerPar(int fd, const boost::function<void(Protocol::F
 
 void Fastcgipp::ManagerPar::terminate()
 {
-	boost::lock_guard<boost::mutex> lock(terminateMutex);
+	boost::lock_guard<boost::mutex> terminateLock(terminateMutex);
+	boost::lock_guard<boost::mutex> sleepLock(sleepMutex);
 	terminateBool=true;
+	if(asleep)
+	{
+		transceiver.wake();
+		asleep=false;
+	}
 }
 
 void Fastcgipp::ManagerPar::stop()
 {
-	boost::lock_guard<boost::mutex> lock(stopMutex);
+	boost::lock_guard<boost::mutex> stopLock(stopMutex);
+	boost::lock_guard<boost::mutex> sleepLock(sleepMutex);
 	stopBool=true;
+	if(asleep)
+	{
+		transceiver.wake();
+		asleep=false;
+	}
 }
 
 void Fastcgipp::ManagerPar::signalHandler(int signum)
