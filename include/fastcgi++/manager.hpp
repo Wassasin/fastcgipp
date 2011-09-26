@@ -84,6 +84,16 @@ namespace Fastcgipp
 		 */
 		void stop();
 
+		//! Terminator for the handler() function
+		/*!
+		 * This function is intended to be called from  a signal handler in the case of
+		 * of a SIGUSR1. It is similar to stop() except that handler() will wait until
+		 * all requests are complete before halting.
+		 *
+		 * @sa setupSignals()
+		 * @sa signalHandler()
+		 */
+		void terminate();
 		
 		//! Configure the handlers for POSIX signals
 		/*!
@@ -159,16 +169,6 @@ namespace Fastcgipp
 		static void signalHandler(int signum);
 		//! Pointer to the %Manager object
 		static ManagerPar* instance;
-		//! Terminator for the handler() function
-		/*!
-		 * This function is intended to be called from  a signal handler in the case of
-		 * of a SIGUSR1. It is similar to stop() except that handler() will wait until
-		 * all requests are complete before halting.
-		 *
-		 * @sa setupSignals()
-		 * @sa signalHandler()
-		 */
-		inline void terminate();
 	};
 	
 	//! General task and protocol management class
