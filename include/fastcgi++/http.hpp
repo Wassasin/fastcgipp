@@ -78,8 +78,8 @@ namespace Fastcgipp
 				value(x.value),
 				filename(value),
 				contentType(x.contentType),
-				m_size(x.m_size),
-				m_data(x.steal())
+				m_data(x.steal()),
+				m_size(x.m_size)
 			{}
 			~Post() { delete [] m_data; }
 		private:
@@ -303,7 +303,7 @@ namespace Fastcgipp
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
 
-			Environment(): etag(0), keepAlive(0), serverPort(0), remotePort(0), contentLength(0) {}
+			Environment(): etag(0), keepAlive(0), contentLength(0), serverPort(0), remotePort(0) {}
 		private:
 			//! Raw string of characters representing the post boundary
 			boost::scoped_array<char> boundary;
