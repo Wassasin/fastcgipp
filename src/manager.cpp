@@ -53,8 +53,9 @@ void Fastcgipp::ManagerPar::signalHandler(int signum)
 void Fastcgipp::ManagerPar::setupSignals()
 {
 	struct sigaction sigAction;
-	std::memset(&sigAction, 0, sizeof(sigAction));
 	sigAction.sa_handler=Fastcgipp::ManagerPar::signalHandler;
+	sigemptyset(&sigAction.sa_mask);
+	sigAction.sa_flags=0;
 
 	sigaction(SIGPIPE, &sigAction, NULL);
 	sigaction(SIGUSR1, &sigAction, NULL);
