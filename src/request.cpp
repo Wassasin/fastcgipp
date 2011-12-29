@@ -107,6 +107,22 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 					if(state!=IN) throw Exceptions::RecordsOutOfOrder();
 					if(header.getContentLength()==0)
 					{
+						// Process POST data based on what our incoming content type is
+						if(m_environment.requestMethod == Http::HTTP_METHOD_POST)
+						{
+							const char multipart[] = "multipart/form-data";
+							const char urlEncoded[] = "application/x-www-form-urlencoded";
+
+							if(equal(multipart, multipart+sizeof(multipart), m_environment.contentType.begin()))
+								m_environment.parsePostsMultipart();
+
+							else if(equal(urlEncoded, urlEncoded+sizeof(urlEncoded), m_environment.contentType.begin()))
+								m_environment.parsePostsUrlEncoded();
+
+							else
+								throw Exceptions::UnknownContentType();
+						}
+
 						m_environment.clearPostBuffer();
 						state=OUT;
 						if(response())
@@ -117,27 +133,11 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						break;
 					}
 
-					m_postSize += header.getContentLength();
-					if(m_maxPostSize && m_postSize > m_maxPostSize)
+					if(!m_environment.fillPostBuffer(body, header.getContentLength()))
 					{
 						bigPostErrorHandler();
 						complete();
 						return true;
-					}
-
-					// Process POST data based on what our incoming content type is
-					{
-						const char multipart[] = "multipart/form-data";
-						const char urlEncoded[] = "application/x-www-form-urlencoded";
-
-						if(equal(multipart, multipart+sizeof(multipart), m_environment.contentType.begin()))
-							m_environment.fillPostsMultipart(body, header.getContentLength());
-
-						else if(equal(urlEncoded, urlEncoded+sizeof(urlEncoded), m_environment.contentType.begin()))
-							m_environment.fillPostsUrlEncoded(body, header.getContentLength());
-
-						else
-							throw Exceptions::UnknownContentType();
 					}
 
 					inHandler(header.getContentLength());

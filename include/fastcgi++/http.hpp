@@ -30,6 +30,7 @@
 #include <istream>
 #include <cstring>
 #include <sstream>
+#include <algorithm>
 #include <map>
 #include <vector>
 
@@ -275,33 +276,26 @@ namespace Fastcgipp
 			 * @param[in] size Size of data in bytes
 			 */
 			void fill(const char* data, size_t size);
-			//! Parses "multipart/form-data" http post data into the posts object
+
+			//! Consolidates POST data into a single buffer
 			/*!
 			 * This function will take arbitrarily divided chunks of raw http post
-			 * data and parse them into the posts container of Post objects. data should
-			 * equal the first bytes of the FastCGI IN records body with size being it's
-			 * content length.
+			 * data and consolidate them into postBuffer.
 			 *
 			 * @param[in] data Pointer to the first byte of post data
 			 * @param[in] size Size of data in bytes
+			 * @return Returns true unless the buffer overflowed
 			 */
-			void fillPostsMultipart(const char* data, size_t size);
+			bool fillPostBuffer(const char* data, size_t size);
+
+			//! Parses "multipart/form-data" http post data into the posts object
+			void parsePostsMultipart();
 
 			//! Parses "application/x-www-form-urlencoded" post data into the posts object.
-			/*!
-			 * This function parses x-www-form-urlencoded post data into the
-			 * Environment::posts member. This function will take arbitrarily divided chunks
-			 * of raw http post data and parse them into the posts container of Post objects.
-			 * data should equal the first bytes of the FastCGI IN records body with size
-			 * being it's content length.
-			 *
-			 * @param[in] data Pointer to the first byte of post data
-			 * @param[in] size Size of data in bytes
-			 */
-			void fillPostsUrlEncoded(const char* data, size_t size);
+			void parsePostsUrlEncoded();
 
 			//! Clear the post buffer
-			void clearPostBuffer() { postBuffer.reset(); postBufferSize=0; }
+			void clearPostBuffer() { postBuffer.reset(); pPostBuffer=0; }
 
 			Environment(): etag(0), keepAlive(0), contentLength(0), serverPort(0), remotePort(0) {}
 		private:
@@ -312,8 +306,10 @@ namespace Fastcgipp
 
 			//! Buffer for processing post data
 			boost::scoped_array<char> postBuffer;
-			//! Size of data in postBuffer
-			size_t postBufferSize;
+			//! Pointer in buffer
+			char* pPostBuffer;
+			//! Returns minimum buffer size remaining
+			size_t minPostBufferSize(const size_t size) { return std::min(size, size_t(postBuffer.get()+contentLength-pPostBuffer)); }
 		};
 
 		//! Convert a char string to a std::wstring
