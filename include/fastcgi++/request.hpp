@@ -67,7 +67,7 @@ namespace Fastcgipp
 		 * post data. Any data beyond this size would result in a call to
 		 * bigPostErrorHandler(). A value of 0 represents unlimited.
 		 */
-		Request(const size_t maxPostSize=0): m_maxPostSize(maxPostSize), m_postSize(0), state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
+		Request(const size_t maxPostSize=0): m_maxPostSize(maxPostSize), state(Protocol::PARAMS)  { setloc(std::locale::classic()); out.exceptions(std::ios_base::badbit | std::ios_base::failbit | std::ios_base::eofbit); m_environment.clearPostBuffer(); }
 
 		//! Accessor for  the data structure containing all HTTP environment data
 		const Http::Environment<charT>& environment() const { return m_environment; }
@@ -212,9 +212,6 @@ namespace Fastcgipp
 
 		//! The maximum amount of post data that can be recieved
 		const size_t m_maxPostSize;
-
-		//! Keeps track of how much POST data has been recieved
-		size_t m_postSize;
 
 		//! Request Handler
 		/*!

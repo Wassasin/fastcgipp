@@ -19,7 +19,6 @@
 ****************************************************************************/
 
 
-#include <algorithm>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <fastcgi++/http.hpp>
@@ -364,197 +363,202 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::fill(const char*
 	}}
 }
 
-template void Fastcgipp::Http::Environment<char>::fillPostsMultipart(const char* data, size_t size);
-template void Fastcgipp::Http::Environment<wchar_t>::fillPostsMultipart(const char* data, size_t size);
-template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsMultipart(const char* data, size_t size)
+template bool Fastcgipp::Http::Environment<char>::fillPostBuffer(const char* data, size_t size);
+template bool Fastcgipp::Http::Environment<wchar_t>::fillPostBuffer(const char* data, size_t size);
+template<class charT> bool Fastcgipp::Http::Environment<charT>::fillPostBuffer(const char* data, size_t size)
 {
-	using namespace std;
-	while(1)
-	{{
-		size_t bufferSize=postBufferSize+size;
-		char* buffer=new char[bufferSize];
-		if(postBufferSize) memcpy(buffer, postBuffer.get(), postBufferSize);
-		memcpy(buffer+postBufferSize, data, size);
-		postBuffer.reset(buffer);
-		postBufferSize=bufferSize;
-
-		const char* end=0;
-		for(const char* i=buffer+boundarySize; i<buffer+bufferSize-boundarySize; ++i)
-			if(!memcmp(i, boundary.get(), boundarySize))
-			{
-				end=i;
-				break;
-			}
-		
-		if(!end)
-			return;
-
-		end-=4;
-		const char* start=buffer+boundarySize+2;
-		const char* bodyStart=start;
-		for(; bodyStart<=end-4; ++bodyStart)
-			if(!memcmp(bodyStart, "\r\n\r\n", 4)) break;
-		bodyStart+=4;
-
-
-		const char* contentTypeStart;
-		ssize_t contentTypeSize=-1;
-		const char* nameStart;
-		ssize_t nameSize=-1;
-		const char* filenameStart;
-		ssize_t filenameSize=-1;
-		// Fill out above values
-		{
-			const char cContentType[] = "Content-Type: ";
-			const char cContentDisposition[] = "Content-Disposition: ";
-			const char cFilename[] = "filename=\"";
-			const char cName[] = "name=\"";
-
-			enum ParseState { TITLE, CONTENT_DISPOSITION, FILENAME, NAME, CONTENT_TYPE, SKIP } parseState=TITLE;
-			for(const char* i=start; i<bodyStart; ++i)
-			{
-				switch(*i)
-				{
-					case '\n':
-					case '\r':
-					{
-						if(parseState==CONTENT_TYPE)
-							contentTypeSize=i-contentTypeStart;
-						parseState=TITLE;
-						break;
-					}
-
-					case '"':
-					{
-						if(parseState==FILENAME)
-						{
-							filenameSize=i-filenameStart;
-							parseState=CONTENT_DISPOSITION;
-						}
-						else if(parseState==NAME)
-						{
-							nameSize=i-nameStart;
-							parseState=CONTENT_DISPOSITION;
-						}
-						break;
-					}
-
-					default:
-					{
-						if(parseState==TITLE)
-						{
-							if(sizeof(cContentType)-1 <= bodyStart-i && !memcmp(cContentType, i, sizeof(cContentType)-1))
-							{
-								parseState=CONTENT_TYPE;
-								i += sizeof(cContentType)-1;
-								contentTypeStart=i;
-							}
-							else if(sizeof(cContentDisposition)-1 <= bodyStart-i && !memcmp(cContentDisposition, i, sizeof(cContentDisposition)-1))
-							{
-								parseState=CONTENT_DISPOSITION;
-								i += sizeof(cContentDisposition)-1;
-							}
-							else
-								parseState=SKIP;
-						}
-						else if(parseState==CONTENT_DISPOSITION)
-						{
-							if(sizeof(cFilename)-1 <= bodyStart-i && !memcmp(cFilename, i, sizeof(cFilename)-1))
-							{
-								parseState=FILENAME;
-								i += sizeof(cFilename)-1;
-								filenameStart=i;
-							}
-							else if(sizeof(cName)-1 <= bodyStart-i && !memcmp(cName, i, sizeof(cName)-1))
-							{
-								parseState=NAME;
-								i += sizeof(cName)-1;
-								nameStart=i;
-							}
-						}
-						break;
-					}
-				}
-			}
-		}
-
-		
-		if(nameSize != -1)
-		{
-			basic_string<charT> name;
-			charToString(nameStart, nameSize, name);
-
-			Post<charT>& thePost=posts[name];
-			if(contentTypeSize != -1)
-			{
-				thePost.type=Post<charT>::file;
-				charToString(contentTypeStart, contentTypeSize, thePost.contentType);
-				if(filenameSize != -1) charToString(filenameStart, filenameSize, thePost.filename);
-				thePost.m_size=end-bodyStart;
-				if(thePost.size())
-				{
-					thePost.m_data = new char[thePost.size()];
-					memcpy(thePost.m_data, bodyStart, thePost.size());
-				}
-			}
-			else
-			{
-				thePost.type=Post<charT>::form;
-				charToString(bodyStart, end-bodyStart, thePost.value);
-			}
-		}
-
-		bufferSize=bufferSize-(end-buffer+2);
-		if(!bufferSize)
-		{
-			postBuffer.reset();
-			return;
-		}
-		buffer=new char[bufferSize];
-		memcpy(buffer, end+2, bufferSize);
-		postBuffer.reset(buffer);
-		postBufferSize=bufferSize;
-		size=0;
-	}}
-}
-
-template void Fastcgipp::Http::Environment<char>::fillPostsUrlEncoded(const char* data, size_t size);
-template void Fastcgipp::Http::Environment<wchar_t>::fillPostsUrlEncoded(const char* data, size_t size);
-template<class charT> void Fastcgipp::Http::Environment<charT>::fillPostsUrlEncoded(const char* data, size_t size)
-{
-	using namespace std;
-
-	if(!postBuffer.get() && size)
+	if(!postBuffer)
 	{
 		postBuffer.reset(new char[contentLength]);
-		postBufferSize=0;
+		pPostBuffer=postBuffer.get();
 	}
 
-	// We don't want a buffer overflow so only process a max length of processLength
-	size=min(size, contentLength-postBufferSize);
+	size_t trueSize=minPostBufferSize(size);
+	if(trueSize)
+	{
+		std::memcpy(pPostBuffer, data, trueSize);
+		pPostBuffer+=trueSize;
+		return true;
+	}
+	else
+		return false;
+}
 
-	memcpy(postBuffer.get()+postBufferSize, data, size);
-	postBufferSize+=size;
+template void Fastcgipp::Http::Environment<char>::parsePostsMultipart();
+template void Fastcgipp::Http::Environment<wchar_t>::parsePostsMultipart();
+template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsMultipart()
+{
+	using namespace std;
 
-	if(postBufferSize != contentLength)
-		return;
+	const char cName[] = "name=\"";
+	const char cFilename[] = "filename=\"";
+	const char cContentType[] = "Content-Type: ";
+	const char cBodyStart[] = "\r\n\r\n";
 
+	pPostBuffer=postBuffer.get()+boundarySize+1;
+	const char* contentTypeStart=0;
+	ssize_t contentTypeSize=-1;
+	const char* nameStart=0;
+	ssize_t nameSize=-1;
+	const char* filenameStart=0;
+	ssize_t filenameSize=-1;
+	const char* bodyStart=0;
+	ssize_t bodySize=-1;
+	enum ParseState { HEADER, NAME, FILENAME, CONTENT_TYPE, BODY } parseState=HEADER;
+	for(pPostBuffer=postBuffer.get()+boundarySize+2; pPostBuffer<postBuffer.get()+contentLength; ++pPostBuffer)
+	{
+		switch(parseState)
+		{
+			case HEADER:
+			{
+				if(nameSize == -1)
+				{
+					const size_t size=minPostBufferSize(sizeof(cName)-1);
+					if(!memcmp(pPostBuffer, cName, size))
+					{
+						pPostBuffer+=size-1;
+						nameStart=pPostBuffer+1;
+						parseState=NAME;
+						continue;
+					}
+				}
+				if(filenameSize == -1)
+				{
+					const size_t size=minPostBufferSize(sizeof(cFilename)-1);
+					if(!memcmp(pPostBuffer, cFilename, size))
+					{
+						pPostBuffer+=size-1;
+						filenameStart=pPostBuffer+1;
+						parseState=FILENAME;
+						continue;
+					}
+				}
+				if(contentTypeSize == -1)
+				{
+					const size_t size=minPostBufferSize(sizeof(cContentType)-1);
+					if(!memcmp(pPostBuffer, cContentType, size))
+					{
+						pPostBuffer+=size-1;
+						contentTypeStart=pPostBuffer+1;
+						parseState=CONTENT_TYPE;
+						continue;
+					}
+				}
+				if(bodySize == -1)
+				{
+					const size_t size=minPostBufferSize(sizeof(cBodyStart)-1);
+					if(!memcmp(pPostBuffer, cBodyStart, size))
+					{
+						pPostBuffer+=size-1;
+						bodyStart=pPostBuffer+1;
+						parseState=BODY;
+						continue;
+					}
+				}
+				continue;
+			}
+
+			case NAME:
+			{
+				if(*pPostBuffer == '"')
+				{
+					nameSize=pPostBuffer-nameStart;
+					parseState=HEADER;
+				}
+				continue;
+			}
+
+			case FILENAME:
+			{
+				if(*pPostBuffer == '"')
+				{
+					filenameSize=pPostBuffer-filenameStart;
+					parseState=HEADER;
+				}
+				continue;
+			}
+
+			case CONTENT_TYPE:
+			{
+				if(*pPostBuffer == '\r' || *pPostBuffer == '\n')
+				{
+					contentTypeSize=pPostBuffer-contentTypeStart;
+					--pPostBuffer;
+					parseState=HEADER;
+				}
+				continue;
+			}
+
+			case BODY:
+			{
+				const size_t size=minPostBufferSize(sizeof(boundarySize)-1);
+				if(!memcmp(pPostBuffer, boundary.get(), size))
+				{
+					bodySize=pPostBuffer-bodyStart-2;
+
+					if(nameSize != -1)
+					{
+						basic_string<charT> name;
+						charToString(nameStart, nameSize, name);
+
+						Post<charT>& thePost=posts[name];
+						if(contentTypeSize != -1)
+						{
+							thePost.type=Post<charT>::file;
+							charToString(contentTypeStart, contentTypeSize, thePost.contentType);
+							if(filenameSize != -1) charToString(filenameStart, filenameSize, thePost.filename);
+							thePost.m_size=bodySize;
+							if(bodySize)
+							{
+								thePost.m_data = new char[bodySize];
+								memcpy(thePost.m_data, bodyStart, bodySize);
+							}
+						}
+						else
+						{
+							thePost.type=Post<charT>::form;
+							charToString(bodyStart, bodySize, thePost.value);
+						}
+					}
+
+					pPostBuffer+=size;
+					parseState=HEADER;
+					contentTypeStart=0;
+					contentTypeSize=-1;
+					nameStart=0;
+					nameSize=-1;
+					filenameStart=0;
+					filenameSize=-1;
+					bodyStart=0;
+					bodySize=-1;
+				}
+				continue;
+			}
+		}
+	}
+}
+
+template void Fastcgipp::Http::Environment<char>::parsePostsUrlEncoded();
+template void Fastcgipp::Http::Environment<wchar_t>::parsePostsUrlEncoded();
+template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsUrlEncoded()
+{
 	char* nameStart=postBuffer.get();
 	size_t nameSize;
 	char* valueStart=0;
 	size_t valueSize;
-	for(char* i=postBuffer.get(); i<=postBuffer.get()+postBufferSize; ++i)
+
+	for(char* i=postBuffer.get(); i<=postBuffer.get()+contentLength; ++i)
 	{
 		if(*i == '=' && nameStart && !valueStart)
 		{
 			nameSize=percentEscapedToRealBytes(nameStart, nameStart, i-nameStart);
 			valueStart=i+1;
 		}
-		else if( (i==postBuffer.get()+postBufferSize || *i == '&') && nameStart && valueStart)
+		else if( (i==postBuffer.get()+contentLength || *i == '&') && nameStart && valueStart)
 		{
 			valueSize=percentEscapedToRealBytes(valueStart, valueStart, i-valueStart);
 
-			basic_string<charT> name;
+			std::basic_string<charT> name;
 			charToString(nameStart, nameSize, name);
 			nameStart=i+1;
 			Post<charT>& thePost=posts[name];
