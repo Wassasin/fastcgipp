@@ -496,6 +496,8 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsMultip
 				{
 					bodySize=pPostBuffer-bodyStart-2;
 					if(bodySize<0) bodySize=0;
+					else if(bodySize>=2 && bodyStart+bodySize-1=='\n' && bodyStart+bodySize-2=='\r')
+						bodySize -= 2;
 
 					if(nameSize != -1)
 					{
