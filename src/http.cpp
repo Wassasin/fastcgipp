@@ -673,7 +673,7 @@ void Fastcgipp::Http::Address::assign(const char* start, const char* end)
 			for(int i=0; i<3 && read<end; ++i)
 			{
 				const char* point=(const char*)memchr(read, '.', end-read);
-				if(point && point<end-2)
+				if(point && point<end-1)
 					read=point;
 				else
 				{
