@@ -1529,7 +1529,7 @@ The first thing we need to do is create a database and table to work with our sc
 \verbatim
 CREATE DATABASE fastcgipp;
 USE fastcgipp;
-CREATE TABLE logs (ipAddress INT UNSIGNED NOT NULL, timeStamp TIMESTAMP NOT NULL,
+CREATE TABLE logs (ipAddress VARBINARY(16) NOT NULL, timeStamp TIMESTAMP NOT NULL,
 sessionId BINARY(12) NOT NULL UNIQUE, referral TEXT) CHARACTER SET="utf8";
 GRANT ALL PRIVILEGES ON fastcgipp.* TO 'fcgi'@'localhost' IDENTIFIED BY 'databaseExample';
 \endverbatim
@@ -1576,7 +1576,7 @@ struct Log
 {
 \endcode
 
-First let's define our actual data elements in the structure. Unless we are fetching/sending a binary structure we must use one of the typedefed types in ASql::Data. We can use custom types like Fastcgipp::Http::Address and still have it behave like an integer because the class provides a mechanism to access the underlying integer as a reference or pointer. We us Fastcgipp::Http::SessionId as a fixed width field matching up with a plain old data structure. It will be stored in the table as raw binary data.
+First let's define our actual data elements in the structure. Unless we are fetching/sending a binary structure we must use one of the typedefed types in ASql::Data. We use Fastcgipp::Http::Address and Fastcgipp::Http::SessionId as a fixed width fields matching up with a plain old data structure. It will be stored in the table as raw binary data.
 
 As you can see, one of our values has the ability to contain null values. This capability comes from the ASql::Data::Nullable template class. See also ASql::Data::NullableArray.
 
@@ -1591,38 +1591,28 @@ Our reason for using Fastcgipp::Http::SessionId is merely that it provides a goo
 	ASql::Data::WtextN referral;
 \endcode
 
-The SQL facilities need to be able to find out how many "elements" there are.
+The following macro provides a method of indexing the data in our structure. It communicates type information, data location, and size to the SQL facilities. For most cases simply returning the object itself will suffice. This is accomplished through the appropriate constructor in ASql::Data::Index. Exceptional cases are when a fixed length char[] is returned as that requires a size parameter and any of the templated constructors as they merely read/write raw binary data with the table based on a field length matching the types size.
 
 \code
-	size_t numberOfSqlElements() const { return 4; }
+	ASQL_BUILDSET(\
+		(ASql::Data::Index(ipAddress))\
+		(timestamp)\
+		(ASql::Data::Index(sessionId))\
+		(referral))
+};
 \endcode
 
-The following function provides a method of indexing the data in our structure. It communicates type information, data location, and size to the SQL facilities. For most cases simply returning the object itself will suffice. This is accomplished through the appropriate constructor in ASql::Data::Index. Exceptional cases are when a fixed length char[] is returned as that requires a size parameter and any of the templated constructors as they merely read/write raw binary data with the table based on a field length matching the types size.
-
-The default constructor for ASql::Data::Index makes an invalid object that should be returned in the case of default. Although this won't happen if the size returned above matches below.
+We also need to define a structure for the parameter of our update statement
 
 \code
-	ASql::Data::Index getSqlIndex(const size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return ipAddress.getInt();
-			case 1:
-				return timestamp;
-			case 2:
-				return ASql::Data::Index(sessionId);
-			case 3:
-				return referral;
-			default:
-				return ASql::Data::Index();
-		}
-	}
+struct IpAddress: public ASql::Data::Set
+{
+	Fastcgipp::Http::Address data;
+	ASQL_BUILDSET((ASql::Data::Index(data)))
 };
 \endcode
 
 Be sure to read the documentation at ASql::Data::Set to fully understand what just happened.
-Note that there is a macro to simply the generation of the above code but it was ommited from this example.
 
 \subsection databaseRequest Request Handler
 
@@ -1725,7 +1715,7 @@ Now we initialize our insert and select statements. We pass the init functions a
 
 \code
 	const ASql::Data::SetBuilder<Log> log;
-	const ASql::Data::IndySetBuilder<unsigned int> addy;
+	const IpAddress addy;
 	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
 	updateStatement.init(updateStatementString, sizeof(insertStatementString), &addy, 0);
 	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
@@ -1832,8 +1822,8 @@ By calling reset on m_query we basically recycle it for use a second time around
 Above we built a query object for our insert statement. Now let's build a fun little query for our update statement. This second query will take all timestamps associated with the clients address and subtract one hour from them.
 
 \code
-			ASql::Query<ASql::Data::IndySetBuilder<unsigned int>, void> updateQuery;
-			updateQuery.createParameters().data = environment().remoteAddress.getInt();
+			ASql::Query<IpAddress, void> updateQuery;
+			updateQuery.createParameters().data = environment().remoteAddress;
 			updateQuery.keepAlive(true);
 \endcode
 
@@ -1860,27 +1850,6 @@ Now let's get our of here. Return a true and the request is completed and destro
 \subsection databaseManager Requests Manager
 
 Now we need to make our main() function. Really all one needs to do is create a Fastcgipp::Manager object with the new class we made as a template parameter, then call it's handler. Let's go one step further though and set up a try/catch loop in case we get any exceptions and log them with our error_log function. As an extra this time around we will call Database::initSql() to initialize the static data.
-
-\code
-#include <fastcgi++/manager.hpp>
-int main()
-{
-	try
-	{
-		Database::initSql();
-		Fastcgipp::Manager<SessionExample> fcgi;
-		fcgi.handler();
-	}
-	catch(std::exception& e)
-	{
-		error_log(e.what());
-	}
-}
-\endcode
-
-So be it... Jedi
-
-\section databaseCode Full Source Code
 
 \code
 #include <fstream>
@@ -1915,24 +1884,17 @@ struct Log
 	Fastcgipp::Http::SessionId sessionId;
 	ASql::Data::WtextN referral;
 
-	size_t numberOfSqlElements() const { return 4; }
+	ASQL_BUILDSET(\
+		(ASql::Data::Index(ipAddress))\
+		(timestamp)\
+		(ASql::Data::Index(sessionId))\
+		(referral))
+};
 
-	ASql::Data::Index getSqlIndex(const size_t index) const
-	{
-		switch(index)
-		{
-			case 0:
-				return ipAddress.getInt();
-			case 1:
-				return timestamp;
-			case 2:
-				return ASql::Data::Index(sessionId);
-			case 3:
-				return referral;
-			default:
-				return ASql::Data::Index();
-		}
-	}
+struct IpAddress: public ASql::Data::Set
+{
+	Fastcgipp::Http::Address data;
+	ASQL_BUILDSET((ASql::Data::Index(data)))
 };
 
 class Database: public Fastcgipp::Request<wchar_t>
@@ -1949,24 +1911,20 @@ class Database: public Fastcgipp::Request<wchar_t>
 	enum Status { START, FETCH } status;
 
 	typedef std::vector<Log> LogContainer;
-	LogContainer* selectSet;
 
 	bool response();
 
-	ASql::Query m_query;
+	ASql::Query<void, ASql::Data::STLSetContainer<LogContainer> > m_query;
 public:
 	Database(): status(START) {}
 	static void initSql();
 };
 
-const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, \ 
-referral) VALUE(?, ?, ?, ?)";
-const char Database::updateStatementString[] = "UPDATE logs SET timeStamp=SUBTIME(timeStamp, \
-'01:00:00') WHERE ipAddress=?";
-const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, \
-sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
+const char Database::insertStatementString[] = "INSERT INTO logs (ipAddress, timeStamp, sessionId, referral) VALUE(?, ?, ?, ?)";
+const char Database::updateStatementString[] = "UPDATE logs SET timeStamp=SUBTIME(timeStamp, '01:00:00') WHERE ipAddress=?";
+const char Database::selectStatementString[] = "SELECT SQL_CALC_FOUND_ROWS ipAddress, timeStamp, sessionId, referral FROM logs ORDER BY timeStamp DESC LIMIT 10";
 
-ASql::MySQL::Connection Database::sqlConnection(1);
+ASql::MySQL::Connection Database::sqlConnection(4);
 ASql::MySQL::Statement Database::insertStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::updateStatement(Database::sqlConnection);
 ASql::MySQL::Statement Database::selectStatement(Database::sqlConnection);
@@ -1975,10 +1933,10 @@ void Database::initSql()
 {
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
 	const ASql::Data::SetBuilder<Log> log;
-	const ASql::Data::IndySetBuilder<unsigned int> addy;
-	insertStatement.init(insertStatementString, sizeof(insertStatementString), &log, 0);
-	updateStatement.init(updateStatementString, sizeof(updateStatementString), &addy, 0);
-	selectStatement.init(selectStatementString, sizeof(selectStatementString), 0, &log);
+	const IpAddress addy;
+	insertStatement.init(insertStatementString, sizeof(insertStatementString)-1, &log, 0);
+	updateStatement.init(updateStatementString, sizeof(updateStatementString)-1, &addy, 0);
+	selectStatement.init(selectStatementString, sizeof(selectStatementString)-1, 0, &log);
 	sqlConnection.start();
 }
 
@@ -1989,7 +1947,7 @@ bool Database::response()
 	{
 		case START:
 		{
-			selectSet=&m_query.createResults<ASql::Data::STLSetContainer<LogContainer> >()->data;
+			m_query.createResults();
 			m_query.setCallback(boost::bind(callback(), Fastcgipp::Message(1)));
 			m_query.enableRows();
 			selectStatement.queue(m_query);
@@ -2006,7 +1964,7 @@ bool Database::response()
 		<title>fastcgi++: SQL Database example</title>\n\
 	</head>\n\
 	<body>\n\
-		<h2>Showing " << selectSet->size() << " results out of " << m_query.rows() << "</h2>\n\
+		<h2>Showing " << m_query.results()->data.size() << " results out of " << m_query.rows() << "</h2>\n\
 		<table>\n\
 			<tr>\n\
 				<td><b>IP Address</b></td>\n\
@@ -2015,7 +1973,7 @@ bool Database::response()
 				<td><b>Referral</b></td>\n\
 			</tr>\n";
 
-			for(LogContainer::iterator it(selectSet->begin()); it!=selectSet->end(); ++it)
+			for(LogContainer::iterator it(m_query.results()->data.begin()); it!=m_query.results()->data.end(); ++it)
 			{
 				out << "\
 			<tr>\n\
@@ -2031,33 +1989,27 @@ bool Database::response()
 		<p><a href='database.fcgi'>Refer Me</a></p>\n\
 	</body>\n\
 </html>";
-			
-			m_query.reset();
-			selectSet=0;
 
-			Log& queryParameters(m_query.createParameters<ASql::Data::SetBuilder<Log> >()->data);
-			m_query.keepAlive(true);
-			queryParameters.ipAddress = environment().remoteAddress;
-			queryParameters.timestamp = boost::posix_time::second_clock::universal_time();
+			ASql::Query<ASql::Data::SetBuilder<Log>, void> insertQuery;
+			insertQuery.createParameters();
+			insertQuery.keepAlive(true);
+			insertQuery.parameters()->data.ipAddress = environment().remoteAddress;
+			insertQuery.parameters()->data.timestamp = boost::posix_time::second_clock::universal_time();
 			if(environment().referer.size())
-				queryParameters.referral = environment().referer;
-			else
-				queryParameters.referral.nullness = true;
+				insertQuery.parameters()->data.referral = environment().referer;
 
-			ASql::Query timeUpdate;
-			unsigned int& addy(timeUpdate.createParameters<ASql::Data::IndySetBuilder<unsigned int> >()->data);
-			addy=environment().remoteAddress.getInt();
-			timeUpdate.keepAlive(true);
+			ASql::Query<IpAddress, void> updateQuery;
+			updateQuery.createParameters().data = environment().remoteAddress;
+			updateQuery.keepAlive(true);
 
 			ASql::MySQL::Transaction transaction;
-			transaction.push(m_query, insertStatement);
-			transaction.push(timeUpdate, updateStatement);
+			transaction.push(insertQuery, insertStatement);
+			transaction.push(updateQuery, updateStatement);
 			transaction.start();
 
 			return true;
 		}
 	}
-	return true;
 }
 
 int main()

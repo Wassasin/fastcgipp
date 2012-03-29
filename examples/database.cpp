@@ -31,11 +31,16 @@ struct Log
 	ASql::Data::WtextN referral;
 
 	ASQL_BUILDSET(\
-			(ipAddress.getInt())\
-			(timestamp)\
-			(ASql::Data::Index(sessionId))\
-			(referral)\
-			)
+		(ASql::Data::Index(ipAddress))\
+		(timestamp)\
+		(ASql::Data::Index(sessionId))\
+		(referral))
+};
+
+struct IpAddress: public ASql::Data::Set
+{
+	Fastcgipp::Http::Address data;
+	ASQL_BUILDSET((ASql::Data::Index(data)))
 };
 
 class Database: public Fastcgipp::Request<wchar_t>
@@ -74,7 +79,7 @@ void Database::initSql()
 {
 	sqlConnection.connect("localhost", "fcgi", "databaseExample", "fastcgipp", 0, 0, 0, "utf8");
 	const ASql::Data::SetBuilder<Log> log;
-	const ASql::Data::IndySetBuilder<unsigned int> addy;
+	const IpAddress addy;
 	insertStatement.init(insertStatementString, sizeof(insertStatementString)-1, &log, 0);
 	updateStatement.init(updateStatementString, sizeof(updateStatementString)-1, &addy, 0);
 	selectStatement.init(selectStatementString, sizeof(selectStatementString)-1, 0, &log);
@@ -139,8 +144,8 @@ bool Database::response()
 			if(environment().referer.size())
 				insertQuery.parameters()->data.referral = environment().referer;
 
-			ASql::Query<ASql::Data::IndySetBuilder<unsigned int>, void> updateQuery;
-			updateQuery.createParameters().data = environment().remoteAddress.getInt();
+			ASql::Query<IpAddress, void> updateQuery;
+			updateQuery.createParameters().data = environment().remoteAddress;
 			updateQuery.keepAlive(true);
 
 			ASql::MySQL::Transaction transaction;

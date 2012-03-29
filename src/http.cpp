@@ -22,127 +22,9 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 
 #include <fastcgi++/http.hpp>
+#include <fastcgi++/protocol.hpp>
 
 #include "utf8_codecvt.hpp"
-
-void Fastcgipp::Http::Address::assign(const char* start, const char* end)
-{
-	data=0;
-	for(int i=24; i>=0; i-=8)
-	{
-		char* point=(char*)memchr(start, '.', end-start);
-		data|=atoi(start, end)<<i;
-		if(!point || point+1>=end) break;
-		start=point+1;
-	}
-}
-
-template std::basic_ostream<char, std::char_traits<char> >& Fastcgipp::Http::operator<< <char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >& os, const Address& address);
-template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator<< <wchar_t, std::char_traits<wchar_t> >(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const Address& address);
-template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgipp::Http::operator<<(std::basic_ostream<charT, Traits>& os, const Address& address)
-{
-	using namespace std;
-	if(!os.good()) return os;
-	
-	try
-	{
-		typename basic_ostream<charT, Traits>::sentry opfx(os);
-		if(opfx)
-		{
-			streamsize fieldWidth=os.width(0);
-			charT buffer[20];
-			charT* bufPtr=buffer;
-			locale loc(os.getloc(), new num_put<charT, charT*>);
-
-			for(uint32_t mask=0xff000000, shift=24; mask!=0; mask>>=8, shift-=8)
-			{
-				bufPtr=use_facet<num_put<charT, charT*> >(loc).put(bufPtr, os, os.fill(), static_cast<long unsigned int>((address.data&mask)>>shift));
-				*bufPtr++=os.widen('.');
-			}
-			--bufPtr;
-
-			charT* ptr=buffer;
-			ostreambuf_iterator<charT,Traits> sink(os);
-			if(os.flags() & ios_base::left)
-				for(int i=max(fieldWidth, bufPtr-buffer); i>0; i--)
-				{
-					if(ptr!=bufPtr) *sink++=*ptr++;
-					else *sink++=os.fill();
-				}
-			else
-				for(int i=fieldWidth-(bufPtr-buffer); ptr!=bufPtr;)
-				{
-					if(i>0) { *sink++=os.fill(); --i; }
-					else *sink++=*ptr++;
-				}
-
-			if(sink.failed()) os.setstate(ios_base::failbit);
-		}
-	}
-	catch(bad_alloc&)
-	{
-		ios_base::iostate exception_mask = os.exceptions();
-		os.exceptions(ios_base::goodbit);
-		os.setstate(ios_base::badbit);
-		os.exceptions(exception_mask);
-		if(exception_mask & ios_base::badbit) throw;
-	}
-	catch(...)
-	{
-		ios_base::iostate exception_mask = os.exceptions();
-		os.exceptions(ios_base::goodbit);
-		os.setstate(ios_base::failbit);
-		os.exceptions(exception_mask);
-		if(exception_mask & ios_base::failbit) throw;
-	}
-	return os;
-}
-
-template std::basic_istream<char, std::char_traits<char> >& Fastcgipp::Http::operator>> <char, std::char_traits<char> >(std::basic_istream<char, std::char_traits<char> >& is, Address& address);
-template std::basic_istream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator>> <wchar_t, std::char_traits<wchar_t> >(std::basic_istream<wchar_t, std::char_traits<wchar_t> >& is, Address& address);
-template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp::Http::operator>>(std::basic_istream<charT, Traits>& is, Address& address)
-{
-	using namespace std;
-	if(!is.good()) return is;
-
-	ios_base::iostate err = ios::goodbit;
-	try
-	{
-		typename basic_istream<charT, Traits>::sentry ipfx(is);
-		if(ipfx)
-		{
-			uint32_t data=0;
-			istreambuf_iterator<charT, Traits> it(is);
-			for(int i=24; i>=0; i-=8, ++it)
-			{
-				uint32_t value;
-				use_facet<num_get<charT, istreambuf_iterator<charT, Traits> > >(is.getloc()).get(it, istreambuf_iterator<charT, Traits>(), is, err, value);
-				data|=value<<i;
-				if(i && *it!=is.widen('.')) err = ios::failbit;
-			}
-			if(err == ios::goodbit) address=data;
-			else is.setstate(err);
-		}
-	}
-	catch(bad_alloc&)
-	{
-		ios_base::iostate exception_mask = is.exceptions();
-		is.exceptions(ios_base::goodbit);
-		is.setstate(ios_base::badbit);
-		is.exceptions(exception_mask);
-		if(exception_mask & ios_base::badbit) throw;
-	}
-	catch(...)
-	{
-		ios_base::iostate exception_mask = is.exceptions();
-		is.exceptions(ios_base::goodbit);
-		is.setstate(ios_base::failbit);
-		is.exceptions(exception_mask);
-		if(exception_mask & ios_base::failbit) throw;
-	}
-
-	return is;
-}
 
 void Fastcgipp::Http::charToString(const char* data, size_t size, std::wstring& string)
 {
@@ -703,4 +585,411 @@ template<class charT> bool Fastcgipp::Http::Environment<charT>::checkForPost(con
 		return false;
 	else
 		return true;
+}
+
+Fastcgipp::Http::Address& Fastcgipp::Http::Address::operator&=(const Address& x)
+{
+	*(uint64_t*)m_data &= *(const uint64_t*)x.m_data;
+	*(uint64_t*)(m_data+size/2) &= *(const uint64_t*)(x.m_data+size/2);
+
+	return *this;
+}
+
+Fastcgipp::Http::Address Fastcgipp::Http::Address::operator&(const Address& x) const
+{
+	Address address(*this);
+	address &= x;
+
+	return address;
+}
+
+void Fastcgipp::Http::Address::assign(const char* start, const char* end)
+{
+	const char* read=start-1;
+	unsigned char* write=m_data;
+	unsigned char* pad=0;
+	unsigned char offset;
+	uint16_t chunk=0;
+	bool error=false;
+
+	while(1)
+	{
+		++read;
+		if(read >= end || *read == ':')
+		{
+			if(read == start || *(read-1) == ':')
+			{
+				if(pad && pad != write)
+				{
+					error=true;
+					break;
+				}
+				else
+					pad = write;
+			}
+			else
+			{
+				*write = (chunk&0xff00)>>8;
+				*(write+1) = chunk&0x00ff;
+				chunk = 0;
+				write += 2;
+				if(write>=m_data+size || read >= end)
+					break;
+			}
+			continue;
+		}
+		else if('0' <= *read && *read <= '9')
+			offset = '0';
+		else if('A' <= *read && *read <= 'Z')
+			offset = 'A'-10;
+		else if('a' <= *read && *read <= 'z')
+			offset = 'a'-10;
+		else if(*read == '.')
+		{
+			if(write == m_data)
+			{
+				// We must be getting a pure ipv4 formatted address. Not an ::ffff:xxx.xxx.xxx.xxx style ipv4 address.
+				*(uint16_t*)write = 0xffff;
+				pad = m_data;
+				write+=2;
+			}
+			else if(write - m_data > 12)
+			{
+				// We don't have enought space for an ipv4 address
+				error=true;
+				break;
+			}
+
+			// First convert the value stored in chunk to the first part of the ipv4 address
+			*write = 0;
+			for(int i=0; i<3; ++i)
+			{
+				*write = *write * 10 + ((chunk&0x0f00)>>8);
+				chunk <<= 4;
+			}
+			++write;
+
+			// Now we'll get the remaining pieces
+			for(int i=0; i<3 && read<end; ++i)
+			{
+				const char* point=(const char*)memchr(read, '.', end-read);
+				if(point && point<end-2)
+					read=point;
+				else
+				{
+					error=true;
+					break;
+				}
+				*write++ = atoi(++read, end);
+			}
+			break;
+		}
+		else
+		{
+			error=true;
+			break;
+		}
+		chunk <<= 4;
+		chunk |= *read-offset;
+	}
+
+	if(error)
+		std::memset(m_data, 0, size);
+	else if(pad)
+	{
+		if(pad==write)
+			std::memset(write, 0, size-(write-m_data));
+		else
+		{
+			const size_t padSize=m_data+size-write;
+			std::memmove(pad+padSize, pad, write-pad);
+			std::memset(pad, 0, padSize);
+		}
+	}
+}
+
+template std::basic_ostream<char, std::char_traits<char> >& Fastcgipp::Http::operator<< <char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >& os, const Address& address);
+template std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator<< <wchar_t, std::char_traits<wchar_t> >(std::basic_ostream<wchar_t, std::char_traits<wchar_t> >& os, const Address& address);
+template<class charT, class Traits> std::basic_ostream<charT, Traits>& Fastcgipp::Http::operator<<(std::basic_ostream<charT, Traits>& os, const Address& address)
+{
+	using namespace std;
+	if(!os.good()) return os;
+	
+	try
+	{
+		typename basic_ostream<charT, Traits>::sentry opfx(os);
+		if(opfx)
+		{
+			streamsize fieldWidth=os.width(0);
+			charT buffer[40];
+			charT* bufPtr=buffer;
+			locale loc(os.getloc(), new num_put<charT, charT*>);
+
+			const uint16_t* subStart=0;
+			const uint16_t* subEnd=0;
+			{
+				const uint16_t* subStartCandidate;
+				const uint16_t* subEndCandidate;
+				bool inZero = false;
+
+				for(const uint16_t* it = (const uint16_t*)address.data(); it < (const uint16_t*)(address.data()+Address::size); ++it)
+				{
+					if(*it == 0)
+					{
+						if(!inZero)
+						{
+							subStartCandidate = it;
+							subEndCandidate = it;
+							inZero=true;
+						}
+						++subEndCandidate;
+					}
+					else if(inZero)
+					{
+						if(subEndCandidate-subStartCandidate > subEnd-subStart)
+						{
+							subStart=subStartCandidate;
+							subEnd=subEndCandidate-1;
+						}
+						inZero=false;
+					}
+				}
+				if(inZero)
+				{
+					if(subEndCandidate-subStartCandidate > subEnd-subStart)
+					{
+						subStart=subStartCandidate;
+						subEnd=subEndCandidate-1;
+					}
+					inZero=false;
+				}
+			}
+
+			ios_base::fmtflags oldFlags = os.flags();
+			os.setf(ios::hex, ios::basefield);
+
+			if(subStart==(const uint16_t*)address.data() && subEnd==(const uint16_t*)address.data()+4 && *((const uint16_t*)address.data()+5) == 0xffff)
+			{
+				// It is an ipv4 address
+				*bufPtr++=os.widen(':');
+				*bufPtr++=os.widen(':');
+				bufPtr=use_facet<num_put<charT, charT*> >(loc).put(bufPtr, os, os.fill(), static_cast<unsigned long int>(0xffff));
+				*bufPtr++=os.widen(':');
+				os.setf(ios::dec, ios::basefield);
+
+				for(const unsigned char* it = address.data()+12; it < address.data()+Address::size; ++it)
+				{
+					bufPtr=use_facet<num_put<charT, charT*> >(loc).put(bufPtr, os, os.fill(), static_cast<unsigned long int>(*it));
+					*bufPtr++=os.widen('.');
+				}
+				--bufPtr;
+			}
+			else
+			{
+				// It is an ipv6 address
+				for(const uint16_t* it = (const uint16_t*)address.data(); it < (const uint16_t*)(address.data()+Address::size); ++it)
+				{
+					if(subStart <= it && it <= subEnd)
+					{
+						if(it == subStart && it == (const uint16_t*)address.data())
+							*bufPtr++=os.widen(':');
+						if(it == subEnd)
+							*bufPtr++=os.widen(':');
+					}
+					else
+					{
+						bufPtr=use_facet<num_put<charT, charT*> >(loc).put(bufPtr, os, os.fill(), static_cast<unsigned long int>(Protocol::readBigEndian(*it)));
+
+						if(it < (const uint16_t*)(address.data()+Address::size)-1)
+							*bufPtr++=os.widen(':');
+					}
+				}
+			}
+
+			os.flags(oldFlags);
+
+			charT* ptr=buffer;
+			ostreambuf_iterator<charT,Traits> sink(os);
+			if(os.flags() & ios_base::left)
+				for(int i=max(fieldWidth, bufPtr-buffer); i>0; i--)
+				{
+					if(ptr!=bufPtr) *sink++=*ptr++;
+					else *sink++=os.fill();
+				}
+			else
+				for(int i=fieldWidth-(bufPtr-buffer); ptr!=bufPtr;)
+				{
+					if(i>0) { *sink++=os.fill(); --i; }
+					else *sink++=*ptr++;
+				}
+
+			if(sink.failed()) os.setstate(ios_base::failbit);
+		}
+	}
+	catch(bad_alloc&)
+	{
+		ios_base::iostate exception_mask = os.exceptions();
+		os.exceptions(ios_base::goodbit);
+		os.setstate(ios_base::badbit);
+		os.exceptions(exception_mask);
+		if(exception_mask & ios_base::badbit) throw;
+	}
+	catch(...)
+	{
+		ios_base::iostate exception_mask = os.exceptions();
+		os.exceptions(ios_base::goodbit);
+		os.setstate(ios_base::failbit);
+		os.exceptions(exception_mask);
+		if(exception_mask & ios_base::failbit) throw;
+	}
+	return os;
+}
+
+template std::basic_istream<char, std::char_traits<char> >& Fastcgipp::Http::operator>> <char, std::char_traits<char> >(std::basic_istream<char, std::char_traits<char> >& is, Address& address);
+template std::basic_istream<wchar_t, std::char_traits<wchar_t> >& Fastcgipp::Http::operator>> <wchar_t, std::char_traits<wchar_t> >(std::basic_istream<wchar_t, std::char_traits<wchar_t> >& is, Address& address);
+template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp::Http::operator>>(std::basic_istream<charT, Traits>& is, Address& address)
+{
+	using namespace std;
+	if(!is.good()) return is;
+
+	ios_base::iostate err = ios::goodbit;
+	try
+	{
+		typename basic_istream<charT, Traits>::sentry ipfx(is);
+		if(ipfx)
+		{
+			istreambuf_iterator<charT, Traits> read(is);
+			unsigned char buffer[Address::size];
+			unsigned char* write=buffer;
+			unsigned char* pad=0;
+			unsigned char offset;
+			unsigned char count=0;
+			uint16_t chunk=0;
+			charT lastChar=0;
+
+			for(;;++read)
+			{
+				if(++count>40)
+				{
+					err = ios::failbit;
+					break;
+				}
+				else if('0' <= *read && *read <= '9')
+					offset = '0';
+				else if('A' <= *read && *read <= 'Z')
+					offset = 'A'-10;
+				else if('a' <= *read && *read <= 'z')
+					offset = 'a'-10;
+				else if(*read == '.')
+				{
+					if(write == buffer)
+					{
+						// We must be getting a pure ipv4 formatted address. Not an ::ffff:xxx.xxx.xxx.xxx style ipv4 address.
+						*(uint16_t*)write = 0xffff;
+						pad = buffer;
+						write+=2;
+					}
+					else if(write - buffer > 12)
+					{
+						// We don't have enought space for an ipv4 address
+						err = ios::failbit;
+						break;
+					}
+
+					// First convert the value stored in chunk to the first part of the ipv4 address
+					*write = 0;
+					for(int i=0; i<3; ++i)
+					{
+						*write = *write * 10 + ((chunk&0x0f00)>>8);
+						chunk <<= 4;
+					}
+					++write;
+
+					// Now we'll get the remaining pieces
+					for(int i=0; i<3; ++i)
+					{
+						if(*read != is.widen('.'))
+						{
+							err = ios::failbit;
+							break;
+						}
+						unsigned int value;
+						use_facet<num_get<charT, istreambuf_iterator<charT, Traits> > >(is.getloc()).get(++read, istreambuf_iterator<charT, Traits>(), is, err, value);
+						*write++ = value;
+					}
+					break;
+				}
+				else
+				{
+					if(*read == ':' && (!lastChar || lastChar == ':'))
+					{
+						if(pad && pad != write)
+						{
+							err = ios::failbit;
+							break;
+						}
+						else
+							pad = write;
+					}
+					else
+					{
+						*write = (chunk&0xff00)>>8;
+						*(write+1) = chunk&0x00ff;
+						chunk = 0;
+						write += 2;
+						if(write>=buffer+Address::size)
+							break;
+						if(*read!=':')
+						{
+							if(!pad)
+								err = ios::failbit;
+							break;
+						}
+					}
+					lastChar=':';
+					continue;
+				}
+				chunk <<= 4;
+				chunk |= *read-offset;
+				lastChar=*read;
+				
+			}
+
+			if(err == ios::goodbit)
+			{
+				if(pad)
+				{
+					if(pad==write)
+						std::memset(write, 0, Address::size-(write-buffer));
+					else
+					{
+						const size_t padSize=buffer+Address::size-write;
+						std::memmove(pad+padSize, pad, write-pad);
+						std::memset(pad, 0, padSize);
+					}
+				}
+				address=buffer;
+			}
+			else
+				is.setstate(err);
+		}
+	}
+	catch(bad_alloc&)
+	{
+		ios_base::iostate exception_mask = is.exceptions();
+		is.exceptions(ios_base::goodbit);
+		is.setstate(ios_base::badbit);
+		is.exceptions(exception_mask);
+		if(exception_mask & ios_base::badbit) throw;
+	}
+	catch(...)
+	{
+		ios_base::iostate exception_mask = is.exceptions();
+		is.exceptions(ios_base::goodbit);
+		is.setstate(ios_base::failbit);
+		is.exceptions(exception_mask);
+		if(exception_mask & ios_base::failbit) throw;
+	}
+
+	return is;
 }

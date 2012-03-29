@@ -107,67 +107,86 @@ namespace Fastcgipp
 		extern const char* requestMethodLabels[];
 		template<class charT, class Traits> inline std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const RequestMethod requestMethod) { return os << requestMethodLabels[requestMethod]; }
 	
-		//! Efficiently stores IPv4 addresses
+		//! Efficiently stores IPv6 addresses
 		/*!
-		 * This class stores IPv4 addresses as unsigned 32bit integers. It does this
-		 * as opposed to storing the string itself to facilitate efficient logging and
-		 * processing of the address. The class possesses full IO and comparison capabilities
-		 * as well as allowing bitwise AND operations for netmask calculation.
+		 * This class stores IPv6 addresses as a 128 bit array. It does this as
+		 * opposed to storing the string itself to facilitate efficient logging
+		 * and processing of the address. The class possesses full IO and
+		 * comparison capabilities as well as allowing bitwise AND operations for
+		 * netmask calculation. It detects when an IPv4 address is stored outputs
+		 * it accordingly.
 		 */
 		class Address
 		{
 		public:
-			//! Retrieve the integer value of the IPv4 address
+			//! This is the data length of the IPv6 address
+			static const size_t size=16;
+
+			//! Retrieve a const pointer to the raw data of the IPv6 address
 			/*!
-			 * @return Unsigned 32bit integer representing the IPv4 address
+			 * @return Constant pointer to data array representing the raw IPv6 address
 			 */
-			const unsigned int& getInt() const { return data; }
-			//! Assign the IPv4 address from an integer
+			const unsigned char* data() const { return m_data; }
+
+			//! Retrieve a pointer to the raw data of the IPv6 address
 			/*!
-			 * @param[in] data_ Unsigned 32bit integer representing the IPv4 address
+			 * @return Pointer to data array representing the raw IPv6 address
 			 */
-			Address operator=(unsigned int data_) { data=data_; return *this; }
-			Address operator=(Address address) { data=address.data; return *this; }
-			Address(const Address& address): data(address.data) { }
-			//! Construct the IPv4 address from an integer
+			unsigned char* data() { return m_data; }
+
+			//! Assign the IPv4 address from a data array
 			/*!
-			 * @param[in] data_ Unsigned 32bit integer representing the IPv4 address
+			 * @param[in] data_ Pointer to a 16 byte array
 			 */
-			explicit Address(unsigned int data_): data(data_) { }
-			//! Constructs from a value of 0.0.0.0 (0)
-			Address(): data(0) { }
-			//! Assign the IPv4 address from a string of characters
+			Address operator=(const unsigned char* data_) { std::memcpy(m_data, data_, size); return *this; }
+
+			Address operator=(const Address& address) { std::memcpy(m_data, address.m_data, size); return *this; }
+			Address(const Address& address) { std::memcpy(m_data, address.m_data, size); }
+			Address() {}
+
+			//! Construct the IPv6 address from a data array
 			/*!
-			 * In order for this to work the string must represent an IPv4 address in
-			 * textual decimal form and nothing else. Example: "127.0.0.1".
+			 * @param[in] data_ Pointer to a 16 byte array
+			 */
+			explicit Address(const unsigned char* data_) { std::memcpy(m_data, data_, size); }
+
+			//! Assign the IP address from a string of characters
+			/*!
+			 * In order for this to work the string must represent either an IPv4 address in
+			 * standard textual decimal form (127.0.0.1) or an IPv6 in standard form.
 			 *
 			 * @param[in] start First character of the string
 			 * @param[in] end Last character of the string + 1
 			 */
 			void assign(const char* start, const char* end);
-			inline bool operator==(const Address x) const { return data==x.data; }
-			inline bool operator>(const Address x) const { return data>x.data; }
-			inline bool operator<(const Address x) const { return data<x.data; }
-			inline bool operator<=(const Address x) const { return data<=x.data; }
-			inline bool operator>=(const Address x) const { return data>=x.data; }
-			inline Address operator&(const Address x) const { return Address(data&x.data); }
+			inline bool operator==(const Address& x) const { return std::memcmp(m_data, x.m_data, size)==0; }
+			inline bool operator>(const Address& x) const { return std::memcmp(m_data, x.m_data, size)>0; }
+			inline bool operator<(const Address& x) const { return std::memcmp(m_data, x.m_data, size)<0; }
+			inline bool operator<=(const Address& x) const { return !(std::memcmp(m_data, x.m_data, size)>0); }
+			inline bool operator>=(const Address& x) const { return !(std::memcmp(m_data, x.m_data, size)<0); }
+			Address operator&(const Address& x) const;
+
+			Address& operator&=(const Address& x);
+
+			//! Set all bits to zero in ip address
+			void zero() { std::memset(m_data, 0, size); }
 
 		private:
-			template<class charT, class Traits> friend std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const Address& address);
-			template<class charT, class Traits> friend std::basic_istream<charT, Traits>& operator>>(std::basic_istream<charT, Traits>& is, Address& address);
-			//! Data representation of the IPv4 address
-			unsigned int data;
+			//! Data representation of the IPv6 address
+			unsigned char m_data[size];
 		};
 
 		//! Address stream insertion operation
 		/*!
-		 * This stream inserter obeys all stream manipulators regarding alignment, field width and numerical base.
+		 * This stream inserter obeys all stream manipulators regarding
+		 * alignment, field width and numerical base.
 		 */
 		template<class charT, class Traits> std::basic_ostream<charT, Traits>& operator<<(std::basic_ostream<charT, Traits>& os, const Address& address);
 		//! Address stream extractor operation
 		/*!
-		 * In order for this to work the stream must be positioned on at the start of a standard decimal representation
-		 * of a IPv4 address. Example: "127.0.0.1".
+		 * In order for this to work the string must represent either an IPv4
+		 * address in standard textual decimal form (127.0.0.1) or an IPv6 in
+		 * standard form.
 		 */
 		template<class charT, class Traits> std::basic_istream<charT, Traits>& operator>>(std::basic_istream<charT, Traits>& is, Address& address);
 
