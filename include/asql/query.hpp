@@ -227,6 +227,13 @@ namespace ASql
 		 */
 		void* parameters() { return m_sharedData->m_parameters; }
 
+		//! Return a const void pointer to the parameter set.
+		/*!
+		 * Usually you would keep the original typed pointer around but if you
+		 * lost it for some reason you can use this and cast it.
+		 */
+		const void* parameters() const { return m_sharedData->m_parameters; }
+
 	public:
 		 //! Calling the copy constructor will not set FLAG_ORIGINAL or create new shared data.
 		 /*! 
@@ -387,7 +394,10 @@ namespace ASql
 		void setParameters(Parameters* parameters) { QueryPar::setParameters(parameters); }
 
 		//! Returns a pointer to the parameter set
-		Parameters* parameters() { return static_cast<Parameters*>((ASql::Data::Set*)(QueryPar::parameters()));; }
+		Parameters* parameters() { return static_cast<Parameters*>((ASql::Data::Set*)(QueryPar::parameters())); }
+
+		//! Returns a const pointer to the parameter set
+		const Parameters* parameters() const { return static_cast<const Parameters*>((const ASql::Data::Set*)(QueryPar::parameters())); }
 
 		//! Relinquishes control over the parameter set.
 		/*!
@@ -468,7 +478,10 @@ namespace ASql
 		void setParameters(Parameters* parameters) { QueryPar::setParameters(parameters); }
 
 		//! Returns a pointer to the parameter set
-		Parameters* parameters() { return static_cast<Parameters*>((ASql::Data::Set*)(QueryPar::parameters()));; }
+		Parameters* parameters() { return static_cast<Parameters*>((ASql::Data::Set*)(QueryPar::parameters())); }
+
+		//! Returns a const pointer to the parameter set
+		const Parameters* parameters() const { return static_cast<const Parameters*>((const ASql::Data::Set*)(QueryPar::parameters())); }
 
 		//! Relinquishes control over the parameter set.
 		/*!
@@ -638,6 +651,9 @@ namespace ASql
 		 */
 		Parameters& createParameters() { Parameters* parameters=new Parameters; QueryPar::setParameters(parameters); return *parameters; }
 
+		//! Returns a const pointer to the parameter set
+		const Parameters* parameters() const { return static_cast<const Parameters*>((const ASql::Data::Set*)(QueryPar::parameters())); }
+
 		//! Set's the parameter data to point to the passed single row parameter set.
 		/*!
 		 * Note that the Query object assumes responsibility for destroying the
@@ -695,7 +711,10 @@ namespace ASql
 		void setParameters(Parameters* parameters) { QueryPar::setParameters(parameters); }
 
 		//! Returns a pointer to the parameter set container
-		Parameters* parameters() { return static_cast<Parameters*>((ASql::Data::SetContainer*)(QueryPar::parameters()));; }
+		Parameters* parameters() { return static_cast<Parameters*>((ASql::Data::SetContainer*)(QueryPar::parameters())); }
+
+		//! Returns a const pointer to the parameter set
+		const Parameters* parameters() const { return static_cast<const Parameters*>((const ASql::Data::SetContainer*)(QueryPar::parameters())); }
 
 		//! Relinquishes control over the parameter set container.
 		/*!
