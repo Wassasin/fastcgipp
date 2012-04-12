@@ -164,6 +164,8 @@ namespace Fastcgipp
 			inline bool operator<(const Address& x) const { return std::memcmp(m_data, x.m_data, size)<0; }
 			inline bool operator<=(const Address& x) const { return !(std::memcmp(m_data, x.m_data, size)>0); }
 			inline bool operator>=(const Address& x) const { return !(std::memcmp(m_data, x.m_data, size)<0); }
+			//! Returns false if the ip address is zeroed. True otherwise
+			operator bool() const;
 			Address operator&(const Address& x) const;
 
 			Address& operator&=(const Address& x);

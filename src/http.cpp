@@ -993,3 +993,11 @@ template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp
 
 	return is;
 }
+
+Fastcgipp::Http::Address::operator bool() const
+{
+	static const unsigned char nullString[size] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 
+	if(std::memcmp(m_data, nullString, size) == 0)
+		return false;
+	return true;
+}
