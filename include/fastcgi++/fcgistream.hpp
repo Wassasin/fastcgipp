@@ -200,8 +200,8 @@ namespace Fastcgipp
 		struct Encoder: public boost::iostreams::multichar_filter<boost::iostreams::output, charT>
 		{
 			template<typename Sink> std::streamsize write(Sink& dest, const charT* s, std::streamsize n);
-
 			OutputEncoding m_state;
+			Encoder(): m_state(NONE) {}
 		};
 		
 		Encoder& m_encoder;
