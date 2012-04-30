@@ -318,7 +318,7 @@ namespace Fastcgipp
 			//! Clear the post buffer
 			void clearPostBuffer() { postBuffer.reset(); pPostBuffer=0; }
 
-			Environment(): etag(0), keepAlive(0), contentLength(0), serverPort(0), remotePort(0) {}
+			Environment(): requestMethod(HTTP_METHOD_ERROR), etag(0), keepAlive(0), contentLength(0), serverPort(0), remotePort(0) {}
 		private:
 			//! Raw string of characters representing the post boundary
 			boost::scoped_array<char> boundary;
