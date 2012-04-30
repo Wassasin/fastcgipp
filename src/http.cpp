@@ -77,7 +77,7 @@ size_t Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* dest
 			*destination=0;
 			for(int shift=4; shift>=0; shift-=4)
 			{
-				if(++i==size) break;
+				if(++i>=size) break;
 				++source;
 				if((*source|0x20) >= 'a' && (*source|0x20) <= 'f')
 					*destination|=((*source|0x20)-0x57)<<shift;
@@ -95,7 +95,7 @@ size_t Fastcgipp::Http::percentEscapedToRealBytes(const char* source, char* dest
 		else
 			*destination++=*source++;
 
-		if(++i==size) break;
+		if(++i>=size) break;
 	}
 	return destination-start;
 }
