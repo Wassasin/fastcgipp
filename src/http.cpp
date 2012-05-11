@@ -640,9 +640,9 @@ void Fastcgipp::Http::Address::assign(const char* start, const char* end)
 		}
 		else if('0' <= *read && *read <= '9')
 			offset = '0';
-		else if('A' <= *read && *read <= 'Z')
+		else if('A' <= *read && *read <= 'F')
 			offset = 'A'-10;
-		else if('a' <= *read && *read <= 'z')
+		else if('a' <= *read && *read <= 'f')
 			offset = 'a'-10;
 		else if(*read == '.')
 		{
@@ -876,9 +876,9 @@ template<class charT, class Traits> std::basic_istream<charT, Traits>& Fastcgipp
 				}
 				else if('0' <= *read && *read <= '9')
 					offset = '0';
-				else if('A' <= *read && *read <= 'Z')
+				else if('A' <= *read && *read <= 'F')
 					offset = 'A'-10;
-				else if('a' <= *read && *read <= 'z')
+				else if('a' <= *read && *read <= 'f')
 					offset = 'a'-10;
 				else if(*read == '.')
 				{
