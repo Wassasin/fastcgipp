@@ -34,7 +34,6 @@
 #include <boost/thread/shared_mutex.hpp>
 
 #include <signal.h>
-#include <pthread.h>
 
 #include <fastcgi++/protocol.hpp>
 #include <fastcgi++/transceiver.hpp>
@@ -142,12 +141,6 @@ namespace Fastcgipp
 		bool asleep;
 		//! Mutex to make accessing asleep thread safe
 		boost::mutex sleepMutex;
-		//! The pthread id of the thread the handler() function is operating in.
-		/*!
-		 * Although this library is intended to be used with boost::thread and not pthread, the underlying
-		 * pthread id of the %handler() function is needed to call pthread_kill() when sleep is to be interrupted.
-		 */
-		pthread_t threadId;
 
 		//! Boolean value indicating that handler() should halt
 		/*!
@@ -294,8 +287,6 @@ template<class T> void Fastcgipp::Manager<T>::handler()
 {
 	using namespace std;
 	using namespace boost;
-
-	threadId=pthread_self();
 
 	while(1)
 	{{
