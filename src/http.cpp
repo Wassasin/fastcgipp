@@ -494,24 +494,28 @@ template<class charT> void Fastcgipp::Http::decodeUrlEncoded(const char* data, s
 	size_t valueSize;
 	for(char* i=buffer.get(); i<=buffer.get()+size; ++i)
 	{
-		if(*i == ' ' && nameStart && !valueStart)
+		if(i==buffer.get()+size || *i == fieldSeperator)
+		{
+			if(nameStart && valueStart)
+			{
+				valueSize=percentEscapedToRealBytes(valueStart, valueStart, i-valueStart);
+
+				basic_string<charT> name;
+				charToString(nameStart, nameSize, name);
+				nameStart=i+1;
+				basic_string<charT>& value=output[name];
+				charToString(valueStart, valueSize, value);
+				valueStart=0;
+			}
+		}
+
+		else if(*i == ' ' && nameStart && !valueStart)
 			++nameStart;
 
 		else if(*i == '=' && nameStart && !valueStart)
 		{
 			nameSize=percentEscapedToRealBytes(nameStart, nameStart, i-nameStart);
 			valueStart=i+1;
-		}
-		else if( (i==buffer.get()+size || *i == fieldSeperator) && nameStart && valueStart)
-		{
-			valueSize=percentEscapedToRealBytes(valueStart, valueStart, i-valueStart);
-
-			basic_string<charT> name;
-			charToString(nameStart, nameSize, name);
-			nameStart=i+1;
-			basic_string<charT>& value=output[name];
-			charToString(valueStart, valueSize, value);
-			valueStart=0;
 		}
 	}
 }
