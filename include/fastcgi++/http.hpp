@@ -301,7 +301,7 @@ namespace Fastcgipp
 			//! Consolidates POST data into a single buffer
 			/*!
 			 * This function will take arbitrarily divided chunks of raw http post
-			 * data and consolidate them into postBuffer.
+			 * data and consolidate them into m_postBuffer.
 			 *
 			 * @param[in] data Pointer to the first byte of post data
 			 * @param[in] size Size of data in bytes
@@ -315,8 +315,11 @@ namespace Fastcgipp
 			//! Parses "application/x-www-form-urlencoded" post data into the posts object.
 			void parsePostsUrlEncoded();
 
+			//! Get the post buffer
+			const char* postBuffer() const { return m_postBuffer.get(); }
+
 			//! Clear the post buffer
-			void clearPostBuffer() { postBuffer.reset(); pPostBuffer=0; }
+			void clearPostBuffer() { m_postBuffer.reset(); pPostBuffer=0; }
 
 			Environment(): requestMethod(HTTP_METHOD_ERROR), etag(0), keepAlive(0), contentLength(0), serverPort(0), remotePort(0) {}
 		private:
@@ -326,11 +329,11 @@ namespace Fastcgipp
 			size_t boundarySize;
 
 			//! Buffer for processing post data
-			boost::scoped_array<char> postBuffer;
+			boost::scoped_array<char> m_postBuffer;
 			//! Pointer in buffer
 			char* pPostBuffer;
 			//! Returns minimum buffer size remaining
-			size_t minPostBufferSize(const size_t size) { return std::min(size, size_t(postBuffer.get()+contentLength-pPostBuffer)); }
+			size_t minPostBufferSize(const size_t size) { return std::min(size, size_t(m_postBuffer.get()+contentLength-pPostBuffer)); }
 		};
 
 		//! Convert a char string to a std::wstring

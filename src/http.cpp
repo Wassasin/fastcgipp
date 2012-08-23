@@ -249,10 +249,10 @@ template bool Fastcgipp::Http::Environment<char>::fillPostBuffer(const char* dat
 template bool Fastcgipp::Http::Environment<wchar_t>::fillPostBuffer(const char* data, size_t size);
 template<class charT> bool Fastcgipp::Http::Environment<charT>::fillPostBuffer(const char* data, size_t size)
 {
-	if(!postBuffer)
+	if(!m_postBuffer)
 	{
-		postBuffer.reset(new char[contentLength]);
-		pPostBuffer=postBuffer.get();
+		m_postBuffer.reset(new char[contentLength]);
+		pPostBuffer=m_postBuffer.get();
 	}
 
 	size_t trueSize=minPostBufferSize(size);
@@ -277,7 +277,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsMultip
 	const char cContentType[] = "Content-Type: ";
 	const char cBodyStart[] = "\r\n\r\n";
 
-	pPostBuffer=postBuffer.get()+boundarySize+1;
+	pPostBuffer=m_postBuffer.get()+boundarySize+1;
 	const char* contentTypeStart=0;
 	ssize_t contentTypeSize=-1;
 	const char* nameStart=0;
@@ -287,7 +287,7 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsMultip
 	const char* bodyStart=0;
 	ssize_t bodySize=-1;
 	enum ParseState { HEADER, NAME, FILENAME, CONTENT_TYPE, BODY } parseState=HEADER;
-	for(pPostBuffer=postBuffer.get()+boundarySize+2; pPostBuffer<postBuffer.get()+contentLength; ++pPostBuffer)
+	for(pPostBuffer=m_postBuffer.get()+boundarySize+2; pPostBuffer<m_postBuffer.get()+contentLength; ++pPostBuffer)
 	{
 		switch(parseState)
 		{
@@ -427,19 +427,19 @@ template void Fastcgipp::Http::Environment<char>::parsePostsUrlEncoded();
 template void Fastcgipp::Http::Environment<wchar_t>::parsePostsUrlEncoded();
 template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsUrlEncoded()
 {
-	char* nameStart=postBuffer.get();
+	char* nameStart=m_postBuffer.get();
 	size_t nameSize;
 	char* valueStart=0;
 	size_t valueSize;
 
-	for(char* i=postBuffer.get(); i<=postBuffer.get()+contentLength; ++i)
+	for(char* i=m_postBuffer.get(); i<=m_postBuffer.get()+contentLength; ++i)
 	{
 		if(*i == '=' && nameStart && !valueStart)
 		{
 			nameSize=percentEscapedToRealBytes(nameStart, nameStart, i-nameStart);
 			valueStart=i+1;
 		}
-		else if( (i==postBuffer.get()+contentLength || *i == '&') && nameStart && valueStart)
+		else if( (i==m_postBuffer.get()+contentLength || *i == '&') && nameStart && valueStart)
 		{
 			valueSize=percentEscapedToRealBytes(valueStart, valueStart, i-valueStart);
 

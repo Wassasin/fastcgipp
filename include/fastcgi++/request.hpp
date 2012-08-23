@@ -160,6 +160,23 @@ namespace Fastcgipp
 		 */
 		virtual void inHandler(int bytesReceived) { };
 
+		//! Process custom POST data
+		/*!
+		 * Override this function should you wish to process non-standard post
+		 * data. The library will on it's own process post data of the types
+		 * "multipart/form-data" and "application/x-www-form-urlencoded". To use
+		 * this function, your raw post data is fully assembled in
+		 * environment().postBuffer(), the size is in environment().contentLength,
+		 * and the type string is stored in environment().contentType. Should the
+		 * content type be what you're looking for and you've processed it, simply
+		 * return true. Otherwise return false.  Do not worry about freeing the
+		 * data in the post buffer. Should you return false, the system will try
+		 * to internally process it.
+		 *
+		 * @return Return true if you've processed the data.
+		 */
+		bool virtual inProcessor() { return false; }
+
 		//! The message associated with the current handler() call.
 		/*!
 		 * This is only of use to the library user when a non FastCGI (type=0) Message is passed

@@ -113,14 +113,17 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 							const char multipart[] = "multipart/form-data";
 							const char urlEncoded[] = "application/x-www-form-urlencoded";
 
-							if(sizeof(multipart)-1 == m_environment.contentType.size() && equal(multipart, multipart+sizeof(multipart)-1, m_environment.contentType.begin()))
-								m_environment.parsePostsMultipart();
+							if(!inProcessor())
+							{
+								if(sizeof(multipart)-1 == m_environment.contentType.size() && equal(multipart, multipart+sizeof(multipart)-1, m_environment.contentType.begin()))
+									m_environment.parsePostsMultipart();
 
-							else if(sizeof(urlEncoded)-1 == m_environment.contentType.size() && equal(urlEncoded, urlEncoded+sizeof(urlEncoded)-1, m_environment.contentType.begin()))
-								m_environment.parsePostsUrlEncoded();
+								else if(sizeof(urlEncoded)-1 == m_environment.contentType.size() && equal(urlEncoded, urlEncoded+sizeof(urlEncoded)-1, m_environment.contentType.begin()))
+									m_environment.parsePostsUrlEncoded();
 
-							else
-								throw Exceptions::UnknownContentType();
+								else
+									throw Exceptions::UnknownContentType();
+							}
 						}
 
 						m_environment.clearPostBuffer();
