@@ -272,6 +272,9 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsMultip
 {
 	using namespace std;
 
+	if(!postBuffer)
+		return;
+
 	const char cName[] = "name=\"";
 	const char cFilename[] = "filename=\"";
 	const char cContentType[] = "Content-Type: ";
@@ -427,6 +430,9 @@ template void Fastcgipp::Http::Environment<char>::parsePostsUrlEncoded();
 template void Fastcgipp::Http::Environment<wchar_t>::parsePostsUrlEncoded();
 template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsUrlEncoded()
 {
+	if(!postBuffer)
+		return;
+
 	char* nameStart=postBuffer.get();
 	size_t nameSize;
 	char* valueStart=0;
