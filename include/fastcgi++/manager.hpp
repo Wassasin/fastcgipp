@@ -27,6 +27,7 @@
 #include <queue>
 #include <algorithm>
 #include <cstring>
+#include <functional>
 
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
@@ -163,7 +164,7 @@ namespace Fastcgipp
 		//! Pointer to the %Manager object
 		static ManagerPar* instance;
 	};
-	
+
 	//! General task and protocol management class
 	/*!
 	 * Handles all task and protocol management, creation/destruction
@@ -175,9 +176,11 @@ namespace Fastcgipp
 	 * @tparam T Class that will handle individual requests. Should be derived from
 	 * the Request class.
 	 */
-	template<class T> class Manager: public ManagerPar
+	template<class T> class GenManager: public ManagerPar
 	{
 	public:
+		typedef std::function<boost::shared_ptr<T>()> callback_t;
+
 		//! Construct from a file descriptor
 		/*!
 		 * The only piece of data required to construct a %Manager object is a
@@ -189,7 +192,10 @@ namespace Fastcgipp
 		 * @param[in] fd File descriptor to listen on.
 		 * @param[in] doSetupSignals If true, signal handlers will be set up for SIGTERM and SIGUSR1. If false, no signal handlers will be set up.
 		 */
-		Manager(int fd=0, bool doSetupSignals=true): ManagerPar(fd, boost::bind(&Manager::push, boost::ref(*this), _1, _2), doSetupSignals) {}
+		GenManager(callback_t callback, int fd=0, bool doSetupSignals=true)
+		: ManagerPar(fd, boost::bind(&GenManager::push, boost::ref(*this), _1, _2), doSetupSignals)
+		, callback(callback)
+		{}
 
 		//! General handling function to be called after construction
 		/*!
@@ -234,10 +240,19 @@ namespace Fastcgipp
 		 * to the actual Request object.
 		 */
 		Requests requests;
+		callback_t callback;
+	};
+
+	template<class T> class Manager : public GenManager<T>
+	{
+	public:
+		Manager(int fd=0, bool doSetupSignals=true)
+		: GenManager<T>([](){ return boost::shared_ptr<T>(new T); }, fd, doSetupSignals)
+		{}
 	};
 }
 
-template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message message)
+template<class T> void Fastcgipp::GenManager<T>::push(Protocol::FullId id, Message message)
 {
 	using namespace std;
 	using namespace Protocol;
@@ -265,8 +280,8 @@ template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message 
 				boost::unique_lock<shared_mutex> reqWriteLock(requests);
 
 				boost::shared_ptr<T>& request = requests[id];
-				request.reset(new T);
-				request->set(id, transceiver, body.getRole(), !body.getKeepConn(), boost::bind(&Manager::push, boost::ref(*this), id, _1));
+				request = callback();
+				request->set(id, transceiver, body.getRole(), !body.getKeepConn(), boost::bind(&GenManager::push, boost::ref(*this), id, _1));
 			}
 			else
 				return;
@@ -283,7 +298,7 @@ template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message 
 		transceiver.wake();
 }
 
-template<class T> void Fastcgipp::Manager<T>::handler()
+template<class T> void Fastcgipp::GenManager<T>::handler()
 {
 	using namespace std;
 	using namespace boost;

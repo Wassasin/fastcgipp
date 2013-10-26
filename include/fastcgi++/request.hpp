@@ -187,7 +187,7 @@ namespace Fastcgipp
 		const Message& message() const { return m_message; }
 
 	private:
-		template<class T> friend class Manager;
+		template<class T> friend class GenManager;
 
 		//! The locale associated with the request. Should be set with setloc(), not directly.
 		std::locale loc;
