@@ -249,9 +249,9 @@ template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message 
 		typename Requests::iterator it(requests.find(id));
 		if(it!=requests.end())
 		{
-			lock_guard<mutex> mesLock(it->second->messages);
+			boost::lock_guard<boost::mutex> mesLock(it->second->messages);
 			it->second->messages.push(message);
-			lock_guard<mutex> tasksLock(tasks);
+			boost::lock_guard<boost::mutex> tasksLock(tasks);
 			tasks.push(id);
 		}
 		else if(!message.type)
@@ -278,7 +278,7 @@ template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message 
 		tasks.push(id);
 	}
 
-	lock_guard<mutex> sleepLock(sleepMutex);
+	boost::lock_guard<boost::mutex> sleepLock(sleepMutex);
 	if(asleep)
 		transceiver.wake();
 }
@@ -291,7 +291,7 @@ template<class T> void Fastcgipp::Manager<T>::handler()
 	while(1)
 	{{
 		{
-			lock_guard<mutex> stopLock(stopMutex);
+			boost::lock_guard<boost::mutex> stopLock(stopMutex);
 			if(stopBool)
 			{
 				stopBool=false;
@@ -302,7 +302,7 @@ template<class T> void Fastcgipp::Manager<T>::handler()
 		bool sleep=transceiver.handler();
 
 		{
-			lock_guard<mutex> terminateLock(terminateMutex);
+			boost::lock_guard<boost::mutex> terminateLock(terminateMutex);
 			if(terminateBool)
 			{
 				shared_lock<shared_mutex> requestsLock(requests);
@@ -314,8 +314,8 @@ template<class T> void Fastcgipp::Manager<T>::handler()
 			}
 		}
 
-		unique_lock<mutex> tasksLock(tasks);
-		unique_lock<mutex> sleepLock(sleepMutex);
+		boost::unique_lock<boost::mutex> tasksLock(tasks);
+		boost::unique_lock<boost::mutex> sleepLock(sleepMutex);
 
 		if(tasks.empty())
 		{
