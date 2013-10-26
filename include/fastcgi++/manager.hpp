@@ -262,7 +262,7 @@ template<class T> void Fastcgipp::Manager<T>::push(Protocol::FullId id, Message 
 				BeginRequest& body=*(BeginRequest*)(message.data.get()+sizeof(Header));
 
 				reqReadLock.unlock();
-				unique_lock<shared_mutex> reqWriteLock(requests);
+				boost::unique_lock<shared_mutex> reqWriteLock(requests);
 
 				boost::shared_ptr<T>& request = requests[id];
 				request.reset(new T);
@@ -348,7 +348,7 @@ template<class T> void Fastcgipp::Manager<T>::handler()
 			if(it!=requests.end() && it->second->handler())
 			{
 				reqReadLock.unlock();
-				unique_lock<shared_mutex> reqWriteLock(requests);
+				boost::unique_lock<shared_mutex> reqWriteLock(requests);
 
 				requests.erase(it);
 			}
