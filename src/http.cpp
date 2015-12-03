@@ -20,6 +20,8 @@
 
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <fastcgi++/http.hpp>
 #include <fastcgi++/protocol.hpp>
@@ -458,6 +460,19 @@ template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsUrlEnc
 			valueStart=0;
 		}
 	}
+}
+
+template void Fastcgipp::Http::Environment<char>::parsePostsJson();
+template void Fastcgipp::Http::Environment<wchar_t>::parsePostsJson();
+template<class charT> void Fastcgipp::Http::Environment<charT>::parsePostsJson()
+{
+	if(!m_postBuffer)
+		return;
+
+	std::string jsonString;
+	charToString(m_postBuffer.get(), contentLength, jsonString);
+	std::istringstream dataStream(jsonString);
+    boost::property_tree::read_json(dataStream, jsonRoot);
 }
 
 bool Fastcgipp::Http::SessionId::seeded=false;

@@ -112,6 +112,7 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 						{
 							const char multipart[] = "multipart/form-data";
 							const char urlEncoded[] = "application/x-www-form-urlencoded";
+							const char json[] = "application/json";
 
 							if(!inProcessor())
 							{
@@ -120,6 +121,9 @@ template<class charT> bool Fastcgipp::Request<charT>::handler()
 
 								else if(sizeof(urlEncoded)-1 == m_environment.contentType.size() && equal(urlEncoded, urlEncoded+sizeof(urlEncoded)-1, m_environment.contentType.begin()))
 									m_environment.parsePostsUrlEncoded();
+
+								else if(sizeof(json)-1 == m_environment.contentType.size() && equal(json, json+sizeof(json)-1, m_environment.contentType.begin()))
+									m_environment.parsePostsJson();
 
 								else
 									throw Exceptions::UnknownContentType();
