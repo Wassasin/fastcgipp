@@ -26,6 +26,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <ostream>
 #include <istream>
 #include <cstring>
@@ -272,6 +273,9 @@ namespace Fastcgipp
 			//! STL container associating Post objects with their name
 			Posts posts;
 
+			typedef boost::property_tree::ptree Json;
+			Json jsonRoot;
+
 			//! Quick and easy way to find a POST value
 			/*!
 			 * \param[in] key C-string representation of the name of the POST value you want
@@ -314,6 +318,9 @@ namespace Fastcgipp
 
 			//! Parses "application/x-www-form-urlencoded" post data into the posts object.
 			void parsePostsUrlEncoded();
+
+			//! Parses "application/json" post data into the jsonRoot object.
+			void parsePostsJson();
 
 			//! Get the post buffer
 			const char* postBuffer() const { return m_postBuffer.get(); }
