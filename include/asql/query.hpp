@@ -250,7 +250,7 @@ namespace ASql
 		}
 
 		//! Returns the insert ID returned from the query or 0 if nothing.
-		unsigned long long insertId() const { return m_sharedData->m_insertId?*(m_sharedData->m_insertId):0; }
+		unsigned int insertId() const { return m_sharedData->m_insertId?*(m_sharedData->m_insertId):0; }
 
 		//! Returns the rows affected/available from the query or 0 if nothing.
 		/*!
